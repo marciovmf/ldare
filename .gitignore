@@ -1,0 +1,8 @@
+*.swp
+*.obj
+*.exe
+*.pdb
+*.lnk
+*.ilk
+build/
+
