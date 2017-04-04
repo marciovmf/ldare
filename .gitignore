@@ -4,5 +4,6 @@
 *.pdb
 *.lnk
 *.ilk
+tags
 build/
 
