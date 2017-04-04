@@ -1,15 +1,30 @@
 #include <windows.h>
 #include <tchar.h>
 
-#define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
-
-//TODO: Add LogInfo() and LogWarning() macros
 #ifdef DEBUG
 #include <iostream>
-#define logError(msg) std::cerr << msg << std::endl;
+
+#ifdef UNICODE
+#define OUTSTREAM std::cout
+#define ERRSTREAM std::cerr
 #else
-#define logError(msg) 
-#endif
+#define OUTSTREAM std::cout
+#define ERRSTREAM std::cerr
+#endif // UNICODE
+
+#define LogMsg(prefix, msg, stdstream) stdstream << prefix << " " << msg << "\n" << __FILE__ << ":" << __LINE__ <<  std::endl
+#define LogInfo(msg) LogMsg("[INFO]", msg, OUTSTREAM)
+#define LogWarning(msg) LogMsg("[WARNING]", msg, OUTSTREAM)
+#define LogError(msg) LogMsg("[ERROR]", msg, OUTSTREAM)
+#else
+#define LogMsg(prefix, msg, stdstream)
+#define LogError(msg) 
+#define LogWarning(msg) 
+#define LogError(msg) 
+
+#endif // DEBUG
+
+#define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 
 struct GameWindow
 {
@@ -20,13 +35,7 @@ struct GameWindow
 
 static GameWindow _gameWindow;
 
-
-LRESULT CALLBACK GameWindowProc(
-  HWND   hwnd,
-  UINT   uMsg,
-  WPARAM wParam,
-  LPARAM lParam
-)
+LRESULT CALLBACK GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(uMsg)
 	{
@@ -40,24 +49,23 @@ LRESULT CALLBACK GameWindowProc(
 	}
 
 	return TRUE;
-
 }
 
-static bool RegisterGameWindowClass(HINSTANCE hInstance)
+static bool RegisterGameWindowClass(HINSTANCE hInstance, TCHAR* className)
 {
 	WNDCLASS windowClass = {};
 	windowClass.style = CS_OWNDC;
 	windowClass.lpfnWndProc = GameWindowProc;
 	windowClass.hInstance = hInstance;
 	windowClass.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
-	windowClass.lpszClassName = GAME_WINDOW_CLASS;
-
+	windowClass.lpszClassName = className;
 	return RegisterClass(&windowClass) != 0;
 }
 
-static bool CreateGameWindow(GameWindow* gameWindow, int width, int height, HINSTANCE hInstance, const char* title)
+static bool CreateGameWindow(
+		GameWindow* gameWindow, int width, int height, HINSTANCE hInstance, TCHAR* title)
 {
-		 gameWindow->hwnd = CreateWindow(GAME_WINDOW_CLASS,
+		 gameWindow->hwnd = CreateWindow(TEXT(GAME_WINDOW_CLASS),
 			title,
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT,
@@ -71,29 +79,25 @@ static bool CreateGameWindow(GameWindow* gameWindow, int width, int height, HINS
 
 		if (!gameWindow->hwnd)
 			return false;
-		//TODO: Logo error here
 
 		gameWindow->dc = GetDC(gameWindow->hwnd);
-		//TODO: Logo error here if DC is NULL
 		return gameWindow->dc != NULL;
 
 }
 
 int CALLBACK WinMain(
-		HINSTANCE hInstance,
-		HINSTANCE hPrevInstance,
-		LPSTR     lpCmdLine,
-		int       nCmdShow
-		)
+		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	if ( !RegisterGameWindowClass(hInstance) )
+	LogInfo("Initializing");
+
+	if ( !RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
 	{
-		logError("Could not register window class ");
+		LogError("Could not register window class");
 	}
 
-	if (!CreateGameWindow(&_gameWindow, 800, 600, hInstance, "lDare Engine" ))
+	if (!CreateGameWindow(&_gameWindow, 800, 600, hInstance, TEXT("lDare Engine") ))
 	{
-		logError("Could not create window");
+		LogError("Could not create window");
 	}
 
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
@@ -108,15 +112,15 @@ int CALLBACK WinMain(
 		}
 	}
 
+	LogInfo("Finished");
 	return 0;
 }
-//TODO: remove IOSTREAM from here
-//TODO: Replace raw std::cout for logError
+
 #ifdef DEBUG
-#include <iostream>
 int _tmain(int argc, _TCHAR** argv)
 {
-	std::cout << "Initializing ldare ..." << std::endl;
 	return WinMain(GetModuleHandle(NULL), NULL, NULL,SW_SHOW);
 }
-#endif
+#endif //DEBUG
+
+
