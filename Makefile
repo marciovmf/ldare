@@ -1,7 +1,7 @@
 
 TARGET=ldare.exe
 OUTDIR=build
-LIBS=user32.lib gdi32.lib
+LIBS=user32.lib gdi32.lib Opengl32.lib
 
 all: ldared
 
