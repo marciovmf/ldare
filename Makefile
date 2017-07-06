@@ -13,4 +13,4 @@ ldared:
 
 clean:
 	mkdir build
-	del /S $(OUTDIR)\*
+	del /S /! .\$(OUTDIR)\*
