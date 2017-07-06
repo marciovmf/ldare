@@ -182,7 +182,7 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 		WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
 		WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
 		WGL_COLOR_BITS_ARB, 32,
-		WGL_DEPTH_BITS_ARB, 24,
+		WGL_DEPTH_BITS_ARB, 8,
 		0
 	};
 
@@ -256,7 +256,7 @@ int CALLBACK WinMain(
 		LogError("Could not create window");
 	}
 
-	if (! Win32_InitOpenGL(&_gameWindow, hInstance, 3, 1))
+	if (! Win32_InitOpenGL(&_gameWindow, hInstance, 3, 2))
 	{
 		LogError("Could not initialize OpenGL for game window" );
 	}
