@@ -4,6 +4,8 @@
 *.pdb
 *.lnk
 *.ilk
+*.orig
+*.swp
 tags
 build/
 
