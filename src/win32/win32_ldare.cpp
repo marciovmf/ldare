@@ -96,14 +96,19 @@ static bool CreateGameWindow(
 
 static void* Win32_GetGLfunctionPointer(const char* functionName)
 {
+	static HMODULE opengl32dll = GetModuleHandleA("OpenGL32.dll");
 	void* functionPtr = wglGetProcAddress(functionName);
 	if( functionPtr == (void*)0x1 || functionPtr == (void*) 0x02 ||
 			functionPtr == (void*) 0x3 || functionPtr == (void*) -1 ||
 			functionPtr == (void*) 0x0)
 	{
-		LogError("Could not get GL function pointer");
-		LogError(functionName);
-		return nullptr;
+		functionPtr = GetProcAddress(opengl32dll, functionName);
+		if(!functionPtr)
+		{
+			LogError("Could not get GL function pointer");
+			LogError(functionName);
+			return nullptr;
+		}
 	}
 	
 	return functionPtr;
@@ -111,8 +116,6 @@ static void* Win32_GetGLfunctionPointer(const char* functionName)
 
 static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int major, int minor)
 {
-
-	LoadLibraryA("OpenGl32.dll");
 
 	GameWindow dummyWindow = {};
 	if (! CreateGameWindow(&dummyWindow,0,0,hInstance,TEXT("")) )
@@ -239,7 +242,6 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 
 	return true;
 }
-
 
 int CALLBACK WinMain(
 		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)

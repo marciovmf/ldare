@@ -12,4 +12,4 @@ ldared:
 	cl src\win32\win32_ldare.cpp /Zi /nologo /EHsc /D "DEBUG"  /D "WIN32" /MT /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ /link /subsystem:console $(LIBS)
 
 clean:
-	del /S /! .\$(OUTDIR)\*
+	del /S /Q .\$(OUTDIR)\*
