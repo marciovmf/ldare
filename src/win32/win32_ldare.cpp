@@ -1,16 +1,10 @@
 #include "../ldare.h"
+#include "../ldare_core_gl.h"
 #include <windows.h>
 #include <tchar.h>
 
-#include "../GL/glcorearb.h"
-#include "../GL/wglext.h"
-
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 
-PFNGLCLEARPROC glClear;
-PFNGLCLEARCOLORPROC glClearColor;
-PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
-PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
 
 struct GameWindow
 {
@@ -156,7 +150,7 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	wglDeleteContext(dummyWindow.rc);
 	DestroyWindow(dummyWindow.hwnd);
 
-	// specify OPENG attributes for pixel format
+	// specify OPENGL attributes for pixel format
 	const int pixelFormatAttribList[] =
 	{
 		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
