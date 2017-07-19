@@ -1,10 +1,11 @@
 #include "../ldare.h"
 #include "../ldare_core_gl.h"
+#include <ldare/game.h>
+
 #include <windows.h>
 #include <tchar.h>
 
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
-
 
 struct GameWindow
 {
@@ -133,11 +134,30 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	bool success = true;
 
 #define FETCH_GL_FUNC(type, name) success = success && (name = (type) Win32_GetGLfunctionPointer(#name))
-
-	FETCH_GL_FUNC(PFNWGLCHOOSEPIXELFORMATARBPROC, wglChoosePixelFormatARB);
-	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
 	FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
 	FETCH_GL_FUNC(PFNGLCLEARCOLORPROC, glClearColor);
+	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
+	FETCH_GL_FUNC(PFNWGLCHOOSEPIXELFORMATARBPROC, wglChoosePixelFormatARB);
+	FETCH_GL_FUNC(PFNGLGENBUFFERSPROC, glGenBuffers);
+	FETCH_GL_FUNC(PFNGLBINDBUFFERPROC, glBindBuffer);
+	FETCH_GL_FUNC(PFNGLBUFFERDATAPROC, glBufferData);
+	FETCH_GL_FUNC(PFNGLSHADERSOURCEPROC, glShaderSource);
+	FETCH_GL_FUNC(PFNGLCOMPILESHADERPROC, glCompileShader);
+	FETCH_GL_FUNC(PFNGLCREATESHADERPROC, glCreateShader);
+	FETCH_GL_FUNC(PFNGLATTACHSHADERPROC, glAttachShader);
+	FETCH_GL_FUNC(PFNGLCREATEPROGRAMPROC, glCreateProgram);
+	FETCH_GL_FUNC(PFNGLUSEPROGRAMPROC, glUseProgram);
+	FETCH_GL_FUNC(PFNGLLINKPROGRAMPROC, glLinkProgram);
+	FETCH_GL_FUNC(PFNGLDELETESHADERPROC, glDeleteShader);
+	FETCH_GL_FUNC(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray);
+	FETCH_GL_FUNC(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer);
+	FETCH_GL_FUNC(PFNGLDRAWARRAYSPROC, glDrawArrays);
+	FETCH_GL_FUNC(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray);
+	FETCH_GL_FUNC(PFNGLGETSHADERIVPROC, glGetShaderiv);
+	FETCH_GL_FUNC(PFNGLGETPROGRAMIVPROC, glGetProgramiv);
+	FETCH_GL_FUNC(PFNGLGETSHADERINFOLOGPROC, glGetShaderInfoLog);
+	FETCH_GL_FUNC(PFNGLGETPROGRAMINFOLOGPROC, glGetProgramInfoLog);
+	FETCH_GL_FUNC(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays);
 #undef FETCH_GL_FUNC
 
 	if (!success)
@@ -215,17 +235,30 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	return true;
 }
 
+
+//TODO: Remove this when dynamic game loda is done
+#include "../../game/test_game.cpp"
+TestGame testGame;
+// <---------
+
+
 int CALLBACK WinMain(
 		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	LogInfo("Initializing");
+	//TODO: Load this dynamically
+	ldare::Game *game = &testGame;
+
+	// Initialize the game settings
+	ldare::GameRuntimeSettings gameSettings = game->initialize();
 
 	if ( !RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
 	{
 		LogError("Could not register window class");
 	}
 
-	if (!CreateGameWindow(&_gameWindow, 800, 600, hInstance, TEXT("lDare Engine") ))
+	if (!CreateGameWindow(&_gameWindow, gameSettings.windowWidth,
+				gameSettings.windowHeight, hInstance, TEXT("lDare Engine") ))
 	{
 		LogError("Could not create window");
 	}
@@ -235,9 +268,10 @@ int CALLBACK WinMain(
 		LogError("Could not initialize OpenGL for game window" );
 	}
 
-	glClearColor(1,0,0,1);
-	ShowWindow(_gameWindow.hwnd, SW_SHOW);
+	// start the game
+	if (game) game->startGame();
 
+	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 	while (!_gameWindow.shouldClose)
 	{
 		MSG msg;
@@ -245,7 +279,11 @@ int CALLBACK WinMain(
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
-			glClear(GL_COLOR_BUFFER_BIT);
+			//glClear(GL_COLOR_BUFFER_BIT);
+
+			//Update the game
+			game->updateGame();
+
 			SwapBuffers(_gameWindow.dc);
 		}
 	}
