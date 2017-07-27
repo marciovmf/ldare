@@ -216,13 +216,6 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	return true;
 }
 
-
-//TODO: Remove this when dynamic game loda is done
-#include "../../game/test_game.cpp"
-TestGame testGame;
-// <---------
-
-
 int CALLBACK WinMain(
 		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
