@@ -1,31 +1,26 @@
-#include <ldare\game.h>
+#include <ldare/game.h>
 
-//TODO: This is a test! Remove it when we have a renderer
-#define DECLARE_EXTERN_GL
-#include "../src/ldare_core_gl.h"
-#undef DECLARE_EXTERN_GL
+static LDGameContext gameContext;
 
-class TestGame : public ldare::Game
+LDGameContext gameInit()
 {
-	public:
-		ldare::GameRuntimeSettings initialize() override
-		{
-			ldare::GameRuntimeSettings settings = {};
-			settings.windowWidth = 800;
-			settings.windowHeight = 600;
+	gameContext.windowWidth = 800;
+	gameContext.windowHeight = 600;
+	return gameContext;
+}
 
-			return settings;
-		}
+void gameStart()
+{
+	LogInfo("Game started");
+}
 
-		void startGame() override
-		{
-			LogInfo("Game started");
-		}
+void gameUpdate()
+{
+	LogInfo("Game updating");
+}
 
-		void updateGame() override
-		{
-			LogInfo("Game Update...");
-			glClear(GL_COLOR_BUFFER_BIT);
-		}
-};
+void gameStop()
+{
+	LogInfo("Game stopped");
+}
 

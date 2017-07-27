@@ -1,18 +1,34 @@
+# source paths
+LDARESDK=src\sdk
+LDARESRC=src\win32\win32_ldare.cpp
+GAMESRC=game\test_game.cpp
 
+#build targets
 TARGET=ldare.exe
 OUTDIR=build
+LDARE_GAME=$(OUTDIR)\ldare_game.obj
+LDARE_CORE=$(OUTDIR)\ldare_core.obj
+
+#DEBUG OPTIONS
 LIBS=user32.lib gdi32.lib Opengl32.lib
-LDARESDK=src\sdk
+DEBUG_COMPILE_OPTIONS=/nologo /EHsc /MT /I$(LDARESDK) /D "WIN32" /D "DEBUG" /Zi 
+DEBUG_LINK_OPTIONS=/link /subsystem:console $(LIBS)
 
-DEBUG_OPTIONS=/Zi /nologo /EHsc /D "DEBUG" /MT
+#RELEASE OPTIONS
+RELEASE_COMPILE_OPTIONS=/nologo /EHsc /MT /I$(LDARESDK) /D "WIN32" 
+RELEASE_LINK_OPTIONS=/link /subsystem:windows $(LIBS)
 
-all: ldared
+CFLAGS=$(DEBUG_COMPILE_OPTIONS)
+LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
-ldare:
-	cl src\win32\win32_ldare.cpp /nologo /MT /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ /link /subsystem:windows $(LIBS)
+all: ldare_game ldare_core
+	cl $(LDARE_CORE) $(LDARE_GAME) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
 
-ldared:
-	cl src\win32\win32_ldare.cpp game\test_game.cpp /I$(LDARESDK) $(DEBUG_OPTIONS) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ /link /subsystem:console $(LIBS)
+ldare_game: $(GAMESRC)
+	cl /c $(GAMESRC) /Fo$(LDARE_GAME) $(CFLAGS) 
+
+ldare_core: $(LDARESRC)
+	cl /c $(LDARESRC) /Fo$(LDARE_CORE) $(CFLAGS) /D "LDARE_ENGINE" 
 
 clean:
 	del /S /Q .\$(OUTDIR)\*

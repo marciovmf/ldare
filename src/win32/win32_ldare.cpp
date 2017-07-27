@@ -1,4 +1,5 @@
-#include "../ldare.h"
+#include <ldare/ldare.h>
+#include <ldare/game.h>
 #include "../ldare_core_gl.h"
 #include <ldare/game.h>
 
@@ -134,11 +135,10 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	bool success = true;
 
 #define FETCH_GL_FUNC(type, name) success = success && (name = (type) Win32_GetGLfunctionPointer(#name))
-
-	FETCH_GL_FUNC(PFNWGLCHOOSEPIXELFORMATARBPROC, wglChoosePixelFormatARB);
-	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
 	FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
 	FETCH_GL_FUNC(PFNGLCLEARCOLORPROC, glClearColor);
+	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
+	FETCH_GL_FUNC(PFNWGLCHOOSEPIXELFORMATARBPROC, wglChoosePixelFormatARB);
 #undef FETCH_GL_FUNC
 
 	if (!success)
@@ -227,19 +227,17 @@ int CALLBACK WinMain(
 		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	LogInfo("Initializing");
-	//TODO: Load this dynamically
-	ldare::Game *game = &testGame;
-
+	
 	// Initialize the game settings
-	ldare::GameRuntimeSettings gameSettings = game->initialize();
+	LDGameContext gameContext = gameInit();
 
 	if ( !RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
 	{
 		LogError("Could not register window class");
 	}
 
-	if (!CreateGameWindow(&_gameWindow, gameSettings.windowWidth,
-				gameSettings.windowHeight, hInstance, TEXT("lDare Engine") ))
+	if (!CreateGameWindow(&_gameWindow, gameContext.windowWidth,
+				gameContext.windowHeight, hInstance, TEXT("lDare Engine") ))
 	{
 		LogError("Could not create window");
 	}
@@ -250,9 +248,8 @@ int CALLBACK WinMain(
 	}
 
 	// start the game
-	if (game) game->startGame();
+	gameStart();
 
-	glClearColor(1,0,0,1);
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 	while (!_gameWindow.shouldClose)
 	{
@@ -264,12 +261,13 @@ int CALLBACK WinMain(
 			//glClear(GL_COLOR_BUFFER_BIT);
 
 			//Update the game
-			game->updateGame();
+			gameUpdate();
 
 			SwapBuffers(_gameWindow.dc);
 		}
 	}
-
+	
+	gameStop();
 	LogInfo("Finished");
 	return 0;
 }

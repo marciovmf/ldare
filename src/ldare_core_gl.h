@@ -4,15 +4,10 @@
 #include "../GL/glcorearb.h"
 #include "../GL/wglext.h"
 
-#ifdef DECLARE_EXTERN_GL
-#	define EXTERN extern
-#else
-#	define EXTERN
-#endif
-
-EXTERN PFNGLCLEARPROC glClear;
-EXTERN PFNGLCLEARCOLORPROC glClearColor;
-EXTERN PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
-EXTERN PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
+// OpenGL function pointers
+PFNGLCLEARPROC glClear;
+PFNGLCLEARCOLORPROC glClearColor;
+PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
+PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
 #endif // _LDARE_COREGL_
 
