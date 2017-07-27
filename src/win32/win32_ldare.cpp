@@ -1,7 +1,6 @@
-#include "../ldare.h"
-#include "../ldare_core_gl.h"
+#include <ldare/ldare.h>
 #include <ldare/game.h>
-
+#include "../ldare_core_gl.h"
 #include <windows.h>
 #include <tchar.h>
 
@@ -235,30 +234,21 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	return true;
 }
 
-
-//TODO: Remove this when dynamic game loda is done
-#include "../../game/test_game.cpp"
-TestGame testGame;
-// <---------
-
-
 int CALLBACK WinMain(
 		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	LogInfo("Initializing");
-	//TODO: Load this dynamically
-	ldare::Game *game = &testGame;
-
+	
 	// Initialize the game settings
-	ldare::GameRuntimeSettings gameSettings = game->initialize();
+	LDGameContext gameContext = gameInit();
 
 	if ( !RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
 	{
 		LogError("Could not register window class");
 	}
 
-	if (!CreateGameWindow(&_gameWindow, gameSettings.windowWidth,
-				gameSettings.windowHeight, hInstance, TEXT("lDare Engine") ))
+	if (!CreateGameWindow(&_gameWindow, gameContext.windowWidth,
+				gameContext.windowHeight, hInstance, TEXT("lDare Engine") ))
 	{
 		LogError("Could not create window");
 	}
@@ -269,7 +259,7 @@ int CALLBACK WinMain(
 	}
 
 	// start the game
-	if (game) game->startGame();
+	gameStart();
 
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 	while (!_gameWindow.shouldClose)
@@ -282,12 +272,13 @@ int CALLBACK WinMain(
 			//glClear(GL_COLOR_BUFFER_BIT);
 
 			//Update the game
-			game->updateGame();
+			gameUpdate();
 
 			SwapBuffers(_gameWindow.dc);
 		}
 	}
-
+	
+	gameStop();
 	LogInfo("Finished");
 	return 0;
 }
