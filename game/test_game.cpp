@@ -1,9 +1,35 @@
-#include <ldare\game.h>
+#include <ldare/game.h>
 
+static LDGameContext gameContext;
+
+LDGameContext gameInit()
+{
+	gameContext.windowWidth = 800;
+	gameContext.windowHeight = 600;
+	return gameContext;
+}
+
+void gameStart()
+{
+	LogInfo("Game started");
+}
+
+void gameUpdate()
+{
+	LogInfo("Game updating");
+}
+
+void gameStop()
+{
+	LogInfo("Game stopped");
+}
+
+#if 0
 //TODO: This is a test! Remove it when we have a renderer
 #define DECLARE_EXTERN_GL
 #include "../src/ldare_core_gl.h"
 #undef DECLARE_EXTERN_GL
+
 
 static GLint checkShaderCompilation(GLuint shader)
 {
@@ -161,4 +187,4 @@ class TestGame : public ldare::Game
 			draw_stuff();
 		}
 };
-
+#endif //0
