@@ -16,7 +16,7 @@
 #	define LogError(msg) LogMsg("[ERROR]", msg, OUTSTREAM)
 #else
 #	define LogMsg(prefix, msg, stdstream)
-#	define LogError(msg) 
+#	define LogInfo(msg) 
 #	define LogWarning(msg) 
 #	define LogError(msg) 
 #endif // DEBUG
