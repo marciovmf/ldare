@@ -34,9 +34,5 @@ typedef uint64_t uint64;
 
 #define EXTERN_C extern "C"
 
-#ifdef LDARE_ENGINE
-# define GAMECALLBACK extern
-#else
-# define GAMECALLBACK 
 #endif // LDARE_ENGINE
 
