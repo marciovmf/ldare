@@ -17,9 +17,9 @@
 	// Game Interface
 	// This interface is used by the engine to communicate with the game
 	//---------------------------------------------------------------------------
-	GAMECALLBACK LDGameContext gameInit();
-	GAMECALLBACK void gameStart();
-	GAMECALLBACK void gameUpdate();
-	GAMECALLBACK void gameStop();
+	LDGameContext gameInit();
+	void gameStart();
+	void gameUpdate();
+	void gameStop();
 
 #endif // _LDARE_GAME_
