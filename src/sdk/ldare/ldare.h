@@ -30,9 +30,7 @@ typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
-#endif //_LDARE_H_
 
 #define EXTERN_C extern "C"
 
-#endif // LDARE_ENGINE
-
+#endif //_LDARE_H_
