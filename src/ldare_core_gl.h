@@ -4,6 +4,7 @@
 #include "../GL/glcorearb.h"
 #include "../GL/wglext.h"
 
+// OpenGL function pointers
 PFNGLCLEARPROC glClear;
 PFNGLCLEARCOLORPROC glClearColor;
 PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;

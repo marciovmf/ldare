@@ -1,10 +1,12 @@
-#include "../ldare.h"
+#include <ldare/ldare.h>
+#include <ldare/game.h>
 #include "../ldare_core_gl.h"
+#include <ldare/game.h>
+
 #include <windows.h>
 #include <tchar.h>
 
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
-
 
 struct GameWindow
 {
@@ -133,11 +135,10 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	bool success = true;
 
 #define FETCH_GL_FUNC(type, name) success = success && (name = (type) Win32_GetGLfunctionPointer(#name))
-
-	FETCH_GL_FUNC(PFNWGLCHOOSEPIXELFORMATARBPROC, wglChoosePixelFormatARB);
-	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
 	FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
 	FETCH_GL_FUNC(PFNGLCLEARCOLORPROC, glClearColor);
+	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
+	FETCH_GL_FUNC(PFNWGLCHOOSEPIXELFORMATARBPROC, wglChoosePixelFormatARB);
 #undef FETCH_GL_FUNC
 
 	if (!success)
@@ -219,13 +220,17 @@ int CALLBACK WinMain(
 		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	LogInfo("Initializing");
+	
+	// Initialize the game settings
+	LDGameContext gameContext = gameInit();
 
 	if ( !RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
 	{
 		LogError("Could not register window class");
 	}
 
-	if (!CreateGameWindow(&_gameWindow, 800, 600, hInstance, TEXT("lDare Engine") ))
+	if (!CreateGameWindow(&_gameWindow, gameContext.windowWidth,
+				gameContext.windowHeight, hInstance, TEXT("lDare Engine") ))
 	{
 		LogError("Could not create window");
 	}
@@ -235,9 +240,10 @@ int CALLBACK WinMain(
 		LogError("Could not initialize OpenGL for game window" );
 	}
 
-	glClearColor(1,0,0,1);
-	ShowWindow(_gameWindow.hwnd, SW_SHOW);
+	// start the game
+	gameStart();
 
+	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 	while (!_gameWindow.shouldClose)
 	{
 		MSG msg;
@@ -245,11 +251,16 @@ int CALLBACK WinMain(
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
-			glClear(GL_COLOR_BUFFER_BIT);
+			//glClear(GL_COLOR_BUFFER_BIT);
+
+			//Update the game
+			gameUpdate();
+
 			SwapBuffers(_gameWindow.dc);
 		}
 	}
-
+	
+	gameStop();
 	LogInfo("Finished");
 	return 0;
 }

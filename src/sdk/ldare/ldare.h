@@ -16,7 +16,7 @@
 #	define LogError(msg) LogMsg("[ERROR]", msg, OUTSTREAM)
 #else
 #	define LogMsg(prefix, msg, stdstream)
-#	define LogError(msg) 
+#	define LogInfo(msg) 
 #	define LogWarning(msg) 
 #	define LogError(msg) 
 #endif // DEBUG
@@ -30,4 +30,7 @@ typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
+
+#define EXTERN_C extern "C"
+
 #endif //_LDARE_H_
