@@ -21,14 +21,19 @@ RELEASE_LINK_OPTIONS=/link /subsystem:windows $(LIBS)
 CFLAGS=$(DEBUG_COMPILE_OPTIONS)
 LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
-all: ldare_game ldare_core
-	cl $(LDARE_CORE) $(LDARE_GAME) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
+.PHONY: game engine
 
-ldare_game: $(GAMESRC)
+all: game engine
+
+game: $(LDARE_GAME)
+engine:	$(LDARE_CORE)
+
+$(LDARE_GAME): $(GAMESRC)
 	cl /c $(GAMESRC) /Fo$(LDARE_GAME) $(CFLAGS) 
 
-ldare_core: $(LDARESRC)
+$(LDARE_CORE): $(LDARESRC) $(LDARE_GAME)
 	cl /c $(LDARESRC) /Fo$(LDARE_CORE) $(CFLAGS) /D "LDARE_ENGINE" 
+	cl $(LDARE_CORE) $(LDARE_GAME) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
 
 clean:
 	del /S /Q .\$(OUTDIR)\*
