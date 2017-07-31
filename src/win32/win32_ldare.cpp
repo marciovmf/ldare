@@ -8,20 +8,19 @@
 
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 
-struct GameWindow
+static struct GameWindow
 {
 	HDC dc;
 	HGLRC rc;
 	HWND hwnd;
 	bool shouldClose;
-};
-
-static GameWindow _gameWindow;
+} _gameWindow;
 
 LRESULT CALLBACK GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(uMsg)
 	{
+
 		case WM_CLOSE:
 		_gameWindow.shouldClose = true;	
 		break;
@@ -219,8 +218,10 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 int CALLBACK WinMain(
 		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+
 	LogInfo("Initializing");
-	
+	Input gameInput;
+
 	// Initialize the game settings
 	LDGameContext gameContext = gameInit();
 
@@ -244,22 +245,39 @@ int CALLBACK WinMain(
 	gameStart();
 
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
+	uint32 frameNum =0;
 	while (!_gameWindow.shouldClose)
 	{
 		MSG msg;
+		gameInput = {};
+
 		while (PeekMessage(&msg, _gameWindow.hwnd, 0, 0, PM_REMOVE))
 		{
+			// handle keyboard input messages directly
+			if ( msg.message == WM_KEYDOWN ||
+					msg.message == WM_KEYUP)
+			{
+				// bit 30 has previous key state
+				// bit 31 has current key state
+				// shitty fact: 0 means pressed, 1 means released
+				int8 isDown = (msg.lParam & (1 << 31)) == 0;
+				int8 wasDown = (msg.lParam & (1 << 30)) != 0;
+				int16 vkCode = msg.wParam;
+				KeyState& currentState = gameInput.keyboard[vkCode];
+				currentState.state = isDown;
+				currentState.thisFrame += isDown != wasDown || currentState.thisFrame;
+				continue;	
+			}
+
 			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			DispatchMessage(&msg) ;
 			//glClear(GL_COLOR_BUFFER_BIT);
-
-			//Update the game
-			gameUpdate();
-
-			SwapBuffers(_gameWindow.dc);
 		}
+		//Update the game
+		gameUpdate(gameInput);
+		SwapBuffers(_gameWindow.dc);
 	}
-	
+
 	gameStop();
 	LogInfo("Finished");
 	return 0;

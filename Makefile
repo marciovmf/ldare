@@ -23,7 +23,7 @@ LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
 .PHONY: game engine
 
-all: game engine
+all: $(TARGET)
 
 game: $(LDARE_GAME)
 engine:	$(LDARE_CORE)
@@ -33,6 +33,8 @@ $(LDARE_GAME): $(GAMESRC)
 
 $(LDARE_CORE): $(LDARESRC) $(LDARE_GAME)
 	cl /c $(LDARESRC) /Fo$(LDARE_CORE) $(CFLAGS) /D "LDARE_ENGINE" 
+
+$(TARGET): $(LDARE_GAME) $(LDARE_CORE)
 	cl $(LDARE_CORE) $(LDARE_GAME) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
 
 clean:
