@@ -18,13 +18,15 @@
 	//---------------------------------------------------------------------------
 	struct KeyState
 	{
-		int8 state;
-		int8 thisFrame;
+		int8 state; 					// 1 if key is down
+		int8 thisFrame; 			// number of state transitions during current frame
 	};
 
+#define MAX_GAME_KBD_KEYS 255
+#define MAX_GAME_MOUSE_KEYS 5
 	struct Input
   {
-		KeyState keyboard[255];
+		KeyState keyboard[MAX_GAME_KBD_KEYS];
 		KeyState mouse[4];
 		struct 
 		{
@@ -42,14 +44,15 @@
 	void gameUpdate(const Input& input);
 	void gameStop();
 
-
-
 	//---------------------------------------------------------------------------
 	// KEYBOARD KEYS / MOSUE BUTTONS macros
 	//---------------------------------------------------------------------------
 #define MOUSE_LBUTTON     0x00
 #define MOUSE_RBUTTON     0x01
 #define MOUSE_MBUTTON     0x02
+#define MOUSE_X1BUTTON    0x03
+#define MOUSE_X2BUTTON    0x04
+	
 #define KBD_BACK          0x08
 #define KBD_TAB           0x09
 #define KBD_CLEAR         0x0C

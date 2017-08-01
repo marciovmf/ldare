@@ -3,6 +3,8 @@
 #include "../ldare_core_gl.h"
 #include <ldare/game.h>
 
+#include <winuser.h>
+#include <windowsx.h>
 #include <windows.h>
 #include <tchar.h>
 
@@ -215,6 +217,19 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	return true;
 }
 
+	//---------------------------------------------------------------------------
+	// processes Windows Keyboard messages
+	//---------------------------------------------------------------------------
+static inline void 
+Win32_ProcessKeyboardMessage(KeyState& keyState, int8 lastState, int8 state)
+{
+		keyState.state = state;
+		keyState.thisFrame += state != lastState || keyState.thisFrame;
+}
+
+	//---------------------------------------------------------------------------
+	// Main
+	//---------------------------------------------------------------------------
 int CALLBACK WinMain(
 		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -245,28 +260,46 @@ int CALLBACK WinMain(
 	gameStart();
 
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
-	uint32 frameNum =0;
+	
 	while (!_gameWindow.shouldClose)
 	{
 		MSG msg;
-		gameInput = {};
+
+		// clear 'this frame' flags from input key state
+		for(int i=0; i < MAX_GAME_KBD_KEYS ; i++)
+		{
+			gameInput.keyboard[i].thisFrame = 0;
+		}
 
 		while (PeekMessage(&msg, _gameWindow.hwnd, 0, 0, PM_REMOVE))
 		{
 			// handle keyboard input messages directly
-			if ( msg.message == WM_KEYDOWN ||
-					msg.message == WM_KEYUP)
+			switch(msg.message)
 			{
-				// bit 30 has previous key state
-				// bit 31 has current key state
-				// shitty fact: 0 means pressed, 1 means released
-				int8 isDown = (msg.lParam & (1 << 31)) == 0;
-				int8 wasDown = (msg.lParam & (1 << 30)) != 0;
-				int16 vkCode = msg.wParam;
-				KeyState& currentState = gameInput.keyboard[vkCode];
-				currentState.state = isDown;
-				currentState.thisFrame += isDown != wasDown || currentState.thisFrame;
-				continue;	
+				case WM_KEYDOWN:
+				case WM_KEYUP:
+				{
+					// bit 30 has previous key state
+					// bit 31 has current key state
+					// shitty fact: 0 means pressed, 1 means released
+					int8 isDown = (msg.lParam & (1 << 31)) == 0;
+					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
+					int16 vkCode = msg.wParam;
+					KeyState& currentState = gameInput.keyboard[vkCode];
+				
+					Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
+					continue;
+				}
+				break;
+
+				// Cursor position
+				case WM_MOUSEMOVE:
+				{
+					gameInput.cursor.x = GET_X_LPARAM(msg.lParam);
+					gameInput.cursor.y = GET_Y_LPARAM(msg.lParam);
+					continue;
+				}
+				break;
 			}
 
 			TranslateMessage(&msg);
