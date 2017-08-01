@@ -1,4 +1,5 @@
 #include <ldare/game.h>
+#include <stdio.h>
 
 static LDGameContext gameContext;
 
@@ -14,9 +15,27 @@ void gameStart()
 	LogInfo("Game started");
 }
 
-void gameUpdate()
+void gameUpdate(const Input& input)
 {
-	LogInfo("Game updating");
+	KeyState keyValue = input.keyboard[KBD_W];
+
+	if(keyValue.state)
+	{
+		if (keyValue.thisFrame)
+		{
+			LogInfo("DOWN");
+		}
+		else
+		{
+			LogInfo("HOLDING");
+		}
+	}
+	else 	
+	{
+		if(keyValue.thisFrame)
+			LogInfo("UP");
+	}
+
 }
 
 void gameStop()

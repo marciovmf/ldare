@@ -3,25 +3,26 @@
 #include "../ldare_core_gl.h"
 #include <ldare/game.h>
 
+#include <winuser.h>
+#include <windowsx.h>
 #include <windows.h>
 #include <tchar.h>
 
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 
-struct GameWindow
+static struct GameWindow
 {
 	HDC dc;
 	HGLRC rc;
 	HWND hwnd;
 	bool shouldClose;
-};
-
-static GameWindow _gameWindow;
+} _gameWindow;
 
 LRESULT CALLBACK GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(uMsg)
 	{
+
 		case WM_CLOSE:
 		_gameWindow.shouldClose = true;	
 		break;
@@ -216,11 +217,26 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	return true;
 }
 
+	//---------------------------------------------------------------------------
+	// processes Windows Keyboard messages
+	//---------------------------------------------------------------------------
+static inline void 
+Win32_ProcessKeyboardMessage(KeyState& keyState, int8 lastState, int8 state)
+{
+		keyState.state = state;
+		keyState.thisFrame += state != lastState || keyState.thisFrame;
+}
+
+	//---------------------------------------------------------------------------
+	// Main
+	//---------------------------------------------------------------------------
 int CALLBACK WinMain(
 		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+
 	LogInfo("Initializing");
-	
+	Input gameInput;
+
 	// Initialize the game settings
 	LDGameContext gameContext = gameInit();
 
@@ -244,22 +260,57 @@ int CALLBACK WinMain(
 	gameStart();
 
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
+	
 	while (!_gameWindow.shouldClose)
 	{
 		MSG msg;
+
+		// clear 'this frame' flags from input key state
+		for(int i=0; i < MAX_GAME_KBD_KEYS ; i++)
+		{
+			gameInput.keyboard[i].thisFrame = 0;
+		}
+
 		while (PeekMessage(&msg, _gameWindow.hwnd, 0, 0, PM_REMOVE))
 		{
+			// handle keyboard input messages directly
+			switch(msg.message)
+			{
+				case WM_KEYDOWN:
+				case WM_KEYUP:
+				{
+					// bit 30 has previous key state
+					// bit 31 has current key state
+					// shitty fact: 0 means pressed, 1 means released
+					int8 isDown = (msg.lParam & (1 << 31)) == 0;
+					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
+					int16 vkCode = msg.wParam;
+					KeyState& currentState = gameInput.keyboard[vkCode];
+				
+					Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
+					continue;
+				}
+				break;
+
+				// Cursor position
+				case WM_MOUSEMOVE:
+				{
+					gameInput.cursor.x = GET_X_LPARAM(msg.lParam);
+					gameInput.cursor.y = GET_Y_LPARAM(msg.lParam);
+					continue;
+				}
+				break;
+			}
+
 			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			DispatchMessage(&msg) ;
 			//glClear(GL_COLOR_BUFFER_BIT);
-
-			//Update the game
-			gameUpdate();
-
-			SwapBuffers(_gameWindow.dc);
 		}
+		//Update the game
+		gameUpdate(gameInput);
+		SwapBuffers(_gameWindow.dc);
 	}
-	
+
 	gameStop();
 	LogInfo("Finished");
 	return 0;
