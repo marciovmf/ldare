@@ -2,57 +2,68 @@
 #define _LDARE_GAME_
 
 #include <ldare/ldare.h>
-
-	//---------------------------------------------------------------------------
-	// Runtime settings the game can return to the engine 
-	// during initialization
-	//---------------------------------------------------------------------------
-	struct LDGameContext
+namespace ldare 
+{
+	namespace game
 	{
-		int32 windowWidth;
-		int32 windowHeight;
-	};
+		//---------------------------------------------------------------------------
+		// Runtime settings the game can return to the engine 
+		// during initialization
+		//---------------------------------------------------------------------------
+		struct GameContext
+		{
+			int32 windowWidth;
+			int32 windowHeight;
+			size_t gameMemorySize; 				// Amount of memory allocated to the game
+		};
 
-	//---------------------------------------------------------------------------
-	// Contains input state for the current frame
-	//---------------------------------------------------------------------------
-	struct KeyState
-	{
-		int8 state; 					// 1 if key is down
-		int8 thisFrame; 			// number of state transitions during current frame
-	};
+		//---------------------------------------------------------------------------
+		// Contains input state for the current frame
+		//---------------------------------------------------------------------------
+		struct KeyState
+		{
+			int8 state; 					// 1 if key is down
+			int8 thisFrame; 			// number of state transitions during current frame
+		};
 
 #define MAX_GAME_KBD_KEYS 255
 #define MAX_GAME_MOUSE_KEYS 5
-	struct Input
-  {
-		KeyState keyboard[MAX_GAME_KBD_KEYS];
-		KeyState mouse[4];
-		struct 
+		struct Input
 		{
-			int32 x;
-			int32 y;
-		} cursor;
-	};
+			KeyState keyboard[MAX_GAME_KBD_KEYS];
+			KeyState mouse[4];
+			struct 
+			{
+				int32 x;
+				int32 y;
+			} cursor;
+		};
 
-	//---------------------------------------------------------------------------
-	// Game Interface
-	// This interface is used by the engine to communicate with the game
-	//---------------------------------------------------------------------------
-	LDGameContext gameInit();
-	void gameStart();
-	void gameUpdate(const Input& input);
+	}// game namespace
+} // ldare namespace
+
+
+//---------------------------------------------------------------------------
+// Game Interface
+// This interface is used by the engine to communicate with the game
+//---------------------------------------------------------------------------
+extern "C" 
+{
+	ldare::game::GameContext gameInit();
+	void gameStart(void* gameMemory);
+	void gameUpdate(const ldare::game::Input& input);
 	void gameStop();
+}
 
-	//---------------------------------------------------------------------------
-	// KEYBOARD KEYS / MOSUE BUTTONS macros
-	//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+// KEYBOARD KEYS / MOSUE BUTTONS macros
+//---------------------------------------------------------------------------
 #define MOUSE_LBUTTON     0x00
 #define MOUSE_RBUTTON     0x01
 #define MOUSE_MBUTTON     0x02
 #define MOUSE_X1BUTTON    0x03
 #define MOUSE_X2BUTTON    0x04
-	
+
 #define KBD_BACK          0x08
 #define KBD_TAB           0x09
 #define KBD_CLEAR         0x0C
@@ -163,4 +174,5 @@
 #define KBD_F22           0x85
 #define KBD_F23           0x86
 #define KBD_F24           0x87
+
 #endif // _LDARE_GAME_

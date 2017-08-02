@@ -1,23 +1,51 @@
 #include <ldare/game.h>
 #include <stdio.h>
 
-static LDGameContext gameContext;
+using namespace ldare;
+using namespace ldare::game;
 
-LDGameContext gameInit()
+static ldare::game::GameContext gameContext;
+
+// here goes all persistent stuff the game needs along its execution
+// the goal here is to request enough memory to do whatever the game needs
+// this is what most game engines does behind the scenes to make it 'friendly'
+// to programmers but charges 
+struct GameData
 {
-	gameContext.windowWidth = 800;
-	gameContext.windowHeight = 600;
-	return gameContext;
+	float clearColor[3];
+} *gameMemory;
+
+//---------------------------------------------------------------------------
+// Game Engine Initialization
+//---------------------------------------------------------------------------
+ldare::game::GameContext gameInit()
+{
+	gameContext.windowWidth = 800; 						// game window width
+	gameContext.windowHeight = 600; 					// game window height
+	gameContext.gameMemorySize = MEGABYTE(10);// requested game memory size
+	return gameContext; 											// let the engine know what we want
 }
 
-void gameStart()
+//---------------------------------------------------------------------------
+// Game start callback
+//---------------------------------------------------------------------------
+void gameStart(void* mem)
 {
 	LogInfo("Game started");
+	if(!mem)
+	{
+		LogError("initial memory allocation failed");
+	}
+	gameMemory = (GameData*) mem;
+	gameMemory->clearColor[0] = 1.0f;
 }
 
+//---------------------------------------------------------------------------
+// Game update
+//---------------------------------------------------------------------------
 void gameUpdate(const Input& input)
 {
-	KeyState keyValue = input.keyboard[KBD_W];
+	ldare::game::KeyState keyValue = input.keyboard[KBD_W];
 
 	if(keyValue.state)
 	{
@@ -38,6 +66,9 @@ void gameUpdate(const Input& input)
 
 }
 
+//---------------------------------------------------------------------------
+// Game finalization
+//---------------------------------------------------------------------------
 void gameStop()
 {
 	LogInfo("Game stopped");
