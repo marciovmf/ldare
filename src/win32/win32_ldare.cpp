@@ -1,16 +1,19 @@
 #include <ldare/ldare.h>
 #include <ldare/game.h>
 #include "../ldare_core_gl.h"
-#include <ldare/game.h>
+#include "../ldare_platform.h"
 
 #include <winuser.h>
 #include <windowsx.h>
 #include <windows.h>
 #include <tchar.h>
 
+using namespace ldare;
+using namespace ldare::game;
+
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 
-static struct GameWindow
+static struct Win32_GameWindow
 {
 	HDC dc;
 	HGLRC rc;
@@ -18,38 +21,38 @@ static struct GameWindow
 	bool shouldClose;
 } _gameWindow;
 
-LRESULT CALLBACK GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(uMsg)
 	{
 
 		case WM_CLOSE:
-		_gameWindow.shouldClose = true;	
-		break;
+			_gameWindow.shouldClose = true;	
+			break;
 
 		default:
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);	
-		break;
+			break;
 	}
 
 	return TRUE;
 }
 
-static bool RegisterGameWindowClass(HINSTANCE hInstance, TCHAR* className)
+static bool Win32_RegisterGameWindowClass(HINSTANCE hInstance, TCHAR* className)
 {
 	WNDCLASS windowClass = {};
 	windowClass.style = CS_OWNDC;
-	windowClass.lpfnWndProc = GameWindowProc;
+	windowClass.lpfnWndProc = Win32_GameWindowProc;
 	windowClass.hInstance = hInstance;
 	windowClass.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
 	windowClass.lpszClassName = className;
 	return RegisterClass(&windowClass) != 0;
 }
 
-static bool CreateGameWindow(
-		GameWindow* gameWindow, int width, int height, HINSTANCE hInstance, TCHAR* title)
+static bool Win32_CreateGameWindow(
+		Win32_GameWindow* gameWindow, int width, int height, HINSTANCE hInstance, TCHAR* title)
 {
-		 gameWindow->hwnd = CreateWindow(TEXT(GAME_WINDOW_CLASS),
+	gameWindow->hwnd = CreateWindow(TEXT(GAME_WINDOW_CLASS),
 			title,
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT,
@@ -61,11 +64,11 @@ static bool CreateGameWindow(
 			hInstance,
 			NULL);
 
-		if (!gameWindow->hwnd)
-			return false;
+	if (!gameWindow->hwnd)
+		return false;
 
-		gameWindow->dc = GetDC(gameWindow->hwnd);
-		return gameWindow->dc != NULL;
+	gameWindow->dc = GetDC(gameWindow->hwnd);
+	return gameWindow->dc != NULL;
 
 }
 
@@ -85,15 +88,15 @@ static void* Win32_GetGLfunctionPointer(const char* functionName)
 			return nullptr;
 		}
 	}
-	
+
 	return functionPtr;
 }
 
-static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int major, int minor)
+static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, int major, int minor)
 {
 
-	GameWindow dummyWindow = {};
-	if (! CreateGameWindow(&dummyWindow,0,0,hInstance,TEXT("")) )
+	Win32_GameWindow dummyWindow = {};
+	if (! Win32_CreateGameWindow(&dummyWindow,0,0,hInstance,TEXT("")) )
 	{
 		LogError("Could not create a dummy window for openGl initialization");
 		return false;
@@ -107,7 +110,7 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	pfd.cColorBits = 32;
 	pfd.cDepthBits = 24;
 
-  int pfId = ChoosePixelFormat(dummyWindow.dc, &pfd);
+	int pfId = ChoosePixelFormat(dummyWindow.dc, &pfd);
 	if (pfId == 0)
 	{
 		LogError("Could not find a matching pixel format for GL dummy window");
@@ -178,7 +181,7 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 		LogError("Could not find a matching pixel format");
 		return false;
 	}
-	
+
 	if (! SetPixelFormat(gameWindow->dc, pfId, &pfd))
 	{
 		LogError("Could not set pixel format for OpenGL context creation");
@@ -190,11 +193,11 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 		WGL_CONTEXT_MAJOR_VERSION_ARB, major,
 		WGL_CONTEXT_MINOR_VERSION_ARB, minor,
 		WGL_CONTEXT_FLAGS_ARB,
-			#ifdef DEBUG
-				WGL_CONTEXT_DEBUG_BIT_ARB |
-			#endif
-					WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-				0
+#ifdef DEBUG
+		WGL_CONTEXT_DEBUG_BIT_ARB |
+#endif
+			WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+		0
 	};
 
 	gameWindow->rc = wglCreateContextAttribsARB(
@@ -217,19 +220,19 @@ static bool Win32_InitOpenGL(GameWindow* gameWindow, HINSTANCE hInstance, int ma
 	return true;
 }
 
-	//---------------------------------------------------------------------------
-	// processes Windows Keyboard messages
-	//---------------------------------------------------------------------------
-static inline void 
+//---------------------------------------------------------------------------
+// processes Windows Keyboard messages
+//---------------------------------------------------------------------------
+	static inline void 
 Win32_ProcessKeyboardMessage(KeyState& keyState, int8 lastState, int8 state)
 {
-		keyState.state = state;
-		keyState.thisFrame += state != lastState || keyState.thisFrame;
+	keyState.state = state;
+	keyState.thisFrame += state != lastState || keyState.thisFrame;
 }
 
-	//---------------------------------------------------------------------------
-	// Main
-	//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+// Main
+//---------------------------------------------------------------------------
 int CALLBACK WinMain(
 		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -238,14 +241,17 @@ int CALLBACK WinMain(
 	Input gameInput;
 
 	// Initialize the game settings
-	LDGameContext gameContext = gameInit();
+	GameContext gameContext = gameInit();
 
-	if ( !RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
+	// Reserve memory for the game
+	void* gameMemory = ldare::platform::memoryAlloc(MEGABYTE(gameContext.gameMemorySize));
+
+	if ( !Win32_RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
 	{
 		LogError("Could not register window class");
 	}
 
-	if (!CreateGameWindow(&_gameWindow, gameContext.windowWidth,
+	if (!Win32_CreateGameWindow(&_gameWindow, gameContext.windowWidth,
 				gameContext.windowHeight, hInstance, TEXT("lDare Engine") ))
 	{
 		LogError("Could not create window");
@@ -257,10 +263,10 @@ int CALLBACK WinMain(
 	}
 
 	// start the game
-	gameStart();
+	gameStart(gameMemory);
 
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
-	
+
 	while (!_gameWindow.shouldClose)
 	{
 		MSG msg;
@@ -278,28 +284,28 @@ int CALLBACK WinMain(
 			{
 				case WM_KEYDOWN:
 				case WM_KEYUP:
-				{
-					// bit 30 has previous key state
-					// bit 31 has current key state
-					// shitty fact: 0 means pressed, 1 means released
-					int8 isDown = (msg.lParam & (1 << 31)) == 0;
-					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
-					int16 vkCode = msg.wParam;
-					KeyState& currentState = gameInput.keyboard[vkCode];
-				
-					Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
-					continue;
-				}
-				break;
+					{
+						// bit 30 has previous key state
+						// bit 31 has current key state
+						// shitty fact: 0 means pressed, 1 means released
+						int8 isDown = (msg.lParam & (1 << 31)) == 0;
+						int8 wasDown = (msg.lParam & (1 << 30)) != 0;
+						int16 vkCode = msg.wParam;
+						KeyState& currentState = gameInput.keyboard[vkCode];
 
-				// Cursor position
+						Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
+						continue;
+					}
+					break;
+
+					// Cursor position
 				case WM_MOUSEMOVE:
-				{
-					gameInput.cursor.x = GET_X_LPARAM(msg.lParam);
-					gameInput.cursor.y = GET_Y_LPARAM(msg.lParam);
-					continue;
-				}
-				break;
+					{
+						gameInput.cursor.x = GET_X_LPARAM(msg.lParam);
+						gameInput.cursor.y = GET_Y_LPARAM(msg.lParam);
+						continue;
+					}
+					break;
 			}
 
 			TranslateMessage(&msg);
@@ -322,4 +328,8 @@ int _tmain(int argc, _TCHAR** argv)
 	return WinMain(GetModuleHandle(NULL), NULL, NULL,SW_SHOW);
 }
 #endif //DEBUG
+
+#include "win32_platform.cpp"
+
+
 
