@@ -30,7 +30,15 @@ typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
+typedef int32_t RESHANDLE;
 
 #define MEGABYTE(value) (value * 1024)
 #define GIGABYTE(value) (value * MEGABYTE(1))
+
+#ifdef LDARE_ENGINE
+# define LDARE_API extern
+#else
+# define LDARE_API
+#endif // LDARE_ENGINE
+
 #endif //_LDARE_H_

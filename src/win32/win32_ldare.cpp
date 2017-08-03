@@ -1,7 +1,8 @@
 #include <ldare/ldare.h>
-#include <ldare/game.h>
-#include "../ldare_core_gl.h"
 #include "../ldare_platform.h"
+#include "../ldare_renderer.h"
+#include "../ldare_gl.h"
+#include <ldare/game.h>
 
 #include <winuser.h>
 #include <windowsx.h>
@@ -9,7 +10,6 @@
 #include <tchar.h>
 
 using namespace ldare;
-using namespace ldare::game;
 
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 
@@ -143,6 +143,8 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	FETCH_GL_FUNC(PFNGLCLEARCOLORPROC, glClearColor);
 	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
 	FETCH_GL_FUNC(PFNWGLCHOOSEPIXELFORMATARBPROC, wglChoosePixelFormatARB);
+	FETCH_GL_FUNC(PFNGLGENBUFFERSPROC, glGenBuffers);
+	FETCH_GL_FUNC(PFNGLGETERRORPROC, glGetError);
 #undef FETCH_GL_FUNC
 
 	if (!success)
@@ -223,8 +225,8 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 //---------------------------------------------------------------------------
 // processes Windows Keyboard messages
 //---------------------------------------------------------------------------
-	static inline void 
-Win32_ProcessKeyboardMessage(KeyState& keyState, int8 lastState, int8 state)
+static inline void Win32_ProcessKeyboardMessage(game::KeyState& keyState, 
+		int8 lastState, int8 state)
 {
 	keyState.state = state;
 	keyState.thisFrame += state != lastState || keyState.thisFrame;
@@ -238,13 +240,20 @@ int CALLBACK WinMain(
 {
 
 	LogInfo("Initializing");
-	Input gameInput;
+	game::Input gameInput;
 
 	// Initialize the game settings
-	GameContext gameContext = gameInit();
+	game::GameContext gameContext = gameInit();
 
 	// Reserve memory for the game
-	void* gameMemory = ldare::platform::memoryAlloc(MEGABYTE(gameContext.gameMemorySize));
+	void* gameMemory = platform::memoryAlloc(MEGABYTE(gameContext.gameMemorySize));
+
+	// Reserve memory for the renderer
+	renderer::RendererResources rendererResources = {};
+	int numBuffers = 255;
+	rendererResources.maxVertexBuffers = numBuffers;
+	rendererResources.vertexBufferList = (renderer::VertexBufferResource*)
+		platform::memoryAlloc(sizeof(renderer::VertexBufferResource) * numBuffers);
 
 	if ( !Win32_RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
 	{
@@ -262,6 +271,11 @@ int CALLBACK WinMain(
 		LogError("Could not initialize OpenGL for game window" );
 	}
 
+	// Initialize the renderer
+	renderer::initRenderer(renderer::RenderingApi::CORE_PROFILE_OPEN_GL, &rendererResources);
+	// TEST - Create vertex buffer
+	renderer::createVertexBuffer(0, 0, 0, 0);
+	
 	// start the game
 	gameStart(gameMemory);
 
@@ -291,7 +305,7 @@ int CALLBACK WinMain(
 						int8 isDown = (msg.lParam & (1 << 31)) == 0;
 						int8 wasDown = (msg.lParam & (1 << 30)) != 0;
 						int16 vkCode = msg.wParam;
-						KeyState& currentState = gameInput.keyboard[vkCode];
+						game::KeyState& currentState = gameInput.keyboard[vkCode];
 
 						Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
 						continue;
@@ -330,6 +344,3 @@ int _tmain(int argc, _TCHAR** argv)
 #endif //DEBUG
 
 #include "win32_platform.cpp"
-
-
-
