@@ -1,4 +1,7 @@
-#include <windows.h>
+/**
+ * win32_platform.h
+ * Win32 implementation for ldare platform functions
+ */
 
 namespace ldare {
 	namespace platform {
@@ -8,8 +11,9 @@ namespace ldare {
 			void* mem =
 				VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #ifdef DEBUG
-			if (!mem) { LogError("Error allocation memory"); }
+			ASSERT(mem!=0);
 #endif
+			if (!mem) { LogError("Error allocaing memory"); }
 			return mem;
 		}
 
