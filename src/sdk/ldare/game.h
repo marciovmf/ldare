@@ -1,7 +1,11 @@
+/**
+ * game.h
+ * Standard header for ldare based games
+ */
 #ifndef _LDARE_GAME_
 #define _LDARE_GAME_
 
-#include <ldare/ldare.h>
+#include "ldare.h"
 namespace ldare 
 {
 	namespace game
