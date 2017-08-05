@@ -1,3 +1,9 @@
+/**
+ * ldare.h
+ * This header file defines types and macros used by both the engine and the
+ * game layer
+ */
+
 #ifndef _LDARE_H_
 #define _LDARE_H_
 
@@ -14,11 +20,13 @@
 #	define LogInfo(msg) LogMsg("[INFO]", msg, OUTSTREAM)
 #	define LogWarning(msg) LogMsg("[WARNING]", msg, OUTSTREAM)
 #	define LogError(msg) LogMsg("[ERROR]", msg, OUTSTREAM)
+#define ASSERT(condition) do{if (!(condition)) { LogError("Assertion Failed"); *((int*)0) = 0;} } while(0)
 #else
 #	define LogMsg(prefix, msg, stdstream)
 #	define LogInfo(msg) 
 #	define LogWarning(msg) 
 #	define LogError(msg) 
+# define ASSERT(condition)
 #endif // DEBUG
 
 #include <stdint.h>
@@ -31,6 +39,7 @@ typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
 
-#define MEGABYTE(value) (value * 1024)
-#define GIGABYTE(value) (value * MEGABYTE(1))
+#define KILOBYTE(value) (size_t) ((value) * 1024LL)
+#define MEGABYTE(value) (size_t) (KILOBYTE(value) * 1024LL)
+#define GIGABYTE(value) (size_t) (MEGABYTE(value) * 1024LL)
 #endif //_LDARE_H_

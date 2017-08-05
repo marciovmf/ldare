@@ -1,12 +1,13 @@
-#include <ldare/ldare.h>
-#include <ldare/game.h>
-#include "../ldare_core_gl.h"
-#include "../ldare_platform.h"
+/**
+ * win32_ldare.cpp
+ * win32 implementation of ldare engine entrypoint and platform layer
+ */
 
-#include <winuser.h>
 #include <windowsx.h>
 #include <windows.h>
+#include <winuser.h>
 #include <tchar.h>
+#include "../ldare_engine.h"
 
 using namespace ldare;
 using namespace ldare::game;
@@ -230,6 +231,18 @@ Win32_ProcessKeyboardMessage(KeyState& keyState, int8 lastState, int8 state)
 	keyState.thisFrame += state != lastState || keyState.thisFrame;
 }
 
+void copyName(void* dest)
+{
+	char* strDest = (char*) dest;
+	const char name[] = "marcio";
+	for(int i=0; i < 6; i++)
+	{
+		strDest[i] = name[i];
+	}
+
+	strDest[7]=0;
+}
+
 //---------------------------------------------------------------------------
 // Main
 //---------------------------------------------------------------------------
@@ -244,7 +257,7 @@ int CALLBACK WinMain(
 	GameContext gameContext = gameInit();
 
 	// Reserve memory for the game
-	void* gameMemory = ldare::platform::memoryAlloc(MEGABYTE(gameContext.gameMemorySize));
+	void* gameMemory = platform::memoryAlloc(gameContext.gameMemorySize);
 
 	if ( !Win32_RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
 	{
@@ -330,6 +343,4 @@ int _tmain(int argc, _TCHAR** argv)
 #endif //DEBUG
 
 #include "win32_platform.cpp"
-
-
 
