@@ -1,16 +1,9 @@
-#ifndef __LDARE_RENDERER__
-#define __LDARE_RENDERER__
-
-#ifdef ERROR_INVALID_HANDLE
-#undef ERROR_INVALID_HANDLE
-#define ERROR_INVALID_HANDLE -1
-#endif
-
-#include <ldare/ldare.h>
+#ifndef __LDARE_RENDER__
+#define __LDARE_RENDER__
 
 namespace ldare
 {
-	namespace renderer
+	namespace render
 	{
 		enum PrimitiveType
 		{
@@ -37,63 +30,49 @@ namespace ldare
 			int32 startOffset;
 		};
 
-
 		//---------------------------------------------------------------------------
 		// A buffer for vertex related data
 		//---------------------------------------------------------------------------
-		struct NativeResourceId
+		enum VertexBufferAccess
 		{
-			int32 i32Value;
-			int64 i64Value;
+			STATIC 														//TODO: Implement streaming buffer access
 		};
-
+		
 		struct VertexBufferResource
 		{
 			void* data; 											// pointer to buffer data
+			VertexAttributeLayout* layout;		// pointer to buffer layout
 			size_t size; 											// size of data buffer
-			void* layout; 										// pointer to buffer layout
 			int32 layoutAttribCount; 					// number of buffer layout attributes
-			NativeResourceId resourceId; 			// native render API resource id
+			VertexBufferAccess bufferAccess; 	// how is this bufffer gonna be accessed	
+			int32 nativeResourceId;
 			int8 bound; 											// whether or not buffer is bound to the GPU
 		};
 
-		//---------------------------------------------------------------------------
-		// A structure for storing renderer resources
-		//---------------------------------------------------------------------------
 		struct RendererResources
 		{
-			int32 numVertexBuffers; 						// number of vertex buffer available
-			int32 maxVertexBuffers; 						// 
-		//	int32 numIndexBuffers; 						// number of index buffers available
-		//	int32 maxIndexBuffers; 						//
-		//	int32 numElementBuffers; 					// number of element buffers available
-		//	int32 maxElementBuffers; 					//
-			VertexBufferResource* vertexBufferList; 	//list of vertex buffer resources
+			int vertexBufferCount; 								// how many vertex buffer resources are created
+			VertexBufferResource* vertexBuffers; 	// pointer to all vertex buffer resources
 		};
-
-		// Supported rendering API
-		enum RenderingApi
-		{
-			CORE_PROFILE_OPEN_GL 					// Yep, thats all we are gonna have for now!
-		};
-
+		
 		//---------------------------------------------------------------------------
 		// Initialize the renderer
 		//---------------------------------------------------------------------------
-		int32 initRenderer(RenderingApi api, RendererResources* resources);
+		void initRenderer(void* renderSpecific);
 		
 		//---------------------------------------------------------------------------
 		// Create a vertex buffer resource
 		//---------------------------------------------------------------------------
-		RESHANDLE createVertexBuffer(void* data, size_t size,
-				VertexAttributeLayout* layout,	int32 numAttributes);
+		ldare::LDHANDLE createVertexBuffer(VertexBufferAccess access);
+
+		void bindBuffer(ldare::LDHANDLE buffer);
 
 		//---------------------------------------------------------------------------
 		// Delete a buffer resource
 		//---------------------------------------------------------------------------
-		int32 deleteVertexBuffer(RESHANDLE);
+		void deleteVertexBuffer(ldare::LDHANDLE);
 
 	} // namespace renderer
 } // namespace ldare
 
-#endif 		// __LDARE_RENDERER__
+#endif 		// __LDARE_RENDER__

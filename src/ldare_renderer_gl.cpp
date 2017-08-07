@@ -1,14 +1,16 @@
-#include "../ldare_renderer.h"
-#include "../ldare_gl.h"
+/**
+ * win32_renderer_gl.h
+ * Win32 implementation for ldare platform functions
+ */
 
 namespace ldare 
 {
-	namespace renderer
+	namespace render
 	{
-		static RendererResources* resources;
+		static ldare::memory::Heap vertexBufferHeap;
 
 		// Checks and logs OpenGL error if any. Returns non zero if no errors was found
-		static GLenum checkNoGlError()
+		static int32 checkNoGlError()
 		{
 			const char* error = "UNKNOWN ERROR CODE";
 			GLenum err (glGetError());
@@ -31,58 +33,115 @@ namespace ldare
 			return success;
 		}
 
-		//TODO: Do native openGL initialization here
-
 		//---------------------------------------------------------------------------
 		// Initializes this renderer implementation
 		//---------------------------------------------------------------------------
-		int32 initRenderer(RenderingApi api, RendererResources* rendererResources)
+		void initRenderer(void* renderSpecific)
 		{
-			resources = rendererResources;
-			return 0;
+			UNUSED_PARAMETER(renderSpecific);
+
+			// initialize a heap for vertex buffer resources
+			size_t defaultHeapSize = MEGABYTE(1);
+			vertexBufferHeap.memorySize = defaultHeapSize;
+			vertexBufferHeap.freeMemList =
+				(ldare::memory::HeapAllocationHeader*)ldare::platform::memoryAlloc(defaultHeapSize);
+			vertexBufferHeap.objectSize = sizeof(VertexBufferResource);
 		}
 
 		//---------------------------------------------------------------------------
 		// Create a vertex buffer resource
 		//---------------------------------------------------------------------------
-			RESHANDLE createVertexBuffer(void* data, size_t size,
-				VertexAttributeLayout* layout,	int32 numAttributes)
+		ldare::LDHANDLE createVertexBuffer(VertexBufferAccess access)
 		{
-			if (resources->numVertexBuffers >= resources->maxVertexBuffers)
+			GLuint nativeResourceId;
+			glGenBuffers(1, &nativeResourceId);
+
+			if(!checkNoGlError())
 			{
-				//TODO: Recicle freed buffers
-				LogError("Not enough vertex buffer resources to allocate");
-				return ERROR_INVALID_HANDLE;
+				LogError("Could not allocate OpenGL buffer");
+				return ldare::LDHANDLE{ldare::ResourceType::INVALID, 0};
 			}
 
-			NativeResourceId resourceId;
-			glGenBuffers(1, (GLuint*) &resourceId.i32Value);
+			// set up buffer resource information
+			VertexBufferResource* resource =
+				(VertexBufferResource*)ldare::memory::getMemory(&vertexBufferHeap);
+			resource->nativeResourceId = nativeResourceId;
+			resource->bufferAccess = access;
+			resource->bound=0;
+			resource->layout=0;
+			resource->data=0;
+			resource->layoutAttribCount=0;
 
-			if ( ! resourceId.i32Value || !checkNoGlError())
-			{
-				return ERROR_INVALID_HANDLE;
-			}
-
-			RESHANDLE handle = resources->numVertexBuffers++;
-			VertexBufferResource &buffer = resources->vertexBufferList[handle];
-
-			buffer.data = data;
-			buffer.layout = layout;
-			buffer.layoutAttribCount = numAttributes;
-			buffer.bound = 0;
-			buffer.resourceId =	resourceId;
-
+			// Set up the handle
+			ldare::LDHANDLE handle;
+			handle.type = ldare::ResourceType::VERTEX_BUFFER;
+			handle.data = resource;
 			return handle;
 		}
 
 
+		void bindBuffer(ldare::LDHANDLE handle)
+		{
+			ASSERT(handle.type != ldare::ResourceType::INVALID);
+			
+			switch (handle.type)
+			{
+				case ResourceType::VERTEX_BUFFER:
+					{
+						render::VertexBufferResource* vertexBuffer = 
+							(render::VertexBufferResource*) handle.data;
+						//TODO: implement streaming buffer binding
+						//TODO: implement instance buffer binding
+						GLenum glBufferTarget = render::VertexBufferAccess::STATIC;
+						glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer->nativeResourceId);
+
+						int32 lastAttributeIndex = -1;
+						// specify buffer layout
+						for(int32 i=0; i < vertexBuffer->layoutAttribCount; i++)
+						{
+							render::VertexAttributeLayout layout = vertexBuffer->layout[i];
+							glVertexAttribPointer(i,
+									layout.count,
+									layout.type,
+									GL_FALSE,
+									layout.stride,
+									(void*)layout.startOffset);
+
+							if ( lastAttributeIndex != i)
+							{
+								lastAttributeIndex = i;
+								glEnableVertexAttributeArray(lastAttributeIndex);
+							}
+						}
+					}	
+					break;
+
+				default:
+					break;
+			}
+
+			checkNoGlError();
+		}
+
 		//---------------------------------------------------------------------------
 		// Delete a buffer resource
 		//---------------------------------------------------------------------------
-		int32 deleteVertexBuffer(RESHANDLE)
+		void deleteVertexBuffer(ldare::LDHANDLE handle)
 		{
-			//TODO: implement vertex buffer recycling
-			return 0;
+			ASSERT(handle.type != ldare::ResourceType::INVALID);
+			ASSERT(handle.type == ldare::ResourceType::VERTEX_BUFFER);
+
+			auto nativeResource =((VertexBufferResource*) handle.data)->nativeResourceId;
+			glDeleteBuffers(1, (GLuint*)&nativeResource);
+
+			if(!checkNoGlError())
+			{
+				LogError("Could not allocate OpenGL buffer");
+				return;
+			}
+
+			ldare::memory::freeMemory(handle.data);
 		}
+
 	} // namespace renderer
 } // namespace ldare

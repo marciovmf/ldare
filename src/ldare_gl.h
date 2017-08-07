@@ -1,17 +1,37 @@
-#ifndef __LDARE_COREGL__
-#define ___LDARE_COREGL__
-#include <ldare/ldare.h>
+#ifndef __LDARE_GL__
+#define __LDARE_GL__
+
 #include "../GL/glcorearb.h"
 #include "../GL/wglext.h"
+
+#ifdef DECLARE_GL_POINTER
+# define EXTERN
+#else
+# define EXTERN extern
+#endif
 
 extern "C"
 {
 	// OpenGL function pointers
-	LDARE_API PFNGLCLEARPROC glClear;
-	LDARE_API PFNGLCLEARCOLORPROC glClearColor;
-	LDARE_API PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
-	LDARE_API PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
-	LDARE_API PFNGLGENBUFFERSPROC glGenBuffers;
-	LDARE_API PFNGLGETERRORPROC glGetError;
+	EXTERN PFNGLCLEARPROC glClear;
+	EXTERN PFNGLCLEARCOLORPROC glClearColor;
+	EXTERN PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
+	EXTERN PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
+	EXTERN PFNGLGENBUFFERSPROC glGenBuffers;
+	EXTERN PFNGLBINDBUFFERPROC glBindBuffer;
+	EXTERN PFNGLDELETEBUFFERSPROC glDeleteBuffers;
+	EXTERN PFNGLBUFFERSUBDATAPROC glBufferSubData;
+	EXTERN PFNGLBINDATTRIBLOCATIONPROC glBindAttribLocation;
+	EXTERN PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer;
+	EXTERN PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttributeArray;
+	EXTERN PFNGLGETERRORPROC glGetError;
 }
-#endif // __LDARE_COREGL__
+
+namespace ldare 
+{
+	namespace platform
+	{
+		void* getGlFunctionPointer(const char* glFunctionName);
+	}
+}
+#endif // _LDARE_GL__

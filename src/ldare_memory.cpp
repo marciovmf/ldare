@@ -1,33 +1,17 @@
-#ifndef __LDARE_MEMORY__
-#define __LDARE_MEMORY__
-
-#include "ldare_platform.h"
 
 namespace ldare
 {
 	namespace memory
 	{
-		struct Heap;
-		struct HeapAllocationHeader
-		{
-			Heap* heap; 					// Pool that allocated this memory;
-			HeapAllocationHeader* prev;
-			HeapAllocationHeader* next;
-		};
 
-		struct Heap
+		void foo() 
 		{
-			size_t memorySize; 										// virtual memory size
-			size_t objectSize; 										// size of objects this heap contais
-			size_t totalUsed; 										// total amount of memory used
-			HeapAllocationHeader* freeMemList; 		// start of free heap object list
-			HeapAllocationHeader* usedMemList; 		// start of used heap object list
-		};
+		}
 
 		//---------------------------------------------------------------------------
 		// Get Memory from heap
 		//---------------------------------------------------------------------------
-		void* getMemory(Heap* heap)
+		void* getMemory(memory::Heap* heap)
 		{
 			// uninitialized heap huh?
 			if ( heap->freeMemList == 0) 
@@ -96,7 +80,6 @@ namespace ldare
 		{
 			if (memory == 0) { return; }
 
-
 			// get this blcok's header
 			HeapAllocationHeader* allocationHeader = 
 				(HeapAllocationHeader*)((int8*)memory - sizeof(HeapAllocationHeader));
@@ -137,4 +120,3 @@ namespace ldare
 	} // namespace memory
 } //namespace ldare
 
-#endif 	// __LDARE_MEMORY__

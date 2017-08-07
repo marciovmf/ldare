@@ -6,15 +6,30 @@
 #ifndef __LDARE_ENGINE__
 #define __LDARE_ENGINE__
 
+#define UNUSED_PARAMETER(param) (void)(param)
+
+namespace ldare
+{
+	enum ResourceType
+	{
+		INVALID, 							// Uninitialized or returned resource
+		VERTEX_BUFFER
+	};
+
+	struct LDHANDLE
+	{
+		ResourceType type;
+		void* data;
+	};
+}
+
 // sdk headers
 #include <ldare/ldare.h>
 #include <ldare/game.h>
 
-// core headers
+// platform independent headers
 #include "ldare_platform.h"
-#include "ldare_core_gl.h"
-
-// engine platform independent implementation
-#include "ldare_memory.cpp"
+#include "ldare_memory.h"
+#include "ldare_render.h"
 
 #endif // __LDARE_ENGINE__

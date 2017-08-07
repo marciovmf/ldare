@@ -7,9 +7,15 @@
 #include <windows.h>
 #include <winuser.h>
 #include <tchar.h>
+
 #include "../ldare_engine.h"
 
+#define DECLARE_GL_POINTER
+#include "../ldare_gl.h"
+#undef DECLARE_GL_POINTER
+
 using namespace ldare;
+using namespace memory;
 
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 
@@ -25,7 +31,6 @@ LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 {
 	switch(uMsg)
 	{
-
 		case WM_CLOSE:
 			_gameWindow.shouldClose = true;	
 			break;
@@ -72,29 +77,8 @@ static bool Win32_CreateGameWindow(
 
 }
 
-static void* Win32_GetGLfunctionPointer(const char* functionName)
-{
-	static HMODULE opengl32dll = GetModuleHandleA("OpenGL32.dll");
-	void* functionPtr = wglGetProcAddress(functionName);
-	if( functionPtr == (void*)0x1 || functionPtr == (void*) 0x02 ||
-			functionPtr == (void*) 0x3 || functionPtr == (void*) -1 ||
-			functionPtr == (void*) 0x0)
-	{
-		functionPtr = GetProcAddress(opengl32dll, functionName);
-		if(!functionPtr)
-		{
-			LogError("Could not get GL function pointer");
-			LogError(functionName);
-			return nullptr;
-		}
-	}
-
-	return functionPtr;
-}
-
 static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, int major, int minor)
 {
-
 	Win32_GameWindow dummyWindow = {};
 	if (! Win32_CreateGameWindow(&dummyWindow,0,0,hInstance,TEXT("")) )
 	{
@@ -138,12 +122,18 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 
 	bool success = true;
 
-#define FETCH_GL_FUNC(type, name) success = success && (name = (type) Win32_GetGLfunctionPointer(#name))
+#define FETCH_GL_FUNC(type, name) success = success && (name = (type) platform::getGlFunctionPointer((const char*)#name))
 	FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
 	FETCH_GL_FUNC(PFNGLCLEARCOLORPROC, glClearColor);
 	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
 	FETCH_GL_FUNC(PFNWGLCHOOSEPIXELFORMATARBPROC, wglChoosePixelFormatARB);
 	FETCH_GL_FUNC(PFNGLGENBUFFERSPROC, glGenBuffers);
+	FETCH_GL_FUNC(PFNGLBINDBUFFERPROC, glBindBuffer);
+	FETCH_GL_FUNC(PFNGLDELETEBUFFERSPROC, glDeleteBuffers);
+	FETCH_GL_FUNC(PFNGLBUFFERSUBDATAPROC, glBufferSubData);
+	FETCH_GL_FUNC(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation);
+	FETCH_GL_FUNC(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer);
+	FETCH_GL_FUNC(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttributeArray);
 	FETCH_GL_FUNC(PFNGLGETERRORPROC, glGetError);
 #undef FETCH_GL_FUNC
 
@@ -225,32 +215,17 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 //---------------------------------------------------------------------------
 // processes Windows Keyboard messages
 //---------------------------------------------------------------------------
-static inline void Win32_ProcessKeyboardMessage(game::KeyState& keyState, 
-		int8 lastState, int8 state)
+static inline void Win32_ProcessKeyboardMessage(game::KeyState& keyState, int8 lastState,int8 state)
 {
 	keyState.state = state;
 	keyState.thisFrame += state != lastState || keyState.thisFrame;
 }
 
-void copyName(void* dest)
-{
-	char* strDest = (char*) dest;
-	const char name[] = "marcio";
-	for(int i=0; i < 6; i++)
-	{
-		strDest[i] = name[i];
-	}
-
-	strDest[7]=0;
-}
-
 //---------------------------------------------------------------------------
 // Main
 //---------------------------------------------------------------------------
-int CALLBACK WinMain(
-		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-
 	LogInfo("Initializing");
 	game::Input gameInput;
 
@@ -271,16 +246,17 @@ int CALLBACK WinMain(
 		LogError("Could not create window");
 	}
 
-	if (! Win32_InitOpenGL(&_gameWindow, hInstance, 3, 2))
+	if (! Win32_InitOpenGL(&_gameWindow, hInstance, 3, 1))
 	{
 		LogError("Could not initialize OpenGL for game window" );
 	}
 
 	// Initialize the renderer
-	renderer::initRenderer(renderer::RenderingApi::CORE_PROFILE_OPEN_GL, &rendererResources);
+	render::initRenderer(nullptr);
 	// TEST - Create vertex buffer
-	renderer::createVertexBuffer(0, 0, 0, 0);
-	
+	LDHANDLE vb = render::createVertexBuffer(render::VertexBufferAccess::STATIC);
+	render::deleteVertexBuffer(vb);
+
 	// start the game
 	gameStart(gameMemory);
 
@@ -329,12 +305,13 @@ int CALLBACK WinMain(
 
 			TranslateMessage(&msg);
 			DispatchMessage(&msg) ;
-			//glClear(GL_COLOR_BUFFER_BIT);
+			glClear(GL_COLOR_BUFFER_BIT);
 		}
 		//Update the game
 		gameUpdate(gameInput);
 		SwapBuffers(_gameWindow.dc);
 	}
+
 
 	gameStop();
 	LogInfo("Finished");
@@ -349,4 +326,5 @@ int _tmain(int argc, _TCHAR** argv)
 #endif //DEBUG
 
 #include "win32_platform.cpp"
-
+#include "../ldare_memory.cpp"
+#include "../ldare_renderer_gl.cpp"

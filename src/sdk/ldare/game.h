@@ -4,8 +4,7 @@
  */
 #ifndef _LDARE_GAME_
 #define _LDARE_GAME_
-
-#include "ldare.h"
+#include <ldare/ldare.h>
 namespace ldare 
 {
 	namespace game
