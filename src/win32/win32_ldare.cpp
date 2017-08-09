@@ -343,4 +343,5 @@ int _tmain(int argc, _TCHAR** argv)
 #endif //DEBUG
 
 #include "win32_platform.cpp"
+#include "../ldare_memory.cpp"
 
