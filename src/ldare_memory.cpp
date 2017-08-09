@@ -1,28 +1,7 @@
-#ifndef __LDARE_MEMORY__
-#define __LDARE_MEMORY__
-
-#include "ldare_platform.h"
-
 namespace ldare
 {
 	namespace memory
 	{
-		struct Heap;
-		struct HeapAllocationHeader
-		{
-			Heap* heap; 					// Pool that allocated this memory;
-			HeapAllocationHeader* prev;
-			HeapAllocationHeader* next;
-		};
-
-		struct Heap
-		{
-			void* memory; 												// virtual memory
-			size_t memorySize; 										// virtual memory size
-			size_t objectSize; 										// size of objects this heap contais
-			HeapAllocationHeader* freeMemList; 		// start of free heap object list
-			HeapAllocationHeader* usedMemList; 		// start of used heap object list
-		};
 
 		//---------------------------------------------------------------------------
 		// Get Memory from heap
@@ -32,7 +11,7 @@ namespace ldare
 			// uninitialized heap huh?
 			if ( heap->freeMemList == 0) 
 			{
-				heap->freeMemList = (HeapAllocationHeader*) heap->memory;
+				return nullptr;
 			}
 
 			// get first free memory block			
@@ -44,11 +23,17 @@ namespace ldare
 			size_t totalAllocationSize = heap->objectSize + headerSize;
 
 			// Are there enough space for new block on this heap ?
-			if ((int8*)(allocationHeader) + totalAllocationSize > (int8*)(heap->memory) + heap->memorySize)
+			size_t freeMemoryCount = heap->memorySize - heap->totalUsed;
+
+			if (freeMemoryCount < totalAllocationSize)
 			{
-				LogError("Could not allocate memory from heap");
-				//TODO: allocate a new raw memory block
-				//TODO:: Figure out how to join the new memory block
+				// the free remaining free space - if any - is not enough, so
+				// we just ignore it and link a new memory chunck
+				LogWarning("Insuficient Heap space. Growing the heap now.");
+				void* newMemoryBlock = ldare::platform::memoryAlloc(heap->memorySize);
+				heap->freeMemList = (HeapAllocationHeader*) newMemoryBlock;
+				heap->memorySize+=heap->memorySize;
+				//TODO: include a member in HEAP for counting the total wasted memory ?
 			}
 
 			allocationHeader->heap = heap; 					// set this block's heap
@@ -67,7 +52,7 @@ namespace ldare
 			}
 			heap->freeMemList = nextFreeBlock;
 
-			// Inset at start of used list
+			// Insert at start of used list
 			allocationHeader->prev = allocationHeader->next = 0;
 			HeapAllocationHeader* firstUsedBlock = heap->usedMemList; 
 			if( firstUsedBlock != 0 )
@@ -75,7 +60,11 @@ namespace ldare
 				firstUsedBlock->prev = allocationHeader;
 				allocationHeader->next = firstUsedBlock;
 			}
+
+			heap->totalUsed+=totalAllocationSize;
 			heap->usedMemList = allocationHeader;
+
+			memset(allocatedMemoryStart, 0xFF, heap->objectSize);
 			return allocatedMemoryStart;
 		}
 
@@ -86,12 +75,16 @@ namespace ldare
 		{
 			if (memory == 0) { return; }
 
+
 			// get this blcok's header
 			HeapAllocationHeader* allocationHeader = 
 				(HeapAllocationHeader*)((int8*)memory - sizeof(HeapAllocationHeader));
 
 			ASSERT(allocationHeader->heap != 0);
 			Heap* heap = allocationHeader->heap;
+
+			// clear the memory
+			memset(memory, 0, heap->objectSize);
 
 			// fix neighbor connections
 			HeapAllocationHeader* prev = allocationHeader->prev;
@@ -115,11 +108,11 @@ namespace ldare
 			{
 				firstFreeBlock->prev = allocationHeader;
 			}
-			//clear memory
+
+			heap->totalUsed -= heap->objectSize + sizeof(HeapAllocationHeader);
 			heap->freeMemList = allocationHeader;
 		}
 
 	} // namespace memory
 } //namespace ldare
 
-#endif 	// __LDARE_MEMORY__

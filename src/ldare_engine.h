@@ -13,8 +13,6 @@
 // core headers
 #include "ldare_platform.h"
 #include "ldare_core_gl.h"
-
-// engine platform independent implementation
-#include "ldare_memory.cpp"
+#include "ldare_memory.h"
 
 #endif // __LDARE_ENGINE__
