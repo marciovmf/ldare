@@ -30,6 +30,5 @@ namespace ldare
 // platform independent headers
 #include "ldare_platform.h"
 #include "ldare_memory.h"
-#include "ldare_render.h"
 
 #endif // __LDARE_ENGINE__

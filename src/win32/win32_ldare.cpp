@@ -93,6 +93,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	pfd.iPixelType = PFD_TYPE_RGBA;
 	pfd.cColorBits = 32;
 	pfd.cDepthBits = 24;
+	pfd.iLayerType = PFD_MAIN_PLANE;
 
 	int pfId = ChoosePixelFormat(dummyWindow.dc, &pfd);
 	if (pfId == 0)
@@ -122,7 +123,8 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 
 	bool success = true;
 
-#define FETCH_GL_FUNC(type, name) success = success && (name = (type) platform::getGlFunctionPointer((const char*)#name))
+#define FETCH_GL_FUNC(type, name) success = success &&\
+	(name = (type) platform::getGlFunctionPointer((const char*)#name))
 	FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
 	FETCH_GL_FUNC(PFNGLCLEARCOLORPROC, glClearColor);
 	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
@@ -133,8 +135,28 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	FETCH_GL_FUNC(PFNGLBUFFERSUBDATAPROC, glBufferSubData);
 	FETCH_GL_FUNC(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation);
 	FETCH_GL_FUNC(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer);
-	FETCH_GL_FUNC(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttributeArray);
+	FETCH_GL_FUNC(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray);
 	FETCH_GL_FUNC(PFNGLGETERRORPROC, glGetError);
+  FETCH_GL_FUNC(PFNGLGETPROGRAMIVPROC, glGetProgramiv);
+	FETCH_GL_FUNC(PFNGLGETPROGRAMINFOLOGPROC, glGetProgramInfoLog);
+	FETCH_GL_FUNC(PFNGLGETSHADERIVPROC, glGetShaderiv);
+	FETCH_GL_FUNC(PFNGLGETSHADERINFOLOGPROC, glGetShaderInfoLog);
+	FETCH_GL_FUNC(PFNGLCREATESHADERPROC, glCreateShader);
+	FETCH_GL_FUNC(PFNGLSHADERSOURCEPROC, glShaderSource);
+	FETCH_GL_FUNC(PFNGLCOMPILESHADERPROC, glCompileShader);
+	FETCH_GL_FUNC(PFNGLCREATEPROGRAMPROC, glCreateProgram);
+	FETCH_GL_FUNC(PFNGLATTACHSHADERPROC, glAttachShader);
+	FETCH_GL_FUNC(PFNGLLINKPROGRAMPROC, glLinkProgram);
+	FETCH_GL_FUNC(PFNGLDELETESHADERPROC, glDeleteShader);
+	FETCH_GL_FUNC(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays);
+	FETCH_GL_FUNC(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray);
+	FETCH_GL_FUNC(PFNGLBUFFERDATAPROC, glBufferData);
+	FETCH_GL_FUNC(PFNGLMAPBUFFERPROC, glMapBuffer);
+	FETCH_GL_FUNC(PFNGLUNMAPBUFFERPROC, glUnmapBuffer);
+	FETCH_GL_FUNC(PFNGLDRAWELEMENTSPROC, glDrawElements);
+	FETCH_GL_FUNC(PFNGLUSEPROGRAMPROC, glUseProgram);
+	FETCH_GL_FUNC(PFNGLFLUSHPROC, glFlush);
+	FETCH_GL_FUNC(PFNGLVIEWPORTPROC, glViewport);
 #undef FETCH_GL_FUNC
 
 	if (!success)
@@ -246,20 +268,23 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		LogError("Could not create window");
 	}
 
-	if (! Win32_InitOpenGL(&_gameWindow, hInstance, 3, 1))
+	if (! Win32_InitOpenGL(&_gameWindow, hInstance, 3, 3))
 	{
 		LogError("Could not initialize OpenGL for game window" );
 	}
 
 	// Initialize the renderer
-	render::initRenderer(nullptr);
-	// TEST - Create vertex buffer
-	LDHANDLE vb = render::createVertexBuffer(render::VertexBufferAccess::STATIC);
-	render::deleteVertexBuffer(vb);
+	render::initSpriteBatch();
 
 	// start the game
 	gameStart(gameMemory);
-
+	//TODO: marcio, remove this color member from the struct. This is for testing only
+	//TODO: marcio, find somewhere else to set clear color that can happen along the  game loop
+	//TODO: marcio, remove opengl calls from here and move it to renderer layer
+  glClearColor(gameContext.clearColor[0],
+			gameContext.clearColor[1],
+			gameContext.clearColor[2],1);
+			
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 
 	while (!_gameWindow.shouldClose)
@@ -277,6 +302,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			// handle keyboard input messages directly
 			switch(msg.message)
 			{
+				case WM_SIZE:
+					LogInfo("Resizing...");
+					RECT windowRect;
+					GetClientRect(_gameWindow.hwnd,&windowRect);
+					glViewport(0,0, windowRect.right, windowRect.bottom);
+					break;
 				case WM_KEYDOWN:
 				case WM_KEYUP:
 					{
@@ -305,13 +336,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			TranslateMessage(&msg);
 			DispatchMessage(&msg) ;
-			glClear(GL_COLOR_BUFFER_BIT);
 		}
 		//Update the game
 		gameUpdate(gameInput);
 		SwapBuffers(_gameWindow.dc);
 	}
-
 
 	gameStop();
 	LogInfo("Finished");

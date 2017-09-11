@@ -3,6 +3,7 @@
 
 using namespace ldare;
 using namespace ldare::game;
+using namespace ldare::render;
 
 static ldare::game::GameContext gameContext;
 
@@ -12,7 +13,8 @@ static ldare::game::GameContext gameContext;
 // to programmers but charges 
 struct GameData
 {
-	float clearColor[3];
+	Sprite sprite;
+	Shader shader;
 } *gameMemory;
 
 //---------------------------------------------------------------------------
@@ -23,6 +25,9 @@ ldare::game::GameContext gameInit()
 	gameContext.windowWidth = 800; 						// game window width
 	gameContext.windowHeight = 600; 					// game window height
 	gameContext.gameMemorySize = MEGABYTE(10);// requested game memory size
+	gameContext.clearColor[0] = 0;
+	gameContext.clearColor[1] = 1.0f;
+	gameContext.clearColor[2] = 1.0f;
 	return gameContext; 											// let the engine know what we want
 }
 
@@ -37,7 +42,13 @@ void gameStart(void* mem)
 		LogError("initial memory allocation failed");
 	}
 	gameMemory = (GameData*) mem;
-	gameMemory->clearColor[0] = 1.0f;
+
+	Sprite sprite;
+	sprite.width = sprite.height = 0.3f;
+	sprite.position = Vec3{0.2, 0.2, 0};
+	
+	gameMemory->sprite = sprite;
+	gameMemory->shader = render::loadShader(nullptr, nullptr);
 }
 
 //---------------------------------------------------------------------------
@@ -63,7 +74,10 @@ void gameUpdate(const Input& input)
 		if(keyValue.thisFrame)
 			LogInfo("UP");
 	}
-
+	render::begin();
+	render::submit(gameMemory->shader, gameMemory->sprite);
+	render::end();
+	render::flush();
 }
 
 //---------------------------------------------------------------------------
