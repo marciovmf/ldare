@@ -272,7 +272,6 @@ void main() {	color = vec4(0.0f, 1.0f, 1.0f, 0.0f); }\n\0";
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteBatchData.ibo);
 			checkNoGlError();
 			glDrawElements(GL_TRIANGLES, 6 * spriteBatchData.spriteCount, GL_UNSIGNED_SHORT, 0);
-			LogInfo(spriteBatchData.spriteCount);
 			checkNoGlError();
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			glBindVertexArray(0);

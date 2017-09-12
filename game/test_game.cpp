@@ -24,7 +24,7 @@ struct GameData
 //---------------------------------------------------------------------------
 ldare::game::GameContext gameInit()
 {
-	gameContext.windowWidth = 800; 						// game window width
+	gameContext.windowWidth = 600; 						// game window width
 	gameContext.windowHeight = 600; 					// game window height
 	gameContext.gameMemorySize = MEGABYTE(10);// requested game memory size
 	gameContext.clearColor[0] = 0;
@@ -47,8 +47,8 @@ void gameStart(void* mem)
 	gameMemory->shader = render::loadShader(nullptr, nullptr);
 
 	Sprite sprite;
-	sprite.width = sprite.height = 0.3f;
-	sprite.position = Vec3{0.2, 0.0, 0};
+	sprite.width = sprite.height = 0.2f;
+	sprite.position = Vec3{-.1, -.1, 0};
 	gameMemory->sprite1 = sprite;
 	
 	sprite.width = sprite.height = 0.5f;
@@ -56,7 +56,7 @@ void gameStart(void* mem)
 	gameMemory->sprite2 = sprite;
 	
 	sprite.width = sprite.height = 0.4f;
-	sprite.position = Vec3{-0.2, -0.5, 0};
+	sprite.position = Vec3{-0.8, -0.5, 0};
 	gameMemory->sprite3 = sprite;
 
 }
@@ -66,36 +66,27 @@ void gameStart(void* mem)
 //---------------------------------------------------------------------------
 float x=0;
 float y=0;
+const float step = 0.001;
 void gameUpdate(const Input& input)
 {
 	ldare::game::KeyState keyValue = input.keyboard[KBD_W];
 
-	if(keyValue.state)
-	{
-		if (keyValue.thisFrame)
-		{
-			LogInfo("DOWN");
-		}
-		else
-		{
-			LogInfo("HOLDING");
-		}
-	}
-	else 	
-	{
-		if(keyValue.thisFrame)
-			LogInfo("UP");
-	}
+	if ( input.keyboard[KBD_W].state )
+		y += step;
+
+	if ( input.keyboard[KBD_S].state )
+		y -= step;
+
+	if ( input.keyboard[KBD_A].state )
+		x -= step;
+
+	if ( input.keyboard[KBD_D].state )
+		x += step;
 
 	if (x >1) x = -1;
-	else x+=0.01;
-
 	if (y >1) y = -1;
-	else y+=0.01;
-
 	gameMemory->sprite1.position.x = x;
-	gameMemory->sprite2.position.y = y;
-	gameMemory->sprite3.position.x = gameMemory->sprite3.position.y = -x;
+	gameMemory->sprite1.position.y = y;
 
 	render::begin();
 		render::submit(gameMemory->shader, gameMemory->sprite1);
@@ -103,6 +94,9 @@ void gameUpdate(const Input& input)
 		render::submit(gameMemory->shader, gameMemory->sprite3);
 	render::end();
 	render::flush();
+
+	gameMemory->sprite2.position.y = y;
+	gameMemory->sprite3.position.x = gameMemory->sprite3.position.y = -x;
 }
 
 //---------------------------------------------------------------------------

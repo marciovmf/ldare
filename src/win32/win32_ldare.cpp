@@ -34,6 +34,12 @@ LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 		case WM_CLOSE:
 			_gameWindow.shouldClose = true;	
 			break;
+		case WM_SIZE:
+			RECT windowRect;
+			GetClientRect(_gameWindow.hwnd,&windowRect);
+			//TODO: remove GL calls from here!
+			glViewport(0,0, windowRect.right, windowRect.bottom);
+			break;
 
 		default:
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);	
@@ -304,12 +310,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			// handle keyboard input messages directly
 			switch(msg.message)
 			{
-				case WM_SIZE:
-					LogInfo("Resizing...");
-					RECT windowRect;
-					GetClientRect(_gameWindow.hwnd,&windowRect);
-					glViewport(0,0, windowRect.right, windowRect.bottom);
-					break;
 				case WM_KEYDOWN:
 				case WM_KEYUP:
 					{
