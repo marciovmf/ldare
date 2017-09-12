@@ -28,15 +28,15 @@ namespace ldare
 			uint32 spriteCount;
 		} spriteBatchData;
 
-		static void resetGlError()
-		{
-			// reset opengl error flag
-			GLenum err;
-			do {
-				err = glGetError();
-			}
-			while(err!= GL_NO_ERROR);
-		}
+	//	static void resetGlError()
+	//	{
+	//		// reset opengl error flag
+	//		GLenum err;
+	//		do {
+	//			err = glGetError();
+	//		}
+	//		while(err!= GL_NO_ERROR);
+	//	}
 
 		static int32 checkNoGlError()
 		{
@@ -157,36 +157,18 @@ void main() {	color = vec4(0.0f, 1.0f, 1.0f, 0.0f); }\n\0";
 
 		int32 initSpriteBatch()
 		{
-			// test data
-			float vertices[] = {
-				0.5f,  0.5f, 0.0f,  // top right
-				0.5f, -0.5f, 0.0f,  // bottom right
-				-0.5f, -0.5f, 0.0f,  // bottom left
-				-0.5f,  0.5f, 0.0f   // top left 
-			};
-			uint16 indices[] = {  // note that we start from 0!
-				0, 1, 3,   // first triangle
-				1, 2, 3    // second triangle
-			}; 
-
 			glGenVertexArrays(1, &spriteBatchData.vao);
 			glGenBuffers(1, &spriteBatchData.vbo);
 			glGenBuffers(1, &spriteBatchData.ibo);
 
 			glBindVertexArray(spriteBatchData.vao);
-			glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
-			//glBufferData(GL_ARRAY_BUFFER, SPRITE_BATCH_BUFFER_SIZE, 0, GL_DYNAMIC_DRAW);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteBatchData.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-			glVertexAttribPointer(SPRITE_ATTRIB_VERTEX, 3, GL_FLOAT, GL_FALSE,
-					3 * sizeof(float), (const GLvoid*)0);
-			
 			glEnableVertexAttribArray(SPRITE_ATTRIB_VERTEX);
+			glEnableVertexAttribArray(SPRITE_ATTRIB_COLOR);
 
-#if 0
+			glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
+			glBufferData(GL_ARRAY_BUFFER, SPRITE_BATCH_BUFFER_SIZE, 0, GL_DYNAMIC_DRAW);
+			checkNoGlError();
+
 			// Precompute indices for every sprite
 			GLushort indices[SPRITE_BATCH_INDICES_SIZE]={};
 			int32 offset = 0;
@@ -201,32 +183,30 @@ void main() {	color = vec4(0.0f, 1.0f, 1.0f, 0.0f); }\n\0";
 
 				offset+=4; // 4 offsets per sprite
 			}
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, SPRITE_BATCH_INDICES_SIZE * sizeof(uint32),
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteBatchData.ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, SPRITE_BATCH_INDICES_SIZE * sizeof(uint16),
 					&indices[0], GL_STATIC_DRAW);
 
 			// 3 float vertex, 3 float color
-			//glVertexAttribPointer(SPRITE_ATTRIB_VERTEX, 3, GL_FLOAT, GL_FALSE,
-			//		SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)0);
+			glVertexAttribPointer(SPRITE_ATTRIB_VERTEX, 3, GL_FLOAT, GL_FALSE,
+					SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)0);
 
-			//glVertexAttribPointer(SPRITE_ATTRIB_COLOR, 3, GL_FLOAT, GL_FALSE,
-			//		SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)(3 * sizeof(Vec3))); 
+			glVertexAttribPointer(SPRITE_ATTRIB_COLOR, 3, GL_FLOAT, GL_FALSE,
+					SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)(3 * sizeof(float))); 
 
-			//glEnableVertexAttribArray(SPRITE_ATTRIB_COLOR);
-#endif		
 
 			//TODO: Add texture, uv1, uv2, normal(?), tangent(?)
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glBindVertexArray(0);
 			checkNoGlError();
+
+			glDisable(GL_CULL_FACE);
 			return 1;
 		}
 
 		void begin()
 		{
-			
-			checkNoGlError();
 			spriteBatchData.spriteCount = 0;
-			return;
 			glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
 			checkNoGlError();
 			spriteBatchData.gpuBuffer = (GLvoid*) glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
@@ -235,16 +215,35 @@ void main() {	color = vec4(0.0f, 1.0f, 1.0f, 0.0f); }\n\0";
 
 		void submit( uint32 shader, const Sprite& sprite)
 		{
-			glUseProgram(shader);
+			// sprite vertex order 0,1,2,2,3,0
+			// 0 -- 3
+			// |    |
+			// 1 -- 2
+
+			spriteBatchData.defaultShader = shader;
 			spriteBatchData.spriteCount++;
-			return;
 			//TODO: store draw calls somewher to be able to sort them per material
 			//later
 			SpriteVertexData* vertexData = (SpriteVertexData*) spriteBatchData.gpuBuffer;
-
-			// clockwise, origin at top left
 			vertexData->position = sprite.position;
 			vertexData->color = sprite.color;
+			vertexData++;
+			
+			// bottom left
+			vertexData->position = Vec3 {
+				sprite.position.x,
+					sprite.position.y + sprite.height,
+					sprite.position.z};
+			vertexData->color = sprite.color;
+			vertexData++;
+
+			// bottom right
+			vertexData->position = Vec3 {
+				sprite.position.x + sprite.width,
+					sprite.position.y + sprite.height,
+					sprite.position.z};
+			vertexData->color = sprite.color;
+			vertexData++;
 
 			// top right
 			vertexData->position = Vec3 {
@@ -252,39 +251,29 @@ void main() {	color = vec4(0.0f, 1.0f, 1.0f, 0.0f); }\n\0";
 				sprite.position.y,
 				sprite.position.z};
 			vertexData->color = sprite.color;
-
-			// bottom right
-			vertexData->position = Vec3 {
-					sprite.position.x + sprite.width,
-				sprite.position.y + sprite.height,
-				sprite.position.z};
-			vertexData->color = sprite.color;
-
-			// bottom left
-			vertexData->position = Vec3 {
-				sprite.position.x,
-				sprite.position.y + sprite.height,
-				sprite.position.z};
-			vertexData->color = sprite.color;
-
-			spriteBatchData.spriteCount+=6;
+			vertexData++;
+			spriteBatchData.gpuBuffer = (void*) vertexData;
 		}
 
 		void end()
 		{
-			return;
 			glUnmapBuffer(GL_ARRAY_BUFFER);
+			glClearColor(.3, .3, .3, 0);
 			//TODO: sort draw calls per material 
 		}
 		
 		void flush()
 		{
+			glUseProgram(spriteBatchData.defaultShader);
+			checkNoGlError();
 			glBindVertexArray(spriteBatchData.vao);
-			glClearColor(.3, .3, .3, 0);
+			checkNoGlError();
 			glClear(GL_COLOR_BUFFER_BIT);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteBatchData.ibo);
-			//glDrawElements(GL_TRIANGLES, spriteBatchData.spriteCount, GL_UNSIGNED_SHORT, 0);
+			checkNoGlError();
 			glDrawElements(GL_TRIANGLES, 6 * spriteBatchData.spriteCount, GL_UNSIGNED_SHORT, 0);
+			LogInfo(spriteBatchData.spriteCount);
+			checkNoGlError();
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			glBindVertexArray(0);
 		}

@@ -125,6 +125,8 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 
 #define FETCH_GL_FUNC(type, name) success = success &&\
 	(name = (type) platform::getGlFunctionPointer((const char*)#name))
+	FETCH_GL_FUNC(PFNGLENABLEPROC, glEnable);
+	FETCH_GL_FUNC(PFNGLDISABLEPROC, glDisable);
 	FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
 	FETCH_GL_FUNC(PFNGLCLEARCOLORPROC, glClearColor);
 	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
