@@ -145,11 +145,15 @@ namespace ldare
 			//TODO: remove hardcoded shader source and load it from argument path
 			const char* vertexSource = "#version 330 core\n\
 	layout (location = 0) in vec3 vPos;\n\
-	void main(){ gl_Position = vec4(vPos, 1.0);}\n\0";
+	layout (location = 1) in vec3 vColor;\n\
+	out vec4 fragColor;\n\
+	void main(){ fragColor = vec4(vColor, 0.0);\n\
+		gl_Position = vec4(vPos, 1.0);}\n\0";
 
 			const char* fragmentSource = "#version 330 core\n\
 out vec4 color;\n\
-void main() {	color = vec4(0.0f, 1.0f, 1.0f, 0.0f); }\n\0";
+in vec4 fragColor;\n\
+void main() {	color = fragColor; }\n\0";
 
 			Shader shader = createShaderProgram(vertexSource, fragmentSource);
 			return shader;

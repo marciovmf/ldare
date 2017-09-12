@@ -47,14 +47,17 @@ void gameStart(void* mem)
 	gameMemory->shader = render::loadShader(nullptr, nullptr);
 
 	Sprite sprite;
+	sprite.color = Vec3{0.0, 1.0, 1.0};
 	sprite.width = sprite.height = 0.2f;
 	sprite.position = Vec3{-.1, -.1, 0};
 	gameMemory->sprite1 = sprite;
 	
+	sprite.color = Vec3{0.0, 1.0, 0.0};
 	sprite.width = sprite.height = 0.5f;
 	sprite.position = Vec3{0.7, 0.2, 0};
 	gameMemory->sprite2 = sprite;
 	
+	sprite.color = Vec3{0.0, 0.0, 1.0};
 	sprite.width = sprite.height = 0.4f;
 	sprite.position = Vec3{-0.8, -0.5, 0};
 	gameMemory->sprite3 = sprite;
@@ -66,7 +69,7 @@ void gameStart(void* mem)
 //---------------------------------------------------------------------------
 float x=0;
 float y=0;
-const float step = 0.001;
+const float step = 0.01;
 void gameUpdate(const Input& input)
 {
 	ldare::game::KeyState keyValue = input.keyboard[KBD_W];
@@ -87,6 +90,9 @@ void gameUpdate(const Input& input)
 	if (y >1) y = -1;
 	gameMemory->sprite1.position.x = x;
 	gameMemory->sprite1.position.y = y;
+
+	gameMemory->sprite3.color.y = 1-y; 
+	gameMemory->sprite3.color.y = 1-x; 
 
 	render::begin();
 		render::submit(gameMemory->shader, gameMemory->sprite1);
