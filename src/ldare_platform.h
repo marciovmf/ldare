@@ -9,10 +9,14 @@ namespace ldare
 {
 	namespace platform 
 	{
+
+		typedef void* DynamicLibrary;
+
 		//---------------------------------------------------------------------------
 		// Requests allocation of size bytes of memory
 		//---------------------------------------------------------------------------
 		void* memoryAlloc(size_t size);
+
 	}
 }
 

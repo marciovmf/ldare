@@ -5,7 +5,7 @@ namespace ldare
 {
 	namespace memory
 	{
-			struct Heap;
+		struct Heap;
 		struct HeapAllocationHeader
 		{
 			Heap* heap; 					// Pool that allocated this memory;
@@ -21,6 +21,16 @@ namespace ldare
 			HeapAllocationHeader* freeMemList; 		// start of free heap object list
 			HeapAllocationHeader* usedMemList; 		// start of used heap object list
 		};
+
+		//---------------------------------------------------------------------------
+		// Get memory from heap
+		//---------------------------------------------------------------------------
+		void* getHeapMemory(ldare::memory::Heap* heap);
+		
+		//---------------------------------------------------------------------------
+		// Free heap memory
+		//---------------------------------------------------------------------------
+		void freeHeapMemory(void* memory);
 	}
 }
 #endif		// __LDARE_MEMORY__

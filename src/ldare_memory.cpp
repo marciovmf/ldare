@@ -6,7 +6,7 @@ namespace ldare
 		//---------------------------------------------------------------------------
 		// Get Memory from heap
 		//---------------------------------------------------------------------------
-		void* getMemory(Heap* heap)
+		void* getMemory(memory::Heap* heap)
 		{
 			// uninitialized heap huh?
 			if ( heap->freeMemList == 0) 
@@ -74,7 +74,6 @@ namespace ldare
 		void freeMemory(void* memory)
 		{
 			if (memory == 0) { return; }
-
 
 			// get this blcok's header
 			HeapAllocationHeader* allocationHeader = 

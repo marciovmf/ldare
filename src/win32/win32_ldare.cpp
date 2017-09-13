@@ -7,10 +7,15 @@
 #include <windows.h>
 #include <winuser.h>
 #include <tchar.h>
+
 #include "../ldare_engine.h"
 
+#define DECLARE_GL_POINTER
+#include "../ldare_gl.h"
+#undef DECLARE_GL_POINTER
+
 using namespace ldare;
-using namespace ldare::game;
+using namespace memory;
 
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 
@@ -26,9 +31,14 @@ LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 {
 	switch(uMsg)
 	{
-
 		case WM_CLOSE:
 			_gameWindow.shouldClose = true;	
+			break;
+		case WM_SIZE:
+			RECT windowRect;
+			GetClientRect(_gameWindow.hwnd,&windowRect);
+			//TODO: remove GL calls from here!
+			glViewport(0,0, windowRect.right, windowRect.bottom);
 			break;
 
 		default:
@@ -73,29 +83,8 @@ static bool Win32_CreateGameWindow(
 
 }
 
-static void* Win32_GetGLfunctionPointer(const char* functionName)
-{
-	static HMODULE opengl32dll = GetModuleHandleA("OpenGL32.dll");
-	void* functionPtr = wglGetProcAddress(functionName);
-	if( functionPtr == (void*)0x1 || functionPtr == (void*) 0x02 ||
-			functionPtr == (void*) 0x3 || functionPtr == (void*) -1 ||
-			functionPtr == (void*) 0x0)
-	{
-		functionPtr = GetProcAddress(opengl32dll, functionName);
-		if(!functionPtr)
-		{
-			LogError("Could not get GL function pointer");
-			LogError(functionName);
-			return nullptr;
-		}
-	}
-
-	return functionPtr;
-}
-
 static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, int major, int minor)
 {
-
 	Win32_GameWindow dummyWindow = {};
 	if (! Win32_CreateGameWindow(&dummyWindow,0,0,hInstance,TEXT("")) )
 	{
@@ -110,6 +99,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	pfd.iPixelType = PFD_TYPE_RGBA;
 	pfd.cColorBits = 32;
 	pfd.cDepthBits = 24;
+	pfd.iLayerType = PFD_MAIN_PLANE;
 
 	int pfId = ChoosePixelFormat(dummyWindow.dc, &pfd);
 	if (pfId == 0)
@@ -139,11 +129,42 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 
 	bool success = true;
 
-#define FETCH_GL_FUNC(type, name) success = success && (name = (type) Win32_GetGLfunctionPointer(#name))
+#define FETCH_GL_FUNC(type, name) success = success &&\
+	(name = (type) platform::getGlFunctionPointer((const char*)#name))
+	FETCH_GL_FUNC(PFNGLENABLEPROC, glEnable);
+	FETCH_GL_FUNC(PFNGLDISABLEPROC, glDisable);
 	FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
 	FETCH_GL_FUNC(PFNGLCLEARCOLORPROC, glClearColor);
 	FETCH_GL_FUNC(PFNWGLCREATECONTEXTATTRIBSARBPROC, wglCreateContextAttribsARB);
 	FETCH_GL_FUNC(PFNWGLCHOOSEPIXELFORMATARBPROC, wglChoosePixelFormatARB);
+	FETCH_GL_FUNC(PFNGLGENBUFFERSPROC, glGenBuffers);
+	FETCH_GL_FUNC(PFNGLBINDBUFFERPROC, glBindBuffer);
+	FETCH_GL_FUNC(PFNGLDELETEBUFFERSPROC, glDeleteBuffers);
+	FETCH_GL_FUNC(PFNGLBUFFERSUBDATAPROC, glBufferSubData);
+	FETCH_GL_FUNC(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation);
+	FETCH_GL_FUNC(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer);
+	FETCH_GL_FUNC(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray);
+	FETCH_GL_FUNC(PFNGLGETERRORPROC, glGetError);
+  FETCH_GL_FUNC(PFNGLGETPROGRAMIVPROC, glGetProgramiv);
+	FETCH_GL_FUNC(PFNGLGETPROGRAMINFOLOGPROC, glGetProgramInfoLog);
+	FETCH_GL_FUNC(PFNGLGETSHADERIVPROC, glGetShaderiv);
+	FETCH_GL_FUNC(PFNGLGETSHADERINFOLOGPROC, glGetShaderInfoLog);
+	FETCH_GL_FUNC(PFNGLCREATESHADERPROC, glCreateShader);
+	FETCH_GL_FUNC(PFNGLSHADERSOURCEPROC, glShaderSource);
+	FETCH_GL_FUNC(PFNGLCOMPILESHADERPROC, glCompileShader);
+	FETCH_GL_FUNC(PFNGLCREATEPROGRAMPROC, glCreateProgram);
+	FETCH_GL_FUNC(PFNGLATTACHSHADERPROC, glAttachShader);
+	FETCH_GL_FUNC(PFNGLLINKPROGRAMPROC, glLinkProgram);
+	FETCH_GL_FUNC(PFNGLDELETESHADERPROC, glDeleteShader);
+	FETCH_GL_FUNC(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays);
+	FETCH_GL_FUNC(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray);
+	FETCH_GL_FUNC(PFNGLBUFFERDATAPROC, glBufferData);
+	FETCH_GL_FUNC(PFNGLMAPBUFFERPROC, glMapBuffer);
+	FETCH_GL_FUNC(PFNGLUNMAPBUFFERPROC, glUnmapBuffer);
+	FETCH_GL_FUNC(PFNGLDRAWELEMENTSPROC, glDrawElements);
+	FETCH_GL_FUNC(PFNGLUSEPROGRAMPROC, glUseProgram);
+	FETCH_GL_FUNC(PFNGLFLUSHPROC, glFlush);
+	FETCH_GL_FUNC(PFNGLVIEWPORTPROC, glViewport);
 #undef FETCH_GL_FUNC
 
 	if (!success)
@@ -224,37 +245,22 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 //---------------------------------------------------------------------------
 // processes Windows Keyboard messages
 //---------------------------------------------------------------------------
-	static inline void 
-Win32_ProcessKeyboardMessage(KeyState& keyState, int8 lastState, int8 state)
+static inline void Win32_ProcessKeyboardMessage(game::KeyState& keyState, int8 lastState,int8 state)
 {
 	keyState.state = state;
 	keyState.thisFrame += state != lastState || keyState.thisFrame;
 }
 
-void copyName(void* dest)
-{
-	char* strDest = (char*) dest;
-	const char name[] = "marcio";
-	for(int i=0; i < 6; i++)
-	{
-		strDest[i] = name[i];
-	}
-
-	strDest[7]=0;
-}
-
 //---------------------------------------------------------------------------
 // Main
 //---------------------------------------------------------------------------
-int CALLBACK WinMain(
-		HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-
 	LogInfo("Initializing");
-	Input gameInput;
+	game::Input gameInput;
 
 	// Initialize the game settings
-	GameContext gameContext = gameInit();
+	game::GameContext gameContext = gameInit();
 
 	// Reserve memory for the game
 	void* gameMemory = platform::memoryAlloc(gameContext.gameMemorySize);
@@ -270,14 +276,23 @@ int CALLBACK WinMain(
 		LogError("Could not create window");
 	}
 
-	if (! Win32_InitOpenGL(&_gameWindow, hInstance, 3, 2))
+	if (! Win32_InitOpenGL(&_gameWindow, hInstance, 3, 3))
 	{
 		LogError("Could not initialize OpenGL for game window" );
 	}
 
+	// Initialize the renderer
+	render::initSpriteBatch();
+
 	// start the game
 	gameStart(gameMemory);
-
+	//TODO: marcio, remove this color member from the struct. This is for testing only
+	//TODO: marcio, find somewhere else to set clear color that can happen along the  game loop
+	//TODO: marcio, remove opengl calls from here and move it to renderer layer
+  glClearColor(gameContext.clearColor[0],
+			gameContext.clearColor[1],
+			gameContext.clearColor[2],1);
+			
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 
 	while (!_gameWindow.shouldClose)
@@ -304,7 +319,7 @@ int CALLBACK WinMain(
 						int8 isDown = (msg.lParam & (1 << 31)) == 0;
 						int8 wasDown = (msg.lParam & (1 << 30)) != 0;
 						int16 vkCode = msg.wParam;
-						KeyState& currentState = gameInput.keyboard[vkCode];
+						game::KeyState& currentState = gameInput.keyboard[vkCode];
 
 						Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
 						continue;
@@ -323,7 +338,6 @@ int CALLBACK WinMain(
 
 			TranslateMessage(&msg);
 			DispatchMessage(&msg) ;
-			//glClear(GL_COLOR_BUFFER_BIT);
 		}
 		//Update the game
 		gameUpdate(gameInput);
@@ -344,4 +358,4 @@ int _tmain(int argc, _TCHAR** argv)
 
 #include "win32_platform.cpp"
 #include "../ldare_memory.cpp"
-
+#include "../ldare_renderer_gl.cpp"

@@ -4,8 +4,7 @@
  */
 #ifndef _LDARE_GAME_
 #define _LDARE_GAME_
-
-#include "ldare.h"
+#include <ldare/ldare.h>
 namespace ldare 
 {
 	namespace game
@@ -19,6 +18,7 @@ namespace ldare
 			int32 windowWidth;
 			int32 windowHeight;
 			size_t gameMemorySize; 				// Amount of memory allocated to the game
+			float clearColor[3];
 		};
 
 		//---------------------------------------------------------------------------
@@ -44,6 +44,22 @@ namespace ldare
 		};
 
 	}// game namespace
+
+	struct Vec3
+	{
+		float x;
+		float y;
+		float z;
+	};
+
+	struct Rect
+	{
+		float x;
+		float y;
+		float width;
+		float height;
+	};
+
 } // ldare namespace
 
 
@@ -58,6 +74,9 @@ extern "C"
 	void gameUpdate(const ldare::game::Input& input);
 	void gameStop();
 }
+
+//sdk includes
+#include "ldare_render.h"
 
 //---------------------------------------------------------------------------
 // KEYBOARD KEYS / MOSUE BUTTONS macros
