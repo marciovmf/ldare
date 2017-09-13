@@ -22,8 +22,6 @@ namespace ldare
 			HeapAllocationHeader* usedMemList; 		// start of used heap object list
 		};
 
-		void foo();
-
 		//---------------------------------------------------------------------------
 		// Get memory from heap
 		//---------------------------------------------------------------------------
@@ -35,4 +33,4 @@ namespace ldare
 		void freeHeapMemory(void* memory);
 	}
 }
-#endif // __LDARE_MEMORY__
+#endif		// __LDARE_MEMORY__
