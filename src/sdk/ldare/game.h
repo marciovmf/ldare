@@ -42,7 +42,6 @@ namespace ldare
 				int32 y;
 			} cursor;
 		};
-
 	}// game namespace
 
 	struct Vec3
@@ -63,20 +62,34 @@ namespace ldare
 } // ldare namespace
 
 
+//sdk includes
+#include "ldare_render.h"
+// API exposed to the game
+namespace ldare
+{
+	struct GameApi
+	{
+		ldare::render::SpriteBatchApi spriteBatch;
+	};
+}
+
 //---------------------------------------------------------------------------
 // Game Interface
 // This interface is used by the engine to communicate with the game
 //---------------------------------------------------------------------------
-extern "C" 
-{
-	ldare::game::GameContext gameInit();
-	void gameStart(void* gameMemory);
-	void gameUpdate(const ldare::game::Input& input);
-	void gameStop();
-}
 
-//sdk includes
-#include "ldare_render.h"
+#define GAME_INIT_FUNC(name) ldare::game::GameContext (name)()
+typedef GAME_INIT_FUNC(gameInitFunc);
+
+#define GAME_START_FUNC(name) void (name)(void* gameMemory, ldare::GameApi& gameApi)
+typedef GAME_START_FUNC(gameStartFunc);
+
+#define GAME_UPDATE_FUNC(name) void (name)(const ldare::game::Input& input, ldare::GameApi& gameApi)
+typedef GAME_UPDATE_FUNC(gameUpdateFunc);
+
+#define GAME_STOP_FUNC(name) void (name)();
+typedef GAME_STOP_FUNC(gameStopFunc)
+
 
 //---------------------------------------------------------------------------
 // KEYBOARD KEYS / MOSUE BUTTONS macros

@@ -17,7 +17,11 @@ struct GameData
 	Sprite sprite2;
 	Sprite sprite3;
 	Shader shader;
+	float x=0;
+	float y=0;
+	float step;
 } *gameMemory;
+
 
 //---------------------------------------------------------------------------
 // Game Engine Initialization
@@ -36,73 +40,74 @@ ldare::game::GameContext gameInit()
 //---------------------------------------------------------------------------
 // Game start callback
 //---------------------------------------------------------------------------
-void gameStart(void* mem)
+void gameStart(void* mem, GameApi& gameApi)
 {
 	LogInfo("Game started");
 	if(!mem)
 	{
 		LogError("initial memory allocation failed");
 	}
+
 	gameMemory = (GameData*) mem;
-	gameMemory->shader = render::loadShader(nullptr, nullptr);
+	gameMemory->shader = gameApi.spriteBatch.loadShader(nullptr, nullptr);
+	gameMemory->step = 0.008f;
 
 	Sprite sprite;
-	sprite.color = Vec3{0.0, 1.0, 1.0};
+	sprite.color = Vec3{0.0, 0.0, 1.0};
 	sprite.width = sprite.height = 0.2f;
 	sprite.position = Vec3{-.1, -.1, 0};
 	gameMemory->sprite1 = sprite;
 	
 	sprite.color = Vec3{0.0, 1.0, 0.0};
-	sprite.width = sprite.height = 0.5f;
-	sprite.position = Vec3{0.7, 0.2, 0};
+	sprite.width = 0.2f;
+		sprite.height = 0.5f;
+	sprite.position = Vec3{0.65, 0.1, 0};
 	gameMemory->sprite2 = sprite;
 	
-	sprite.color = Vec3{0.0, 0.0, 1.0};
-	sprite.width = sprite.height = 0.4f;
-	sprite.position = Vec3{-0.8, -0.5, 0};
+	sprite.color = Vec3{1.0, 0.0, 0.0};
+	sprite.width = 0.2f;
+	sprite.height = 0.2f;
+	sprite.position = Vec3{-0.7, -0.2, 0};
 	gameMemory->sprite3 = sprite;
-
 }
 
 //---------------------------------------------------------------------------
 // Game update
 //---------------------------------------------------------------------------
-float x=0;
-float y=0;
-const float step = 0.01;
-void gameUpdate(const Input& input)
+
+void gameUpdate(const Input& input, ldare::GameApi& gameApi)
 {
+	float& x = gameMemory->x;
+	float& y = gameMemory->y;
+
 	ldare::game::KeyState keyValue = input.keyboard[KBD_W];
 
 	if ( input.keyboard[KBD_W].state )
-		y += step;
+		y += gameMemory->step;
 
 	if ( input.keyboard[KBD_S].state )
-		y -= step;
+		y -= gameMemory->step;
 
 	if ( input.keyboard[KBD_A].state )
-		x -= step;
+		x -= gameMemory->step;
 
 	if ( input.keyboard[KBD_D].state )
-		x += step;
+		x += gameMemory->step;
 
 	if (x >1) x = -1;
+	if (x <-1) x = 1;
 	if (y >1) y = -1;
+	if (y < -1) y = 1;
 	gameMemory->sprite1.position.x = x;
 	gameMemory->sprite1.position.y = y;
 
-	gameMemory->sprite3.color.y = 1-y; 
-	gameMemory->sprite3.color.y = 1-x; 
+	gameApi.spriteBatch.begin();
+		gameApi.spriteBatch.submit(gameMemory->shader, gameMemory->sprite1);
+		gameApi.spriteBatch.submit(gameMemory->shader, gameMemory->sprite2);
+		gameApi.spriteBatch.submit(gameMemory->shader, gameMemory->sprite3);
+	gameApi.spriteBatch.end();
+	gameApi.spriteBatch.flush();
 
-	render::begin();
-		render::submit(gameMemory->shader, gameMemory->sprite1);
-		render::submit(gameMemory->shader, gameMemory->sprite2);
-		render::submit(gameMemory->shader, gameMemory->sprite3);
-	render::end();
-	render::flush();
-
-	gameMemory->sprite2.position.y = y;
-	gameMemory->sprite3.position.x = gameMemory->sprite3.position.y = -x;
 }
 
 //---------------------------------------------------------------------------

@@ -6,8 +6,7 @@ GAMESRC=game\test_game.cpp
 #build targets
 TARGET=ldare.exe
 OUTDIR=build
-LDARE_GAME=$(OUTDIR)\ldare_game.obj
-LDARE_CORE=$(OUTDIR)\ldare_core.obj
+LDARE_GAME=$(OUTDIR)\ldare_game.dll
 
 #DEBUG OPTIONS
 LIBS=user32.lib gdi32.lib Opengl32.lib
@@ -21,21 +20,19 @@ RELEASE_LINK_OPTIONS=/link /subsystem:windows $(LIBS)
 CFLAGS=$(DEBUG_COMPILE_OPTIONS)
 LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
-.PHONY: game engine
+.PHONY: game engine 
 
-all: game engine $(TARGET)
+all: game engine
 
 game: $(LDARE_GAME)
-engine:	$(LDARE_CORE)
 
 $(LDARE_GAME): $(GAMESRC)
-	cl /c $(GAMESRC) /Fo$(LDARE_GAME) $(CFLAGS) 
+	@echo Building game dll...
+	cl $(GAMESRC) /Fo$(OUTDIR)\ /Fe$(LDARE_GAME) /LD $(CFLAGS) /link /subsystem:windows /EXPORT:gameInit /EXPORT:gameStart /EXPORT:gameUpdate /EXPORT:gameStop /PDB:$(OUTDIR)\ldare_game_%random%.pdb
 
-$(LDARE_CORE): $(LDARESRC)
-	cl /c $(LDARESRC) /Fo$(LDARE_CORE) $(CFLAGS)
-
-$(TARGET): $(LDARE_GAME) $(LDARE_CORE)
-	cl $(LDARE_CORE) $(LDARE_GAME) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
+engine: $(LDARE_GAME) $(LDARE_CORE)
+	@echo Building ldare engine...
+	cl $(LDARESRC) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
 
 clean:
 	del /S /Q .\$(OUTDIR)\*
