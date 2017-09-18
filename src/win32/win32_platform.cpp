@@ -2,12 +2,11 @@
  * win32_platform.h
  * Win32 implementation for ldare platform functions
  */
-
+#include <windows.h>
 namespace ldare 
 {
 	namespace platform 
 	{
-
 		void* memoryAlloc(size_t size)
 		{
 			void* mem =

@@ -2,18 +2,18 @@
  * win32_ldare.cpp
  * win32 implementation of ldare engine entrypoint and platform layer
  */
-
 #include <windowsx.h>
 #include <windows.h>
 #include <winuser.h>
 #include <tchar.h>
-
 #include "../ldare_engine.h"
-
 #define DECLARE_GL_POINTER
 #include "../ldare_gl.h"
 #undef DECLARE_GL_POINTER
 
+#include "win32_platform.cpp"
+#include "../ldare_memory.cpp"
+#include "../ldare_renderer_gl.cpp"
 using namespace ldare;
 using namespace memory;
 
@@ -26,6 +26,95 @@ static struct Win32_GameWindow
 	HWND hwnd;
 	bool shouldClose;
 } _gameWindow;
+
+struct Win32_GameModuleInfo
+{
+	const char* moduleFileName;
+	HMODULE hGameModule;
+	FILETIME lastWriteTime;
+	gameInitFunc *init;
+	gameStartFunc *start;
+	gameUpdateFunc *update;
+	gameStopFunc *stop;
+	int32 framesSinceLastReload;
+};
+
+//---------------------------------------------------------------------------
+// Loads the Game dll.
+// Returns: true if successfully loads the game dll 
+//	AND fetches the Update and Start function pointers
+// Globals: gameModuleInfo
+//---------------------------------------------------------------------------
+static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
+{
+	//TODO: marcio, make sure executable directory is current directory.
+	const char* dllFileName = gameModuleInfo.moduleFileName;
+
+#if DEBUG
+	// load a copy of the dll, so the original can be recompiled
+	const char* dllCopyFileName = "ldare_game_copy.dll";
+	if (!CopyFileA(dllFileName, dllCopyFileName, false))
+	{
+		LogError("Error copying game dll\n");
+		return false;
+	}
+	dllFileName = dllCopyFileName;
+#endif
+
+	if ((gameModuleInfo.hGameModule = LoadLibraryA(dllFileName)))
+	{
+		GetFileTime(gameModuleInfo.hGameModule, 0, 0, &gameModuleInfo.lastWriteTime);
+		gameModuleInfo.init = (gameInitFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameInit");
+		gameModuleInfo.start = (gameStartFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameStart");
+		gameModuleInfo.update = (gameUpdateFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameUpdate");
+		gameModuleInfo.stop = (gameStopFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameStop");
+	}
+	else
+	{
+		LogError("Error loading game module\n");
+		return false;
+	}
+
+	if (!(gameModuleInfo.init && gameModuleInfo.start && gameModuleInfo.update && gameModuleInfo.stop))
+		return false;
+
+	return true;
+}
+
+//---------------------------------------------------------------------------
+// Checks if there is a newer game dll and loads it if it does.
+// Returns: true if the module was loaded or reloaded
+// Globals: gameModuleInfo
+//---------------------------------------------------------------------------
+static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
+{
+	bool shouldLoadModule = false;
+
+	// Is it already loaded ?
+	if (gameModuleInfo.hGameModule != 0)
+	{
+		FILETIME writeTime;
+		HANDLE handle = CreateFileA(gameModuleInfo.moduleFileName, GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+		GetFileTime(handle, 0, 0, &writeTime);
+		CloseHandle(handle);
+
+		// Is ther a newer version ?
+		if (CompareFileTime(&writeTime, &gameModuleInfo.lastWriteTime) > 0)
+		{
+			FreeLibrary(gameModuleInfo.hGameModule);
+			gameModuleInfo.lastWriteTime = writeTime;
+			shouldLoadModule = true;
+		}
+	}
+	else
+	{
+		shouldLoadModule = true;
+	}
+
+	if (shouldLoadModule){ Win32_loadGameModule(gameModuleInfo); }
+
+	return shouldLoadModule;
+}
 
 LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -145,7 +234,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	FETCH_GL_FUNC(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer);
 	FETCH_GL_FUNC(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray);
 	FETCH_GL_FUNC(PFNGLGETERRORPROC, glGetError);
-  FETCH_GL_FUNC(PFNGLGETPROGRAMIVPROC, glGetProgramiv);
+	FETCH_GL_FUNC(PFNGLGETPROGRAMIVPROC, glGetProgramiv);
 	FETCH_GL_FUNC(PFNGLGETPROGRAMINFOLOGPROC, glGetProgramInfoLog);
 	FETCH_GL_FUNC(PFNGLGETSHADERIVPROC, glGetShaderiv);
 	FETCH_GL_FUNC(PFNGLGETSHADERINFOLOGPROC, glGetShaderInfoLog);
@@ -258,9 +347,18 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 {
 	LogInfo("Initializing");
 	game::Input gameInput;
+	Win32_GameModuleInfo gameModuleInfo = {};
+	gameModuleInfo.moduleFileName = "ldare_game.dll";
+	GameApi gameApi = {};
+
+	// Load the game module
+	if(!Win32_loadGameModule(gameModuleInfo))
+	{
+		return FALSE;
+	}
 
 	// Initialize the game settings
-	game::GameContext gameContext = gameInit();
+	game::GameContext gameContext = gameModuleInfo.init();
 
 	// Reserve memory for the game
 	void* gameMemory = platform::memoryAlloc(gameContext.gameMemorySize);
@@ -281,23 +379,47 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		LogError("Could not initialize OpenGL for game window" );
 	}
 
-	// Initialize the renderer
+	// Initialize the API exposed to the game
 	render::initSpriteBatch();
+	gameApi.spriteBatch.begin = render::begin;
+	gameApi.spriteBatch.submit = render::submit;
+	gameApi.spriteBatch.end = render::end;
+	gameApi.spriteBatch.flush = render::flush;
+	gameApi.spriteBatch.loadShader = render::loadShader;
 
 	// start the game
-	gameStart(gameMemory);
+	gameModuleInfo.start(gameMemory, gameApi);
 	//TODO: marcio, remove this color member from the struct. This is for testing only
 	//TODO: marcio, find somewhere else to set clear color that can happen along the  game loop
 	//TODO: marcio, remove opengl calls from here and move it to renderer layer
-  glClearColor(gameContext.clearColor[0],
+	glClearColor(gameContext.clearColor[0],
 			gameContext.clearColor[1],
 			gameContext.clearColor[2],1);
-			
+
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 
 	while (!_gameWindow.shouldClose)
 	{
 		MSG msg;
+
+#if DEBUG
+		// Check for new game DLL every 180 frames
+		if (gameModuleInfo.framesSinceLastReload >= 180)
+		{
+			// if game reloaded, run start again
+			if (Win32_reloadGameModule(gameModuleInfo))
+			{
+				LogInfo("Reloading game module");
+				gameModuleInfo.start(gameMemory, gameApi);
+			}
+
+			gameModuleInfo.framesSinceLastReload = 0;
+		}
+		else
+		{
+			gameModuleInfo.framesSinceLastReload++;
+		}
+#endif
 
 		// clear 'this frame' flags from input key state
 		for(int i=0; i < MAX_GAME_KBD_KEYS ; i++)
@@ -340,11 +462,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			DispatchMessage(&msg) ;
 		}
 		//Update the game
-		gameUpdate(gameInput);
+		gameModuleInfo.update(gameInput, gameApi);
 		SwapBuffers(_gameWindow.dc);
 	}
 
-	gameStop();
+	gameModuleInfo.stop();
 	LogInfo("Finished");
 	return 0;
 }
@@ -356,6 +478,3 @@ int _tmain(int argc, _TCHAR** argv)
 }
 #endif //DEBUG
 
-#include "win32_platform.cpp"
-#include "../ldare_memory.cpp"
-#include "../ldare_renderer_gl.cpp"
