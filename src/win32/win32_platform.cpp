@@ -11,9 +11,6 @@ namespace ldare
 		{
 			void* mem =
 				VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-#ifdef DEBUG
-			ASSERT(mem!=0);
-#endif
 			if (!mem) { LogError("Error allocaing memory"); }
 			return mem;
 		}

@@ -79,7 +79,7 @@ namespace ldare
 			HeapAllocationHeader* allocationHeader = 
 				(HeapAllocationHeader*)((int8*)memory - sizeof(HeapAllocationHeader));
 
-			ASSERT(allocationHeader->heap != 0);
+			ASSERT(allocationHeader->heap != 0, "Invalid allocation header");
 			Heap* heap = allocationHeader->heap;
 
 			// clear the memory

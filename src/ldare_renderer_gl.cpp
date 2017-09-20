@@ -108,7 +108,8 @@ namespace ldare
 
 		static GLuint compileShader(const char* source, GLenum shaderType)
 		{
-			ASSERT(shaderType == GL_VERTEX_SHADER || shaderType == GL_FRAGMENT_SHADER);
+			ASSERT(shaderType == GL_VERTEX_SHADER || shaderType == GL_FRAGMENT_SHADER,
+					"Invalid shader type");
 
 			// Setup default vertex shader
 			GLuint shader = glCreateShader(shaderType);

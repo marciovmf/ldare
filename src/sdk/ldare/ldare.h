@@ -8,7 +8,7 @@
 #define __LDARE_H__
 
 #ifdef DEBUG
-#	include <iostream>
+#	include <stdio.h>
 #	ifdef UNICODE
 #		define OUTSTREAM std::wcout
 #		define ERRSTREAM std::wcerr
@@ -16,11 +16,11 @@
 #		define OUTSTREAM std::cout
 #		define ERRSTREAM std::cerr
 #	endif // UNICODE
-#	define LogMsg(prefix, msg, stdstream) stdstream << prefix << " " << msg << "\n" << __FILE__ << ":" << __LINE__ <<  std::endl
-#	define LogInfo(msg) LogMsg("[INFO]", msg, OUTSTREAM)
-#	define LogWarning(msg) LogMsg("[WARNING]", msg, OUTSTREAM)
-#	define LogError(msg) LogMsg("[ERROR]", msg, OUTSTREAM)
-#define ASSERT(condition) do{if (!(condition)) { LogError("Assertion Failed"); *((int*)0) = 0;} } while(0)
+#	define LogMsg(prefix, msg, ...) printf("%s %s %d", prefix, __FILE__, __LINE__); printf(msg, __VA_ARGS__)
+#	define LogInfo(msg, ...) LogMsg("[INFO]", msg, __VA_ARGS__)
+#	define LogWarning(msg, ...) LogMsg("[WARNING]", msg, __VA_ARGS__)
+#	define LogError(msg, ...) LogMsg("[ERROR]", msg, __VA_ARGS__)
+#define ASSERT(condition, msg, ...) do{if (!(condition)) { LogMsg("[Assertion Failed]", msg, __VA_ARGS__); *((int*)0) = 0;} } while(0)
 #else
 #	define LogMsg(prefix, msg, stdstream)
 #	define LogInfo(msg) 
