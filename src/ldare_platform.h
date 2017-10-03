@@ -9,14 +9,13 @@ namespace ldare
 {
 	namespace platform 
 	{
-
-		typedef void* DynamicLibrary;
-
 		//---------------------------------------------------------------------------
 		// Requests allocation of size bytes of memory
 		//---------------------------------------------------------------------------
+		void* loadFileToBuffer(const char8* filename, size_t* bufferSize);
 		void* memoryAlloc(size_t size);
-
+		void memoryFree(void* memory);
+		void* getGlFunctionPointer(const char* glFunctionName);
 	}
 }
 

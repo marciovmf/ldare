@@ -22,15 +22,19 @@ LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
 .PHONY: game engine 
 
-all: game engine
+all: engine game assets
 
 game: $(LDARE_GAME)
 
-$(LDARE_GAME): $(GAMESRC)
+$(LDARE_GAME): $(GAMESRC) 
 	@echo Building game dll...
 	cl $(GAMESRC) /Fo$(OUTDIR)\ /Fe$(LDARE_GAME) /LD $(CFLAGS) /link /subsystem:windows /EXPORT:gameInit /EXPORT:gameStart /EXPORT:gameUpdate /EXPORT:gameStop /PDB:$(OUTDIR)\ldare_game_%random%.pdb
+	@echo copying game assets
 
-engine: $(LDARE_GAME) $(LDARE_CORE)
+assets:
+	xcopy game\assets $(OUTDIR)\assets /Y /I /E /F
+
+engine: $(LDARE_GAME) $(LDARE_CORE) 
 	@echo Building ldare engine...
 	cl $(LDARESRC) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
 

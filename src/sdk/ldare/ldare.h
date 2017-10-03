@@ -9,14 +9,7 @@
 
 #ifdef DEBUG
 #	include <stdio.h>
-#	ifdef UNICODE
-#		define OUTSTREAM std::wcout
-#		define ERRSTREAM std::wcerr
-#	else
-#		define OUTSTREAM std::cout
-#		define ERRSTREAM std::cerr
-#	endif // UNICODE
-#	define LogMsg(prefix, msg, ...) printf("%s %s %d", prefix, __FILE__, __LINE__); printf(msg, __VA_ARGS__)
+#	define LogMsg(prefix, msg, ...) printf("\n%s - ", prefix); printf(msg, __VA_ARGS__); printf("\n\t%s:%d", __FILE__, __LINE__)
 #	define LogInfo(msg, ...) LogMsg("[INFO]", msg, __VA_ARGS__)
 #	define LogWarning(msg, ...) LogMsg("[WARNING]", msg, __VA_ARGS__)
 #	define LogError(msg, ...) LogMsg("[ERROR]", msg, __VA_ARGS__)
@@ -31,10 +24,12 @@
 
 #include <stdint.h>
 typedef int8_t int8;
+typedef int8_t char8;
 typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 typedef uint8_t uint8;
+typedef uint8_t uchar8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
@@ -42,5 +37,15 @@ typedef uint64_t uint64;
 #define KILOBYTE(value) (size_t) ((value) * 1024LL)
 #define MEGABYTE(value) (size_t) (KILOBYTE(value) * 1024LL)
 #define GIGABYTE(value) (size_t) (MEGABYTE(value) * 1024LL)
+
+
+//sdk includes
+#include "ldare_keyboard.h"
+#include "ldare_vector.h"
+#include "ldare_asset.h"
+#include "ldare_render.h"
+#include "ldare_resource.h"
+
 #endif //__LDARE_H__
+
 

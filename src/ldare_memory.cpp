@@ -1,12 +1,9 @@
 namespace ldare
 {
-	namespace memory
-	{
-
 		//---------------------------------------------------------------------------
 		// Get Memory from heap
 		//---------------------------------------------------------------------------
-		void* getMemory(memory::Heap* heap)
+		void* getMemory(Heap* heap)
 		{
 			// uninitialized heap huh?
 			if ( heap->freeMemList == 0) 
@@ -111,7 +108,5 @@ namespace ldare
 			heap->totalUsed -= heap->objectSize + sizeof(HeapAllocationHeader);
 			heap->freeMemList = allocationHeader;
 		}
-
-	} // namespace memory
 } //namespace ldare
 

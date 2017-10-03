@@ -3,8 +3,6 @@
 
 namespace ldare
 {
-	namespace memory
-	{
 		struct Heap;
 		struct HeapAllocationHeader
 		{
@@ -25,12 +23,11 @@ namespace ldare
 		//---------------------------------------------------------------------------
 		// Get memory from heap
 		//---------------------------------------------------------------------------
-		void* getHeapMemory(ldare::memory::Heap* heap);
+		void* getHeapMemory(ldare::Heap* heap);
 		
 		//---------------------------------------------------------------------------
 		// Free heap memory
 		//---------------------------------------------------------------------------
 		void freeHeapMemory(void* memory);
-	}
 }
 #endif		// __LDARE_MEMORY__
