@@ -3,52 +3,50 @@
 
 namespace ldare
 {
-	struct GameApi;
+	typedef uint32 Shader;
 
-	namespace render
+	struct Sprite
 	{
-		typedef uint32 Shader;
+		Vec3 position;
+		Vec3 color;
+		float width;
+		float height;
+	};
 
-		struct Sprite
-		{
-			Vec3 position;
-			Vec3 color;
-			float width;
-			float height;
+	struct SpriteVertexData
+	{
+		Vec3 position;
+		Vec3 color;
+		Vec2 uv;
+	};
 
-		};
-
-		struct SpriteVertexData
-		{
-			Vec3 position;
-			Vec3 color;
-		};
 
 #define SPRITE_BATCH_BEGIN_FUNC(name) void name()
-		typedef SPRITE_BATCH_BEGIN_FUNC(SpriteBatchBeginFunc);
+	typedef SPRITE_BATCH_BEGIN_FUNC(SpriteBatchBeginFunc);
 
 #define SPRITE_BATCH_END_FUNC(name) void name()
-		typedef SPRITE_BATCH_END_FUNC(SpriteBatchEndFunc);
+	typedef SPRITE_BATCH_END_FUNC(SpriteBatchEndFunc);
 
-#define SPRITE_BATCH_SUBMIT_FUNC(name) void name(uint32 shader, const Sprite& sprite)
-		typedef SPRITE_BATCH_SUBMIT_FUNC(SpriteBatchSubmitFunc);
+#define SPRITE_BATCH_SUBMIT_FUNC(name) void name(const ldare::Material& material, const ldare::Sprite& sprite)
+	typedef SPRITE_BATCH_SUBMIT_FUNC(SpriteBatchSubmitFunc);
 
 #define SPRITE_BATCH_FLUSH_FUNC(name) void name()
-		typedef SPRITE_BATCH_FLUSH_FUNC(SpriteBatchFlushFunc);
+	typedef SPRITE_BATCH_FLUSH_FUNC(SpriteBatchFlushFunc);
 
-#define SPRITE_BATCH_LOAD_SHADER_FUNC(name) Shader name(const char* vertex, const char* fragment)
-		typedef SPRITE_BATCH_LOAD_SHADER_FUNC(SpriteBatchLoadShaderFunc);
+#define SPRITE_BATCH_LOAD_SHADER_FUNC(name) Shader name(const char8* vertex, const char8* fragment)
+	typedef SPRITE_BATCH_LOAD_SHADER_FUNC(SpriteBatchLoadShaderFunc);
 
-		struct SpriteBatchApi
-		{
-			SpriteBatchBeginFunc* begin;
-			SpriteBatchSubmitFunc* submit;
-			SpriteBatchEndFunc* end;
-			SpriteBatchFlushFunc* flush;
-			SpriteBatchLoadShaderFunc *loadShader;
-		};
+	struct SpriteBatchApi
+	{
+		SpriteBatchBeginFunc* begin;
+		SpriteBatchSubmitFunc* submit;
+		SpriteBatchEndFunc* end;
+		SpriteBatchFlushFunc* flush;
+		SpriteBatchLoadShaderFunc *loadShader;
+	};
 
-	} // namespace renderer
+//	ldare::Texture loadTexture(const char* bitmapFile);
+
 } // namespace ldare
 
 #endif 		// __LDARE_RENDER__

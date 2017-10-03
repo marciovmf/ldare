@@ -1,99 +1,33 @@
-/**
- * game.h
- * Standard header for ldare based games
- */
-#ifndef _LDARE_GAME_
-#define _LDARE_GAME_
-#include <ldare/ldare.h>
-namespace ldare 
+#ifndef __LDARE_KEYBOARD__
+#define __LDARE_KEYBOARD__
+namespace ldare
 {
-	namespace game
-	{
-		//---------------------------------------------------------------------------
-		// Runtime settings the game can return to the engine 
-		// during initialization
-		//---------------------------------------------------------------------------
-		struct GameContext
-		{
-			int32 windowWidth;
-			int32 windowHeight;
-			size_t gameMemorySize; 				// Amount of memory allocated to the game
-			float clearColor[3];
-		};
 
-		//---------------------------------------------------------------------------
-		// Contains input state for the current frame
-		//---------------------------------------------------------------------------
-		struct KeyState
-		{
-			int8 state; 					// 1 if key is down
-			int8 thisFrame; 			// number of state transitions during current frame
-		};
+	//---------------------------------------------------------------------------
+	// Contains input state for the current frame
+	//---------------------------------------------------------------------------
+	struct KeyState
+	{
+		int8 state; 					// 1 if key is down
+		int8 thisFrame; 			// number of state transitions during current frame
+	};
 
 #define MAX_GAME_KBD_KEYS 255
 #define MAX_GAME_MOUSE_KEYS 5
-		struct Input
+	struct Input
+	{
+		KeyState keyboard[MAX_GAME_KBD_KEYS];
+		KeyState mouse[4];
+		struct 
 		{
-			KeyState keyboard[MAX_GAME_KBD_KEYS];
-			KeyState mouse[4];
-			struct 
-			{
-				int32 x;
-				int32 y;
-			} cursor;
-		};
-	}// game namespace
-
-	struct Vec3
-	{
-		float x;
-		float y;
-		float z;
+			int32 x;
+			int32 y;
+		} cursor;
 	};
 
-	struct Rect
-	{
-		float x;
-		float y;
-		float width;
-		float height;
-	};
-
-} // ldare namespace
-
-
-//sdk includes
-#include "ldare_render.h"
-// API exposed to the game
-namespace ldare
-{
-	struct GameApi
-	{
-		ldare::render::SpriteBatchApi spriteBatch;
-	};
-}
-
-//---------------------------------------------------------------------------
-// Game Interface
-// This interface is used by the engine to communicate with the game
-//---------------------------------------------------------------------------
-
-#define GAME_INIT_FUNC(name) ldare::game::GameContext (name)()
-typedef GAME_INIT_FUNC(gameInitFunc);
-
-#define GAME_START_FUNC(name) void (name)(void* gameMemory, ldare::GameApi& gameApi)
-typedef GAME_START_FUNC(gameStartFunc);
-
-#define GAME_UPDATE_FUNC(name) void (name)(const ldare::game::Input& input, ldare::GameApi& gameApi)
-typedef GAME_UPDATE_FUNC(gameUpdateFunc);
-
-#define GAME_STOP_FUNC(name) void (name)();
-typedef GAME_STOP_FUNC(gameStopFunc)
-
-
-//---------------------------------------------------------------------------
-// KEYBOARD KEYS / MOSUE BUTTONS macros
-//---------------------------------------------------------------------------
+	//---------------------------------------------------------------------------
+	// KEYBOARD KEYS / MOSUE BUTTONS macros
+	//---------------------------------------------------------------------------
 #define MOUSE_LBUTTON     0x00
 #define MOUSE_RBUTTON     0x01
 #define MOUSE_MBUTTON     0x02
@@ -130,7 +64,7 @@ typedef GAME_STOP_FUNC(gameStopFunc)
 #define KBD_INSERT        0x2D
 #define KBD_DELETE        0x2E
 #define KBD_HELP          0x2F
-// Numbers
+	// Numbers
 #define KBD_0			  0x30
 #define KBD_1			  0x31
 #define KBD_2			  0x32
@@ -141,7 +75,7 @@ typedef GAME_STOP_FUNC(gameStopFunc)
 #define KBD_7			  0x37
 #define KBD_8			  0x38
 #define KBD_9			  0x39
-// Letters
+	// Letters
 #define KBD_A			  0x41
 #define KBD_B			  0x42
 #define KBD_C			  0x43
@@ -168,7 +102,7 @@ typedef GAME_STOP_FUNC(gameStopFunc)
 #define KBD_X			  0x58
 #define KBD_Y			  0x59
 #define KBD_Z			  0x5A
-// NUMPAD
+	// NUMPAD
 #define KBD_NUMPAD0       0x60
 #define KBD_NUMPAD1       0x61
 #define KBD_NUMPAD2       0x62
@@ -185,7 +119,7 @@ typedef GAME_STOP_FUNC(gameStopFunc)
 #define KBD_SUBTRACT      0x6D
 #define KBD_DECIMAL       0x6E
 #define KBD_DIVIDE        0x6F
-// FUNCTION KEYS
+	// FUNCTION KEYS
 #define KBD_F1            0x70
 #define KBD_F2            0x71
 #define KBD_F3            0x72
@@ -211,4 +145,6 @@ typedef GAME_STOP_FUNC(gameStopFunc)
 #define KBD_F23           0x86
 #define KBD_F24           0x87
 
-#endif // _LDARE_GAME_
+
+}
+#endif // __LDARE_KEYBOARD__

@@ -3,23 +3,24 @@
  * Win32 implementation for ldare platform functions
  */
 
+#include <ldare/ldare_asset.h>
+
 // Sprite batch data
 #define SPRITE_BATCH_MAX_SPRITES 10000
-#define SPRITE_BATCH_VERTEX_DATA_SIZE sizeof(ldare::render::SpriteVertexData)
+#define SPRITE_BATCH_VERTEX_DATA_SIZE sizeof(ldare::SpriteVertexData)
 #define SPRITE_BATCH_SPRITE_SIZE SPRITE_BATCH_VERTEX_DATA_SIZE * 4 // 4 vetices per sprite
 #define SPRITE_BATCH_BUFFER_SIZE SPRITE_BATCH_MAX_SPRITES * SPRITE_BATCH_SPRITE_SIZE
 #define SPRITE_BATCH_INDICES_SIZE SPRITE_BATCH_MAX_SPRITES * 6		//6 indices per quad
 
 #define SPRITE_ATTRIB_VERTEX 0
 #define SPRITE_ATTRIB_COLOR 1
+#define SPRITE_ATTRIB_UV 2
 
 namespace ldare 
 {
-	namespace render
-	{
 		static struct GL_SpriteBatchData
 		{
-			GLuint defaultShader;
+			ldare::Material material;
 			GLuint vao;
 			GLuint vbo;
 			GLuint ibo;
@@ -141,20 +142,25 @@ namespace ldare
 			return shaderProgram;
 		}
 
-		Shader loadShader(const char* vertex, const char* fragment)
+		Shader loadShader(const char8* vertex, const char8* fragment)
 		{
 			//TODO: remove hardcoded shader source and load it from argument path
 			const char* vertexSource = "#version 330 core\n\
 	layout (location = 0) in vec3 vPos;\n\
 	layout (location = 1) in vec3 vColor;\n\
+	layout (location = 2) in vec2 vTexCoord;\n\
 	out vec4 fragColor;\n\
+	out vec2 texCoord;\n\
 	void main(){ fragColor = vec4(vColor, 0.0);\n\
-		gl_Position = vec4(vPos, 1.0);}\n\0";
+		gl_Position = vec4(vPos, 1.0);\n\
+	  texCoord = vTexCoord;}\n\0";
 
 			const char* fragmentSource = "#version 330 core\n\
 out vec4 color;\n\
 in vec4 fragColor;\n\
-void main() {	color = fragColor; }\n\0";
+in vec2 texCoord;\n\
+uniform sampler2D mainTexture;\n\
+void main() {	color = texture(mainTexture, texCoord); }\n\0";
 
 			Shader shader = createShaderProgram(vertexSource, fragmentSource);
 			return shader;
@@ -169,6 +175,7 @@ void main() {	color = fragColor; }\n\0";
 			glBindVertexArray(spriteBatchData.vao);
 			glEnableVertexAttribArray(SPRITE_ATTRIB_VERTEX);
 			glEnableVertexAttribArray(SPRITE_ATTRIB_COLOR);
+			glEnableVertexAttribArray(SPRITE_ATTRIB_UV);
 
 			glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
 			glBufferData(GL_ARRAY_BUFFER, SPRITE_BATCH_BUFFER_SIZE, 0, GL_DYNAMIC_DRAW);
@@ -192,13 +199,15 @@ void main() {	color = fragColor; }\n\0";
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, SPRITE_BATCH_INDICES_SIZE * sizeof(uint16),
 					&indices[0], GL_STATIC_DRAW);
 
-			// 3 float vertex, 3 float color
+			// 3 float vertex, 3 float color, 2 float uv
 			glVertexAttribPointer(SPRITE_ATTRIB_VERTEX, 3, GL_FLOAT, GL_FALSE,
 					SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)0);
 
 			glVertexAttribPointer(SPRITE_ATTRIB_COLOR, 3, GL_FLOAT, GL_FALSE,
 					SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)(3 * sizeof(float))); 
 
+			glVertexAttribPointer(SPRITE_ATTRIB_UV, 2, GL_FLOAT, GL_FALSE,
+					SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)(6 * sizeof(float))); 
 
 			//TODO: Add texture, uv1, uv2, normal(?), tangent(?)
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -218,20 +227,26 @@ void main() {	color = fragColor; }\n\0";
 			checkNoGlError();
 		}
 
-		void submit( uint32 shader, const Sprite& sprite)
+		void submit(const ldare::Material& material, const Sprite& sprite)
 		{
 			// sprite vertex order 0,1,2,2,3,0
 			// 0 -- 3
 			// |    |
 			// 1 -- 2
+			// UV
+			// 10 -- 11
+			// |      |
+			// 00 -- 01
 
-			spriteBatchData.defaultShader = shader;
+			//TODO: store draw calls somewhere to be able to sort them per material later
+			spriteBatchData.material = material;
 			spriteBatchData.spriteCount++;
-			//TODO: store draw calls somewher to be able to sort them per material
-			//later
 			SpriteVertexData* vertexData = (SpriteVertexData*) spriteBatchData.gpuBuffer;
+
+			// top left
 			vertexData->position = sprite.position;
 			vertexData->color = sprite.color;
+			vertexData->uv = {0.0f, 0.0f};
 			vertexData++;
 			
 			// bottom left
@@ -240,6 +255,7 @@ void main() {	color = fragColor; }\n\0";
 					sprite.position.y + sprite.height,
 					sprite.position.z};
 			vertexData->color = sprite.color;
+			vertexData->uv = {0.0f, 1.0f};
 			vertexData++;
 
 			// bottom right
@@ -248,6 +264,7 @@ void main() {	color = fragColor; }\n\0";
 					sprite.position.y + sprite.height,
 					sprite.position.z};
 			vertexData->color = sprite.color;
+			vertexData->uv = {1.0f, 1.0f};
 			vertexData++;
 
 			// top right
@@ -256,6 +273,7 @@ void main() {	color = fragColor; }\n\0";
 				sprite.position.y,
 				sprite.position.z};
 			vertexData->color = sprite.color;
+			vertexData->uv = {1.0f, 0.0f};
 			vertexData++;
 			spriteBatchData.gpuBuffer = (void*) vertexData;
 		}
@@ -263,24 +281,43 @@ void main() {	color = fragColor; }\n\0";
 		void end()
 		{
 			glUnmapBuffer(GL_ARRAY_BUFFER);
-			glClearColor(.3, .3, .3, 0);
+			glClearColor(0,0,0,0);
 			//TODO: sort draw calls per material 
 		}
 		
 		void flush()
 		{
-			glUseProgram(spriteBatchData.defaultShader);
-			checkNoGlError();
+			glBindTexture(GL_TEXTURE_2D, spriteBatchData.material.texture.id);
+			glUseProgram(spriteBatchData.material.shader);
 			glBindVertexArray(spriteBatchData.vao);
-			checkNoGlError();
 			glClear(GL_COLOR_BUFFER_BIT);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteBatchData.ibo);
-			checkNoGlError();
 			glDrawElements(GL_TRIANGLES, 6 * spriteBatchData.spriteCount, GL_UNSIGNED_SHORT, 0);
-			checkNoGlError();
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			glBindVertexArray(0);
 		}
 
-	} // namespace renderer
+		ldare::Texture loadTexture(const char8* bitmapFile)
+		{
+			ldare::Bitmap bitmap;
+			ldare::loadBitmap(bitmapFile, &bitmap);
+			GLuint textureId;
+			glGenTextures(1, &textureId);
+			glBindTexture(GL_TEXTURE_2D, textureId);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.width, bitmap.height, 0, 
+					GL_RGBA, GL_UNSIGNED_BYTE, bitmap.pixels);
+			glGenerateMipmap(GL_TEXTURE_2D);
+			//TODO: make this settings parameterizable
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			ldare::freeBitmap(&bitmap);
+		
+			ldare::Texture texture = {};
+			texture.width = bitmap.width;
+			texture.height = bitmap.height;
+			texture.id = textureId;
+			return texture;
+		}
+
 } // namespace ldare

@@ -6,17 +6,19 @@
 #include <windows.h>
 #include <winuser.h>
 #include <tchar.h>
-#include "../ldare_engine.h"
-#define DECLARE_GL_POINTER
+// common ldare headers
+#include <ldare/ldare_game.h>
+// platform independent headers
+#include "../ldare_platform.h"
+#include "../ldare_memory.h"
 #include "../ldare_gl.h"
-#undef DECLARE_GL_POINTER
-
+// implementations
 #include "win32_platform.cpp"
-#include "../ldare_memory.cpp"
 #include "../ldare_renderer_gl.cpp"
-using namespace ldare;
-using namespace memory;
+#include "../ldare_asset.cpp"
+#include "../ldare_memory.cpp"
 
+using namespace ldare;
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 
 static struct Win32_GameWindow
@@ -39,6 +41,15 @@ struct Win32_GameModuleInfo
 	int32 framesSinceLastReload;
 };
 
+static FILETIME Win32_getFileWriteTime(const char* fileName)
+{
+	FILETIME writeTime;
+	HANDLE handle = CreateFileA(fileName, GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	GetFileTime(handle, 0, 0, &writeTime);
+	CloseHandle(handle);
+	return writeTime;
+}
+
 //---------------------------------------------------------------------------
 // Loads the Game dll.
 // Returns: true if successfully loads the game dll 
@@ -59,6 +70,7 @@ static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 		return false;
 	}
 	dllFileName = dllCopyFileName;
+	gameModuleInfo.lastWriteTime = Win32_getFileWriteTime(gameModuleInfo.moduleFileName);
 #endif
 
 	if ((gameModuleInfo.hGameModule = LoadLibraryA(dllFileName)))
@@ -81,6 +93,8 @@ static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 	return true;
 }
 
+
+
 //---------------------------------------------------------------------------
 // Checks if there is a newer game dll and loads it if it does.
 // Returns: true if the module was loaded or reloaded
@@ -88,32 +102,27 @@ static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 //---------------------------------------------------------------------------
 static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 {
-	bool shouldLoadModule = false;
+	bool reloaded = false;
 
 	// Is it already loaded ?
 	if (gameModuleInfo.hGameModule != 0)
 	{
-		FILETIME writeTime;
-		HANDLE handle = CreateFileA(gameModuleInfo.moduleFileName, GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-		GetFileTime(handle, 0, 0, &writeTime);
-		CloseHandle(handle);
-
-		// Is ther a newer version ?
+		FILETIME writeTime = Win32_getFileWriteTime(gameModuleInfo.moduleFileName);
+		// Is there a newer version ?
 		if (CompareFileTime(&writeTime, &gameModuleInfo.lastWriteTime) > 0)
 		{
 			FreeLibrary(gameModuleInfo.hGameModule);
 			gameModuleInfo.lastWriteTime = writeTime;
-			shouldLoadModule = true;
+			reloaded = true;
 		}
 	}
 	else
 	{
-		shouldLoadModule = true;
+		reloaded = true;
+		Win32_loadGameModule(gameModuleInfo);
 	}
 
-	if (shouldLoadModule){ Win32_loadGameModule(gameModuleInfo); }
-
-	return shouldLoadModule;
+	return reloaded;
 }
 
 LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -254,6 +263,11 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	FETCH_GL_FUNC(PFNGLUSEPROGRAMPROC, glUseProgram);
 	FETCH_GL_FUNC(PFNGLFLUSHPROC, glFlush);
 	FETCH_GL_FUNC(PFNGLVIEWPORTPROC, glViewport);
+	FETCH_GL_FUNC(PFNGLGENTEXTURESPROC, glGenTextures);
+	FETCH_GL_FUNC(PFNGLBINDTEXTUREPROC, glBindTexture);
+	FETCH_GL_FUNC(PFNGLTEXPARAMETERFPROC, glTexParameteri);
+	FETCH_GL_FUNC(PFNGLTEXIMAGE2DPROC, glTexImage2D);
+	FETCH_GL_FUNC(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap);
 #undef FETCH_GL_FUNC
 
 	if (!success)
@@ -334,10 +348,68 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 //---------------------------------------------------------------------------
 // processes Windows Keyboard messages
 //---------------------------------------------------------------------------
-static inline void Win32_ProcessKeyboardMessage(game::KeyState& keyState, int8 lastState,int8 state)
+static inline void Win32_ProcessKeyboardMessage(ldare::KeyState& keyState, int8 lastState,int8 state)
 {
 	keyState.state = state;
 	keyState.thisFrame += state != lastState || keyState.thisFrame;
+}
+
+static void initGameApi(ldare::GameApi& gameApi)
+{
+	// Initialize the API exposed to the game
+	initSpriteBatch();
+	gameApi.spriteBatch.begin = ldare::begin;
+	gameApi.spriteBatch.submit = ldare::submit;
+	gameApi.spriteBatch.end = ldare::end;
+	gameApi.spriteBatch.flush = ldare::flush;
+	gameApi.spriteBatch.loadShader = ldare::loadShader;
+
+	// init asset api
+	gameApi.asset.loadMaterial = ldare::loadMaterial;
+}
+
+
+static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
+{
+	MSG msg;
+
+	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
+	{
+		// handle keyboard input messages directly
+		switch(msg.message)
+		{
+			case WM_ACTIVATE:
+				LogInfo("wparam is %d", LOWORD(msg.wParam));
+				break;
+			case WM_KEYDOWN:
+			case WM_KEYUP:
+				{
+					// bit 30 has previous key state
+					// bit 31 has current key state
+					// shitty fact: 0 means pressed, 1 means released
+					int8 isDown = (msg.lParam & (1 << 31)) == 0;
+					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
+					int16 vkCode = msg.wParam;
+					ldare::KeyState& currentState = gameInput.keyboard[vkCode];
+
+					Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
+					continue;
+				}
+				break;
+
+				// Cursor position
+			case WM_MOUSEMOVE:
+				{
+					gameInput.cursor.x = GET_X_LPARAM(msg.lParam);
+					gameInput.cursor.y = GET_Y_LPARAM(msg.lParam);
+					continue;
+				}
+				break;
+		}
+
+		TranslateMessage(&msg);
+		DispatchMessage(&msg) ;
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -346,19 +418,19 @@ static inline void Win32_ProcessKeyboardMessage(game::KeyState& keyState, int8 l
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	LogInfo("Initializing");
-	game::Input gameInput;
+	ldare::Input gameInput;
 	Win32_GameModuleInfo gameModuleInfo = {};
 	gameModuleInfo.moduleFileName = "ldare_game.dll";
 	GameApi gameApi = {};
 
 	// Load the game module
-	if(!Win32_loadGameModule(gameModuleInfo))
+	if(!Win32_reloadGameModule(gameModuleInfo))
 	{
 		return FALSE;
 	}
 
 	// Initialize the game settings
-	game::GameContext gameContext = gameModuleInfo.init();
+	ldare::GameContext gameContext = gameModuleInfo.init();
 
 	// Reserve memory for the game
 	void* gameMemory = platform::memoryAlloc(gameContext.gameMemorySize);
@@ -379,28 +451,17 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		LogError("Could not initialize OpenGL for game window" );
 	}
 
-	// Initialize the API exposed to the game
-	render::initSpriteBatch();
-	gameApi.spriteBatch.begin = render::begin;
-	gameApi.spriteBatch.submit = render::submit;
-	gameApi.spriteBatch.end = render::end;
-	gameApi.spriteBatch.flush = render::flush;
-	gameApi.spriteBatch.loadShader = render::loadShader;
+	initGameApi(gameApi);
 
 	// start the game
 	gameModuleInfo.start(gameMemory, gameApi);
 	//TODO: marcio, remove this color member from the struct. This is for testing only
 	//TODO: marcio, find somewhere else to set clear color that can happen along the  game loop
 	//TODO: marcio, remove opengl calls from here and move it to renderer layer
-	glClearColor(gameContext.clearColor[0],
-			gameContext.clearColor[1],
-			gameContext.clearColor[2],1);
-
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 
 	while (!_gameWindow.shouldClose)
 	{
-		MSG msg;
 
 #if DEBUG
 		// Check for new game DLL every 180 frames
@@ -427,40 +488,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			gameInput.keyboard[i].thisFrame = 0;
 		}
 
-		while (PeekMessage(&msg, _gameWindow.hwnd, 0, 0, PM_REMOVE))
-		{
-			// handle keyboard input messages directly
-			switch(msg.message)
-			{
-				case WM_KEYDOWN:
-				case WM_KEYUP:
-					{
-						// bit 30 has previous key state
-						// bit 31 has current key state
-						// shitty fact: 0 means pressed, 1 means released
-						int8 isDown = (msg.lParam & (1 << 31)) == 0;
-						int8 wasDown = (msg.lParam & (1 << 30)) != 0;
-						int16 vkCode = msg.wParam;
-						game::KeyState& currentState = gameInput.keyboard[vkCode];
+		processPendingMessages(_gameWindow.hwnd, gameInput);
 
-						Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
-						continue;
-					}
-					break;
-
-					// Cursor position
-				case WM_MOUSEMOVE:
-					{
-						gameInput.cursor.x = GET_X_LPARAM(msg.lParam);
-						gameInput.cursor.y = GET_Y_LPARAM(msg.lParam);
-						continue;
-					}
-					break;
-			}
-
-			TranslateMessage(&msg);
-			DispatchMessage(&msg) ;
-		}
 		//Update the game
 		gameModuleInfo.update(gameInput, gameApi);
 		SwapBuffers(_gameWindow.dc);
