@@ -418,7 +418,7 @@ static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	LogInfo("Initializing");
-	ldare::Input gameInput;
+	ldare::Input gameInput = {};
 	Win32_GameModuleInfo gameModuleInfo = {};
 	gameModuleInfo.moduleFileName = "ldare_game.dll";
 	GameApi gameApi = {};
