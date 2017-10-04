@@ -230,13 +230,9 @@ void main() {	color = texture(mainTexture, texCoord); }\n\0";
 		void submit(const ldare::Material& material, const Sprite& sprite)
 		{
 			// sprite vertex order 0,1,2,2,3,0
-			// 0 -- 3
-			// |    |
 			// 1 -- 2
-			// UV
-			// 10 -- 11
-			// |      |
-			// 00 -- 01
+			// |    |
+			// 0 -- 3
 
 			//TODO: store draw calls somewhere to be able to sort them per material later
 			spriteBatchData.material = material;
@@ -244,12 +240,6 @@ void main() {	color = texture(mainTexture, texCoord); }\n\0";
 			SpriteVertexData* vertexData = (SpriteVertexData*) spriteBatchData.gpuBuffer;
 
 			// top left
-			vertexData->position = sprite.position;
-			vertexData->color = sprite.color;
-			vertexData->uv = {0.0f, 0.0f};
-			vertexData++;
-			
-			// bottom left
 			vertexData->position = Vec3 {
 				sprite.position.x,
 					sprite.position.y + sprite.height,
@@ -257,23 +247,29 @@ void main() {	color = texture(mainTexture, texCoord); }\n\0";
 			vertexData->color = sprite.color;
 			vertexData->uv = {0.0f, 1.0f};
 			vertexData++;
+			
+			// bottom left
+			vertexData->position = sprite.position;
+			vertexData->color = sprite.color;
+			vertexData->uv = {0.0f, 0.0f};
+			vertexData++;
 
 			// bottom right
+			vertexData->position = Vec3 {
+				sprite.position.x + sprite.width,
+					sprite.position.y,
+					sprite.position.z};
+			vertexData->uv = {1.0f, 0.0f};
+			vertexData->color = sprite.color;
+			vertexData++;
+
+			// top right
 			vertexData->position = Vec3 {
 				sprite.position.x + sprite.width,
 					sprite.position.y + sprite.height,
 					sprite.position.z};
 			vertexData->color = sprite.color;
 			vertexData->uv = {1.0f, 1.0f};
-			vertexData++;
-
-			// top right
-			vertexData->position = Vec3 {
-				sprite.position.x + sprite.width,
-				sprite.position.y,
-				sprite.position.z};
-			vertexData->color = sprite.color;
-			vertexData->uv = {1.0f, 0.0f};
 			vertexData++;
 			spriteBatchData.gpuBuffer = (void*) vertexData;
 		}
