@@ -26,6 +26,8 @@ static struct Win32_GameWindow
 	HDC dc;
 	HGLRC rc;
 	HWND hwnd;
+	RECT windowModeRect;
+	LONG windowModeStyle;
 	bool shouldClose;
 } _gameWindow;
 
@@ -158,12 +160,22 @@ static bool Win32_RegisterGameWindowClass(HINSTANCE hInstance, TCHAR* className)
 	return RegisterClass(&windowClass) != 0;
 }
 
-static bool Win32_CreateGameWindow(
-		Win32_GameWindow* gameWindow, int width, int height, HINSTANCE hInstance, TCHAR* title)
+static void Win32_toggleFullScreen(Win32_GameWindow& gameWindow)
 {
-	gameWindow->hwnd = CreateWindow(TEXT(GAME_WINDOW_CLASS),
+	HWND desktop = GetDesktopWindow();
+	RECT rect;
+	GetClientRect(desktop, &rect);
+	SetWindowLong(gameWindow.hwnd, GWL_STYLE, WS_POPUP);
+	SetWindowPos(gameWindow.hwnd, HWND_TOP, 0, 0, rect.right, rect.bottom, SWP_FRAMECHANGED);
+}
+
+static bool Win32_CreateGameWindow(
+		Win32_GameWindow& gameWindow, int width, int height, HINSTANCE hInstance, TCHAR* title)
+{
+	gameWindow.hwnd = CreateWindowEx(NULL, 
+			TEXT(GAME_WINDOW_CLASS),
 			title,
-			WS_OVERLAPPEDWINDOW,
+			WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_BORDER,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			width,
@@ -173,18 +185,20 @@ static bool Win32_CreateGameWindow(
 			hInstance,
 			NULL);
 
-	if (!gameWindow->hwnd)
+	GetClientRect(gameWindow.hwnd, &gameWindow.windowModeRect);
+	gameWindow.windowModeStyle = GetWindowLong(gameWindow.hwnd, GWL_STYLE);
+	if (!gameWindow.hwnd)
 		return false;
 
-	gameWindow->dc = GetDC(gameWindow->hwnd);
-	return gameWindow->dc != NULL;
-
+	gameWindow.dc = GetDC(gameWindow.hwnd);
+	return gameWindow.dc != NULL;
 }
+
 
 static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, int major, int minor)
 {
 	Win32_GameWindow dummyWindow = {};
-	if (! Win32_CreateGameWindow(&dummyWindow,0,0,hInstance,TEXT("")) )
+	if (! Win32_CreateGameWindow(dummyWindow,0,0,hInstance,TEXT("")) )
 	{
 		LogError("Could not create a dummy window for openGl initialization");
 		return false;
@@ -431,7 +445,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	// Initialize the game settings
 	ldare::GameContext gameContext = gameModuleInfo.init();
-
+  
 	// Reserve memory for the game
 	void* gameMemory = platform::memoryAlloc(gameContext.gameMemorySize);
 
@@ -440,7 +454,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		LogError("Could not register window class");
 	}
 
-	if (!Win32_CreateGameWindow(&_gameWindow, gameContext.windowWidth,
+	if (!Win32_CreateGameWindow(_gameWindow, gameContext.windowWidth,
 				gameContext.windowHeight, hInstance, TEXT("lDare Engine") ))
 	{
 		LogError("Could not create window");
@@ -451,18 +465,26 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		LogError("Could not initialize OpenGL for game window" );
 	}
 
+	// fullscreen
+	if (gameContext.fullScreen)
+	{
+		Win32_toggleFullScreen(_gameWindow);
+	}
+
 	initGameApi(gameApi);
 
 	// start the game
 	gameModuleInfo.start(gameMemory, gameApi);
-	//TODO: marcio, remove this color member from the struct. This is for testing only
-	//TODO: marcio, find somewhere else to set clear color that can happen along the  game loop
+	
+	if (gameContext.Resolution.width ==0 ) gameContext.Resolution.width = gameContext.windowWidth;
+  if (gameContext.Resolution.height ==0 ) gameContext.Resolution.height = gameContext.windowHeight;
+
+	//TODO: marcio, find somewhere else to set clear color that can happen along the game loop
 	//TODO: marcio, remove opengl calls from here and move it to renderer layer
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 
 	while (!_gameWindow.shouldClose)
 	{
-
 #if DEBUG
 		// Check for new game DLL every 180 frames
 		if (gameModuleInfo.framesSinceLastReload >= 180)

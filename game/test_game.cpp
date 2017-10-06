@@ -25,6 +25,7 @@ ldare::GameContext gameInit()
 	gameContext.windowWidth = 600; 						// game window width
 	gameContext.windowHeight = 600; 					// game window height
 	gameContext.gameMemorySize = MEGABYTE(10);// requested game memory size
+	//gameContext.fullScreen =true;
 	return gameContext; 											// let the engine know what we want
 }
 

@@ -17,7 +17,13 @@ namespace ldare
 		int32 windowWidth;
 		int32 windowHeight;
 		size_t gameMemorySize; 				// Amount of memory allocated to the game
+		struct 
+		{
+			uint32 width;
+			uint32 height;
+		} Resolution;
 		float clearColor[3];
+		bool fullScreen;
 	};
 } // ldare namespace
 
