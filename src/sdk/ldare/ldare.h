@@ -38,10 +38,9 @@ typedef uint64_t uint64;
 #define MEGABYTE(value) (size_t) (KILOBYTE(value) * 1024LL)
 #define GIGABYTE(value) (size_t) (MEGABYTE(value) * 1024LL)
 
-
 //sdk includes
+#include "ldare_math.h"
 #include "ldare_keyboard.h"
-#include "ldare_vector.h"
 #include "ldare_asset.h"
 #include "ldare_render.h"
 #include "ldare_resource.h"

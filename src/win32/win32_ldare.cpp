@@ -2,10 +2,6 @@
  * win32_ldare.cpp
  * win32 implementation of ldare engine entrypoint and platform layer
  */
-#include <windowsx.h>
-#include <windows.h>
-#include <winuser.h>
-#include <tchar.h>
 // common ldare headers
 #include <ldare/ldare_game.h>
 // platform independent headers
@@ -17,7 +13,11 @@
 #include "../ldare_renderer_gl.cpp"
 #include "../ldare_asset.cpp"
 #include "../ldare_memory.cpp"
-
+// Win32 specifics
+#include <windowsx.h>
+#include <windows.h>
+#include <winuser.h>
+#include <tchar.h>
 using namespace ldare;
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 
