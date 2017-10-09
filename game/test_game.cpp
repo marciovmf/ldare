@@ -22,7 +22,7 @@ struct GameData
 //#define SCREEN_HEIGHT 576
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
-#define FULLSCREEN 0;
+#define FULLSCREEN 0
 //---------------------------------------------------------------------------
 // Game Engine Initialization
 //---------------------------------------------------------------------------
