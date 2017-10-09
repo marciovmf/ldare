@@ -11,15 +11,19 @@ static ldare::GameContext gameContext;
 struct GameData
 {
 	Vec2 resolution;
+	Sprite ship;
 	Sprite bg;
 	Material material;
+	Material bgMaterial;
 	float x=0;
 	float y=0;
 	float step;
 } *gameMemory = nullptr;
 
-#define SCREEN_WIDTH 600
-#define SCREEN_HEIGHT 600
+//#define SCREEN_WIDTH 1024
+//#define SCREEN_HEIGHT 576
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
 //---------------------------------------------------------------------------
 // Game Engine Initialization
 //---------------------------------------------------------------------------
@@ -55,8 +59,8 @@ void gameStart(void* mem, GameApi& gameApi)
 
 	Sprite sprite;
 	sprite.color = Vec3{0.0f, 0.0f, 1.0f};
-	sprite.width = 
-		sprite.height = 50.0f;
+	sprite.width = 99.0f;
+		sprite.height = 75.0f;
 	sprite.position = Vec3{0.0f ,0.0f ,0.0f};
 	gameMemory->bg = sprite;
 }

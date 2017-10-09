@@ -52,6 +52,8 @@ static FILETIME Win32_getFileWriteTime(const char* fileName)
 	return writeTime;
 }
 
+static ldare::GameContext _gameContext;
+
 //---------------------------------------------------------------------------
 // Loads the Game dll.
 // Returns: true if successfully loads the game dll 
@@ -94,8 +96,6 @@ static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 
 	return true;
 }
-
-
 
 //---------------------------------------------------------------------------
 // Checks if there is a newer game dll and loads it if it does.
@@ -140,7 +140,9 @@ LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 				RECT windowRect;
 				GetClientRect(_gameWindow.hwnd,&windowRect);
 				//TODO: remove GL calls from here!
-				setViewport(0, 0, windowRect.right, windowRect.bottom);
+				LogInfo("Resizing %dx%d", windowRect.right, windowRect.top);
+				setViewportAspectRatio(windowRect.right, 
+						windowRect.bottom, _gameContext.Resolution.width, _gameContext.Resolution.height);
 				break;
 			}
 
@@ -148,7 +150,6 @@ LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);	
 			break;
 	}
-
 	return TRUE;
 }
 
@@ -178,7 +179,7 @@ static bool Win32_CreateGameWindow(
 	gameWindow.hwnd = CreateWindowEx(NULL, 
 			TEXT(GAME_WINDOW_CLASS),
 			title,
-			WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_BORDER,
+			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			width,
@@ -287,6 +288,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	FETCH_GL_FUNC(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap);
 	FETCH_GL_FUNC(PFNGLBINDBUFFERBASEPROC, glBindBufferBase);
 	FETCH_GL_FUNC(PFNGLGETUNIFORMBLOCKINDEXPROC, glGetUniformBlockIndex);
+	FETCH_GL_FUNC(PFNGLSCISSORPROC, glScissor);
 #undef FETCH_GL_FUNC
 
 	if (!success)
@@ -452,18 +454,18 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	}
 
 	// Initialize the game settings
-	ldare::GameContext gameContext = gameModuleInfo.init();
+	_gameContext = gameModuleInfo.init();
 
 	// Reserve memory for the game
-	void* gameMemory = platform::memoryAlloc(gameContext.gameMemorySize);
+	void* gameMemory = platform::memoryAlloc(_gameContext.gameMemorySize);
 
 	if ( !Win32_RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
 	{
 		LogError("Could not register window class");
 	}
 
-	if (!Win32_CreateGameWindow(_gameWindow, gameContext.windowWidth,
-				gameContext.windowHeight, hInstance, TEXT("lDare Engine") ))
+	if (!Win32_CreateGameWindow(_gameWindow, _gameContext.windowWidth,
+				_gameContext.windowHeight, hInstance, TEXT("lDare Engine") ))
 	{
 		LogError("Could not create window");
 	}
@@ -474,7 +476,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	}
 
 	// fullscreen
-	if (gameContext.fullScreen)
+	if (_gameContext.fullScreen)
 	{
 		Win32_toggleFullScreen(_gameWindow);
 	}
@@ -484,8 +486,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	// start the game
 	gameModuleInfo.start(gameMemory, gameApi);
 
-	if (gameContext.Resolution.width ==0 ) gameContext.Resolution.width = gameContext.windowWidth;
-	if (gameContext.Resolution.height ==0 ) gameContext.Resolution.height = gameContext.windowHeight;
+	if (_gameContext.Resolution.width ==0 ) _gameContext.Resolution.width = _gameContext.windowWidth;
+	if (_gameContext.Resolution.height ==0 ) _gameContext.Resolution.height = _gameContext.windowHeight;
 
 	//TODO: marcio, find somewhere else to set clear color that can happen along the game loop
 	//TODO: marcio, remove opengl calls from here and move it to renderer layer

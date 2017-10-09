@@ -48,5 +48,7 @@ extern "C"
 	 PFNGLGENERATEMIPMAPPROC glGenerateMipmap;
 	 PFNGLBINDBUFFERBASEPROC glBindBufferBase;
 	 PFNGLGETUNIFORMBLOCKINDEXPROC glGetUniformBlockIndex;
+	 PFNGLSCISSORPROC glScissor;
+
 }
 #endif // _LDARE_GL__

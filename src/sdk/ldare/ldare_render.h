@@ -8,6 +8,7 @@ namespace ldare
 	struct GlobalShaderData
 	{
 		Mat4 projectionMatrix;
+		Mat4 baseModelMatrix;
 	};
 
 	struct Sprite
@@ -50,7 +51,8 @@ namespace ldare
 		SpriteBatchLoadShaderFunc *loadShader;
 	};
 
-	void setViewport(uint32 width, uint32 height);
+	void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight);
+	void setViewport(uint32 x, uint32 y, uint32 width, uint32 height);
 
 } // namespace ldare
 
