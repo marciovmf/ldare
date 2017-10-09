@@ -18,6 +18,7 @@
 
 namespace ldare 
 {
+	static bool updateGlobalShaderData = false;
 	static GlobalShaderData globalShaderData = {};
 
 	static struct GL_SpriteBatchData
@@ -144,11 +145,14 @@ namespace ldare
 																layout (location = 1) in vec3 vColor;\n\
 																layout (location = 2) in vec2 vTexCoord;\n\
 																layout (std140) uniform ldare_t\n\
-																{ mat4 projectionMatrix; } ldare;\n\
+																{ \n\
+																	mat4 projectionMatrix;\n\
+																	mat4 baseModelMatrix;\n\
+																} ldare;\n\
 																out vec4 fragColor;\n\
 																out vec2 texCoord;\n\
 																void main(){ fragColor = vec4(vColor, 0.0);\n\
-																	gl_Position = ldare.projectionMatrix * vec4(vPos.xy, 1.0, 1.0);\n\
+																	gl_Position = ldare.projectionMatrix * ldare.baseModelMatrix * vec4(vPos.xy, 1.0, 1.0);\n\
 																		texCoord = vTexCoord;}\n\0";
 
 		const char* fragmentSource = "#version 330 core\n\
@@ -159,9 +163,6 @@ namespace ldare
 																	void main() {	color = texture(mainTexture, texCoord); }\n\0";
 
 		Shader shader = createShaderProgram(vertexSource, fragmentSource);
-		//shader.programid = createShaderProgram(vertexSource, fragmentSource);
-		// every shader must support this!
-		//shader.projectionMatrixUniform = glTetUniformLocation("projectionMatrix");
 		return shader;
 	}
 
@@ -231,11 +232,15 @@ namespace ldare
 	{
 		spriteBatchData.spriteCount = 0;
 
-		// map UBO buffer
-		glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
-		spriteBatchData.gpuUniformBuffer = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
-		memcpy(spriteBatchData.gpuUniformBuffer, &globalShaderData, sizeof(GlobalShaderData));
-		glUnmapBuffer(GL_UNIFORM_BUFFER);
+		if ( updateGlobalShaderData)
+		{
+			// map UBO buffer
+			glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
+			spriteBatchData.gpuUniformBuffer = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+			memcpy(spriteBatchData.gpuUniformBuffer, &globalShaderData, sizeof(GlobalShaderData));
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
+			updateGlobalShaderData = false;
+		}
 
 		// map VERTEX buffer
 		glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
@@ -295,7 +300,7 @@ namespace ldare
 	void end()
 	{
 		glUnmapBuffer(GL_ARRAY_BUFFER);
-		glClearColor(0,0,0,0);
+		glClearColor(0, 0, 0, 0);
 		//TODO: sort draw calls per material 
 	}
 
@@ -321,7 +326,7 @@ namespace ldare
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.width, bitmap.height, 0, 
 				GL_RGBA, GL_UNSIGNED_BYTE, bitmap.pixels);
 		glGenerateMipmap(GL_TEXTURE_2D);
-		//TODO: make 
+		//TODO: make filtering paremetrizable when importing texture
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -334,9 +339,36 @@ namespace ldare
 		return texture;
 	}
 
+	void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight)
+	{
+		float targetAspectRatio = virtualWidth / (float) virtualHeight;
+		// Try full viewport width with cropped, height if necessary
+		int32 viewportWidth = windowWidth;
+		int32 viewportHeight = (int)(viewportWidth / targetAspectRatio + 0.5f);
+
+		// if calculated viewport height does not fit the window width,
+		// switch to pillar box to preserve the aspect ratio
+		if (viewportHeight > windowHeight)
+		{
+			viewportHeight = windowHeight;
+			viewportWidth = (int)(viewportHeight* targetAspectRatio + 0.5f);
+		}
+
+		// center viewport
+		int32 viewportX = (windowWidth / 2) - (viewportWidth / 2);
+		int32 viewportY = (windowHeight / 2) - (viewportHeight / 2);
+		setViewport(viewportX, viewportY, viewportWidth, viewportHeight);
+
+		globalShaderData.baseModelMatrix = Mat4();
+		globalShaderData.baseModelMatrix.scale(
+				viewportWidth / (float)virtualWidth, 
+				viewportHeight / (float)virtualHeight, 1.0f);
+	}
+ 
 	void setViewport(uint32 x, uint32 y, uint32 width, uint32 height)
 	{
 		globalShaderData.projectionMatrix = createOrthographicMatrix(0, width, 0, height, -1, 1);
-		glViewport(0,0, width, height);
+		glViewport(x, y, width, height);
+		updateGlobalShaderData = true;
 	}
 } // namespace ldare

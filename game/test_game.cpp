@@ -11,15 +11,18 @@ static ldare::GameContext gameContext;
 struct GameData
 {
 	Vec2 resolution;
-	Sprite bg;
+	Sprite ship;
 	Material material;
 	float x=0;
 	float y=0;
 	float step;
 } *gameMemory = nullptr;
 
-#define SCREEN_WIDTH 600
-#define SCREEN_HEIGHT 600
+//#define SCREEN_WIDTH 1024
+//#define SCREEN_HEIGHT 576
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
+#define FULLSCREEN 0
 //---------------------------------------------------------------------------
 // Game Engine Initialization
 //---------------------------------------------------------------------------
@@ -27,8 +30,10 @@ ldare::GameContext gameInit()
 {
 	gameContext.windowWidth = SCREEN_WIDTH; 						// game window width
 	gameContext.windowHeight = SCREEN_HEIGHT; 					// game window height
+	gameContext.Resolution.width = SCREEN_WIDTH;
+	gameContext.Resolution.height = SCREEN_HEIGHT;
 	gameContext.gameMemorySize = sizeof(GameData);// requested game memory size
-	//gameContext.fullScreen =true;
+	gameContext.fullScreen = FULLSCREEN;
 	return gameContext; 											// let the engine know what we want
 }
 
@@ -50,15 +55,15 @@ void gameStart(void* mem, GameApi& gameApi)
 		gameMemory->x = gameMemory->y = 0;
 		// load material
 		gameMemory->material = gameApi.asset.loadMaterial(nullptr, nullptr, 
-				(const char8*)"./assets/sprite.bmp");
+				(const char8*)"./assets/bg.bmp");
 	}
 
 	Sprite sprite;
 	sprite.color = Vec3{0.0f, 0.0f, 1.0f};
-	sprite.width = 
-		sprite.height = 50.0f;
+	sprite.width = SCREEN_WIDTH;
+		sprite.height = SCREEN_HEIGHT;
 	sprite.position = Vec3{0.0f ,0.0f ,0.0f};
-	gameMemory->bg = sprite;
+	gameMemory->ship = sprite;
 }
 
 //---------------------------------------------------------------------------
@@ -82,16 +87,16 @@ void gameUpdate(const Input& input, ldare::GameApi& gameApi)
 	if ( input.keyboard[KBD_D].state )
 		x += gameMemory->step;
 
-	if (x > SCREEN_WIDTH) x = 0;
-	if (x < 0) x = SCREEN_WIDTH;
-	if (y > SCREEN_HEIGHT) y = 0;
-	if (y < 0) y = SCREEN_HEIGHT;
+//	if (x > SCREEN_WIDTH) x = 0;
+//	if (x < 0) x = SCREEN_WIDTH;
+//	if (y > SCREEN_HEIGHT) y = 0;
+//	if (y < 0) y = SCREEN_HEIGHT;
 
-	gameMemory->bg.position.x = x;
-	gameMemory->bg.position.y = y;
+	gameMemory->ship.position.x = x;
+	gameMemory->ship.position.y = y;
 
 	gameApi.spriteBatch.begin();
-		gameApi.spriteBatch.submit(gameMemory->material, gameMemory->bg);
+		gameApi.spriteBatch.submit(gameMemory->material, gameMemory->ship);
 	gameApi.spriteBatch.end();
 	gameApi.spriteBatch.flush();
 
