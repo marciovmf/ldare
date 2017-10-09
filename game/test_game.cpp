@@ -22,6 +22,7 @@ struct GameData
 //#define SCREEN_HEIGHT 576
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
+#define FULLSCREEN 0;
 //---------------------------------------------------------------------------
 // Game Engine Initialization
 //---------------------------------------------------------------------------
@@ -32,7 +33,7 @@ ldare::GameContext gameInit()
 	gameContext.Resolution.width = SCREEN_WIDTH;
 	gameContext.Resolution.height = SCREEN_HEIGHT;
 	gameContext.gameMemorySize = sizeof(GameData);// requested game memory size
-	//gameContext.fullScreen =true;
+	gameContext.fullScreen = FULLSCREEN;
 	return gameContext; 											// let the engine know what we want
 }
 
@@ -86,10 +87,10 @@ void gameUpdate(const Input& input, ldare::GameApi& gameApi)
 	if ( input.keyboard[KBD_D].state )
 		x += gameMemory->step;
 
-	if (x > SCREEN_WIDTH) x = 0;
-	if (x < 0) x = SCREEN_WIDTH;
-	if (y > SCREEN_HEIGHT) y = 0;
-	if (y < 0) y = SCREEN_HEIGHT;
+//	if (x > SCREEN_WIDTH) x = 0;
+//	if (x < 0) x = SCREEN_WIDTH;
+//	if (y > SCREEN_HEIGHT) y = 0;
+//	if (y < 0) y = SCREEN_HEIGHT;
 
 	gameMemory->ship.position.x = x;
 	gameMemory->ship.position.y = y;

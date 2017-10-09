@@ -18,6 +18,7 @@
 
 namespace ldare 
 {
+	static bool updateGlobalShaderData = false;
 	static GlobalShaderData globalShaderData = {};
 
 	static struct GL_SpriteBatchData
@@ -162,9 +163,6 @@ namespace ldare
 																	void main() {	color = texture(mainTexture, texCoord); }\n\0";
 
 		Shader shader = createShaderProgram(vertexSource, fragmentSource);
-		//shader.programid = createShaderProgram(vertexSource, fragmentSource);
-		// every shader must support this!
-		//shader.projectionMatrixUniform = glTetUniformLocation("projectionMatrix");
 		return shader;
 	}
 
@@ -234,11 +232,15 @@ namespace ldare
 	{
 		spriteBatchData.spriteCount = 0;
 
-		// map UBO buffer
-		glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
-		spriteBatchData.gpuUniformBuffer = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
-		memcpy(spriteBatchData.gpuUniformBuffer, &globalShaderData, sizeof(GlobalShaderData));
-		glUnmapBuffer(GL_UNIFORM_BUFFER);
+		if ( updateGlobalShaderData)
+		{
+			// map UBO buffer
+			glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
+			spriteBatchData.gpuUniformBuffer = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+			memcpy(spriteBatchData.gpuUniformBuffer, &globalShaderData, sizeof(GlobalShaderData));
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
+			updateGlobalShaderData = false;
+		}
 
 		// map VERTEX buffer
 		glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
@@ -339,7 +341,7 @@ namespace ldare
 
 	void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight)
 	{
-		float targetAspectRatio = virtualWidth / virtualHeight;
+		float targetAspectRatio = virtualWidth / (float) virtualHeight;
 		// Try full viewport width with cropped, height if necessary
 		int32 viewportWidth = windowWidth;
 		int32 viewportHeight = (int)(viewportWidth / targetAspectRatio + 0.5f);
@@ -352,7 +354,7 @@ namespace ldare
 			viewportWidth = (int)(viewportHeight* targetAspectRatio + 0.5f);
 		}
 
-		// set up the new viewport centered
+		// center viewport
 		int32 viewportX = (windowWidth / 2) - (viewportWidth / 2);
 		int32 viewportY = (windowHeight / 2) - (viewportHeight / 2);
 		setViewport(viewportX, viewportY, viewportWidth, viewportHeight);
@@ -367,6 +369,6 @@ namespace ldare
 	{
 		globalShaderData.projectionMatrix = createOrthographicMatrix(0, width, 0, height, -1, 1);
 		glViewport(x, y, width, height);
-		//glScissor(x, y, width, height);
+		updateGlobalShaderData = true;
 	}
 } // namespace ldare

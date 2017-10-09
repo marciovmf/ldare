@@ -139,8 +139,7 @@ LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 			{
 				RECT windowRect;
 				GetClientRect(_gameWindow.hwnd,&windowRect);
-				//TODO: remove GL calls from here!
-				LogInfo("Resizing %dx%d", windowRect.right, windowRect.top);
+				LogInfo("Resizing %dx%d", windowRect.right, windowRect.bottom);
 				setViewportAspectRatio(windowRect.right, 
 						windowRect.bottom, _gameContext.Resolution.width, _gameContext.Resolution.height);
 				break;
