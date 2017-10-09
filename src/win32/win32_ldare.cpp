@@ -134,12 +134,15 @@ LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 		case WM_CLOSE:
 			_gameWindow.shouldClose = true;	
 			break;
+
 		case WM_SIZE:
-			RECT windowRect;
-			GetClientRect(_gameWindow.hwnd,&windowRect);
-			//TODO: remove GL calls from here!
-			glViewport(0,0, windowRect.right, windowRect.bottom);
-			break;
+			{
+				RECT windowRect;
+				GetClientRect(_gameWindow.hwnd,&windowRect);
+				//TODO: remove GL calls from here!
+				setViewport(0, 0, windowRect.right, windowRect.bottom);
+				break;
+			}
 
 		default:
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);	
@@ -282,6 +285,8 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	FETCH_GL_FUNC(PFNGLTEXPARAMETERFPROC, glTexParameteri);
 	FETCH_GL_FUNC(PFNGLTEXIMAGE2DPROC, glTexImage2D);
 	FETCH_GL_FUNC(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap);
+	FETCH_GL_FUNC(PFNGLBINDBUFFERBASEPROC, glBindBufferBase);
+	FETCH_GL_FUNC(PFNGLGETUNIFORMBLOCKINDEXPROC, glGetUniformBlockIndex);
 #undef FETCH_GL_FUNC
 
 	if (!success)
@@ -405,7 +410,10 @@ static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
 					int16 vkCode = msg.wParam;
 					ldare::KeyState& currentState = gameInput.keyboard[vkCode];
-
+#if DEBUG
+					if (vkCode == KBD_ESCAPE)
+						_gameWindow.shouldClose = true;
+#endif
 					Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
 					continue;
 				}
@@ -445,7 +453,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	// Initialize the game settings
 	ldare::GameContext gameContext = gameModuleInfo.init();
-  
+
 	// Reserve memory for the game
 	void* gameMemory = platform::memoryAlloc(gameContext.gameMemorySize);
 
@@ -475,9 +483,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	// start the game
 	gameModuleInfo.start(gameMemory, gameApi);
-	
+
 	if (gameContext.Resolution.width ==0 ) gameContext.Resolution.width = gameContext.windowWidth;
-  if (gameContext.Resolution.height ==0 ) gameContext.Resolution.height = gameContext.windowHeight;
+	if (gameContext.Resolution.height ==0 ) gameContext.Resolution.height = gameContext.windowHeight;
 
 	//TODO: marcio, find somewhere else to set clear color that can happen along the game loop
 	//TODO: marcio, remove opengl calls from here and move it to renderer layer

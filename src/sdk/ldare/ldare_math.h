@@ -3,7 +3,6 @@
 
 #include <math.h>
 #define PI 3.14159265359L
-
 #define RADIAN(n) (((n) * PI)/180.0f)
 
 namespace ldare
@@ -285,7 +284,19 @@ namespace ldare
 	//	 Column 3 is position
 	struct Mat4
 	{
-		float element[16];
+		union{
+			float element[16];
+			Vec4 column[4];
+		};
+
+		Mat4()
+		{
+			column[0] ={};
+			column[1] ={};
+			column[2] ={};
+			column[3] ={};
+			identity();
+		}
 
 		static Mat4 multiply(const Mat4& a, const Mat4& b)
 		{
@@ -370,29 +381,27 @@ namespace ldare
 			return *this;
 		}
 
-		inline void identity()
+		inline void diagonal(float value)
 		{
 			element[0] = 1.0f;
 			element[5] = 1.0f;
 			element[10] = 1.0f;
 			element[15] = 1.0f;
 		}
+
+		inline void identity()
+		{
+			diagonal(1.0f);
+		}
 	};
 
-	//Note: the eye coordinates are defined in the right-handed coordinate system,
-	//but NDC uses the left-handed coordinate system.
-	//That is, the camera at the origin is looking along -Z axis in eye space,
-	//but it is looking along +Z axis in NDC.
-	//Since glFrustum() accepts only positive values of near and far distances, 
-	//we need to negate them during the construction of GL_PROJECTION matrix.
-	//see http://www.songho.ca/opengl/gl_projectionmatrix.html
 	Mat4 createOrthographicMatrix(float left, float right, float bottom, float top, float near, float far)
 	{
 		float width = right - left;
 		float height = top - bottom;
-		float depth = near - far;
+		float depth = far - near;
 
-		ldare::Mat4 ortho = {};
+		ldare::Mat4 ortho;
 		ASSERT(width != 0, "Orthographic width can not be zero");
 		ASSERT(height != 0, "Orthographic height can not be zero");
 		ASSERT(depth != 0, "Orthographic depth can not be zero");
@@ -400,17 +409,16 @@ namespace ldare
 		// Diagonal
 		ortho.element[0] = 2.0f / width;
 		ortho.element[5] = 2.0f / height;
-		ortho.element[10] = 2.0f / depth;
+		ortho.element[10] = -(2.0f / depth);
 
 		// Last column
-		ortho.element[12] = (left + right) / width;
-		ortho.element[13] = (bottom + top) / height;
-		ortho.element[14] = (near + far) / depth;
-
+		ortho.element[12] = -((right+left) / width);
+		ortho.element[13] = -((top - bottom) / height);
+		ortho.element[14] = -((near - far) / depth);
 		return ortho;
 	}
 
-}
+} // ldare
 
 #endif // __LDARE_MATH__
 

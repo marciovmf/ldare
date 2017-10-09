@@ -10,6 +10,7 @@ static ldare::GameContext gameContext;
 // to programmers but charges 
 struct GameData
 {
+	Vec2 resolution;
 	Sprite bg;
 	Material material;
 	float x=0;
@@ -17,14 +18,16 @@ struct GameData
 	float step;
 } *gameMemory = nullptr;
 
+#define SCREEN_WIDTH 600
+#define SCREEN_HEIGHT 600
 //---------------------------------------------------------------------------
 // Game Engine Initialization
 //---------------------------------------------------------------------------
 ldare::GameContext gameInit()
 {
-	gameContext.windowWidth = 600; 						// game window width
-	gameContext.windowHeight = 600; 					// game window height
-	gameContext.gameMemorySize = MEGABYTE(10);// requested game memory size
+	gameContext.windowWidth = SCREEN_WIDTH; 						// game window width
+	gameContext.windowHeight = SCREEN_HEIGHT; 					// game window height
+	gameContext.gameMemorySize = sizeof(GameData);// requested game memory size
 	//gameContext.fullScreen =true;
 	return gameContext; 											// let the engine know what we want
 }
@@ -43,7 +46,7 @@ void gameStart(void* mem, GameApi& gameApi)
 	if ( gameMemory == nullptr)
 	{
 		gameMemory = (GameData*) mem;
-		gameMemory->step = 0.008f;
+		gameMemory->step = 5.0f;//SCREEN_WIDTH * 0.01f;
 		gameMemory->x = gameMemory->y = 0;
 		// load material
 		gameMemory->material = gameApi.asset.loadMaterial(nullptr, nullptr, 
@@ -53,7 +56,7 @@ void gameStart(void* mem, GameApi& gameApi)
 	Sprite sprite;
 	sprite.color = Vec3{0.0f, 0.0f, 1.0f};
 	sprite.width = 
-		sprite.height = 0.4f;
+		sprite.height = 50.0f;
 	sprite.position = Vec3{0.0f ,0.0f ,0.0f};
 	gameMemory->bg = sprite;
 }
@@ -79,10 +82,11 @@ void gameUpdate(const Input& input, ldare::GameApi& gameApi)
 	if ( input.keyboard[KBD_D].state )
 		x += gameMemory->step;
 
-	if (x >1) x = -1;
-	if (x <-1) x = 1;
-	if (y >1) y = -1;
-	if (y <-1) y = 1;
+	if (x > SCREEN_WIDTH) x = 0;
+	if (x < 0) x = SCREEN_WIDTH;
+	if (y > SCREEN_HEIGHT) y = 0;
+	if (y < 0) y = SCREEN_HEIGHT;
+
 	gameMemory->bg.position.x = x;
 	gameMemory->bg.position.y = y;
 

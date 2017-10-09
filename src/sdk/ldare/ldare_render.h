@@ -5,6 +5,11 @@ namespace ldare
 {
 	typedef uint32 Shader;
 
+	struct GlobalShaderData
+	{
+		Mat4 projectionMatrix;
+	};
+
 	struct Sprite
 	{
 		Vec3 position;
@@ -45,7 +50,7 @@ namespace ldare
 		SpriteBatchLoadShaderFunc *loadShader;
 	};
 
-//	ldare::Texture loadTexture(const char* bitmapFile);
+	void setViewport(uint32 width, uint32 height);
 
 } // namespace ldare
 
