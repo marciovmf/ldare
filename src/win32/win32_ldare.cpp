@@ -47,6 +47,8 @@ struct Win32_GameTimer
 {
 	uint64 lastFrameTime;
 	uint64 thisFrameTime;
+	float elapsedTime;
+	uint32 frameCount;
 	float deltaTime;
 };
 
@@ -502,11 +504,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	while (!_gameWindow.shouldClose)
 	{
+		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
 		gameTimer.thisFrameTime = platform::getTicks();
 		
-		// get deltaTime
-		gameTimer.deltaTime = platform::getTimeBetweenTicks(gameTimer.lastFrameTime, gameTimer.thisFrameTime);
-
+		
 #if DEBUG
 		// Check for new game DLL every 180 frames
 		if (gameModuleInfo.framesSinceLastReload >= 180)
@@ -539,8 +540,20 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		gameModuleInfo.update(gameTimer.deltaTime, gameInput, gameApi);
 		SwapBuffers(_gameWindow.dc);
 
-		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
-		//LogInfo("Delta time=%f", deltaTime);
+		// get deltaTime
+		gameTimer.deltaTime = platform::getTimeBetweenTicks(gameTimer.lastFrameTime, gameTimer.thisFrameTime);
+
+		gameTimer.frameCount++;
+		gameTimer.elapsedTime += gameTimer.deltaTime;
+
+		// count frames per second
+		if (gameTimer.elapsedTime>1)
+		{
+			gameTimer.elapsedTime -=1;
+			LogInfo("%d FPS", gameTimer.frameCount);
+			gameTimer.frameCount=0;
+		}
+
 	}
 
 	gameModuleInfo.stop();
