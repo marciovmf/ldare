@@ -48,7 +48,7 @@ typedef GAME_INIT_FUNC(gameInitFunc);
 #define GAME_START_FUNC(name) void (name)(void* gameMemory, ldare::GameApi& gameApi)
 typedef GAME_START_FUNC(gameStartFunc);
 
-#define GAME_UPDATE_FUNC(name) void (name)(const ldare::Input& input, ldare::GameApi& gameApi)
+#define GAME_UPDATE_FUNC(name) void (name)(const float deltaTime, const ldare::Input& input, ldare::GameApi& gameApi)
 typedef GAME_UPDATE_FUNC(gameUpdateFunc);
 
 #define GAME_STOP_FUNC(name) void (name)();

@@ -43,6 +43,13 @@ struct Win32_GameModuleInfo
 	int32 framesSinceLastReload;
 };
 
+struct Win32_GameTimer
+{
+	uint64 lastFrameTime;
+	uint64 thisFrameTime;
+	float deltaTime;
+};
+
 static FILETIME Win32_getFileWriteTime(const char* fileName)
 {
 	FILETIME writeTime;
@@ -197,7 +204,6 @@ static bool Win32_CreateGameWindow(
 	return gameWindow.dc != NULL;
 }
 
-
 static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, int major, int minor)
 {
 	Win32_GameWindow dummyWindow = {};
@@ -245,7 +251,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	bool success = true;
 
 #define FETCH_GL_FUNC(type, name) success = success &&\
-	(name = (type) platform::getGlFunctionPointer((const char*)#name))
+	(name = (type) platform::Win32_getGlFunctionPointer((const char*)#name))
 	FETCH_GL_FUNC(PFNGLENABLEPROC, glEnable);
 	FETCH_GL_FUNC(PFNGLDISABLEPROC, glDisable);
 	FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
@@ -388,7 +394,6 @@ static void initGameApi(ldare::GameApi& gameApi)
 	gameApi.asset.loadMaterial = ldare::loadMaterial;
 }
 
-
 static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 {
 	MSG msg;
@@ -492,8 +497,16 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	//TODO: marcio, remove opengl calls from here and move it to renderer layer
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 
+	platform::Win32_initTimer();
+	Win32_GameTimer gameTimer = {};
+
 	while (!_gameWindow.shouldClose)
 	{
+		gameTimer.thisFrameTime = platform::getTicks();
+		
+		// get deltaTime
+		gameTimer.deltaTime = platform::getTimeBetweenTicks(gameTimer.lastFrameTime, gameTimer.thisFrameTime);
+
 #if DEBUG
 		// Check for new game DLL every 180 frames
 		if (gameModuleInfo.framesSinceLastReload >= 180)
@@ -522,8 +535,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		processPendingMessages(_gameWindow.hwnd, gameInput);
 
 		//Update the game
-		gameModuleInfo.update(gameInput, gameApi);
+		updateRenderer(gameTimer.deltaTime);
+		gameModuleInfo.update(gameTimer.deltaTime, gameInput, gameApi);
 		SwapBuffers(_gameWindow.dc);
+
+		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
+		//LogInfo("Delta time=%f", deltaTime);
 	}
 
 	gameModuleInfo.stop();

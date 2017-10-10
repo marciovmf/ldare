@@ -89,7 +89,7 @@ namespace ldare
 
 			if ( shaderType == GL_VERTEX_SHADER)
 				shaderTypeName = "Error compiling vertex shader";
-			else if ( shaderType == GL_VERTEX_SHADER)
+			else if ( shaderType == GL_FRAGMENT_SHADER)
 				shaderTypeName = "Error compiling fragment shader";
 			else
 				shaderTypeName = "Error compiling unknown shader type";
@@ -148,6 +148,7 @@ namespace ldare
 																{ \n\
 																	mat4 projectionMatrix;\n\
 																	mat4 baseModelMatrix;\n\
+																	vec2 time;\n\
 																} ldare;\n\
 																out vec4 fragColor;\n\
 																out vec2 texCoord;\n\
@@ -159,8 +160,15 @@ namespace ldare
 																	out vec4 color;\n\
 																	in vec4 fragColor;\n\
 																	in vec2 texCoord;\n\
+																	layout (std140) uniform ldare_t\n\
+																	{ \n\
+																		mat4 projectionMatrix;\n\
+																		mat4 baseModelMatrix;\n\
+																		vec2 time;\n\
+																	} ldare;\n\
 																	uniform sampler2D mainTexture;\n\
-																	void main() {	color = texture(mainTexture, texCoord); }\n\0";
+																	vec2 coord = vec2( sin(ldare.time.y) * 2  + texCoord.x, texCoord.y);\n\
+																	void main() {	color = texture(mainTexture, coord); }\n\0";
 
 		Shader shader = createShaderProgram(vertexSource, fragmentSource);
 		return shader;
@@ -369,6 +377,13 @@ namespace ldare
 	{
 		globalShaderData.projectionMatrix.orthographic(0, width, 0, height, -1, 1);
 		glViewport(x, y, width, height);
+		updateGlobalShaderData = true;
+	}
+
+	void updateRenderer(float deltaTime)
+	{
+		globalShaderData.time.x = deltaTime;
+		globalShaderData.time.y += deltaTime;
 		updateGlobalShaderData = true;
 	}
 } // namespace ldare
