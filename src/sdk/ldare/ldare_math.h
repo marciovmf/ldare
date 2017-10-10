@@ -1,3 +1,7 @@
+/**
+ * win32_math.h
+ * ldare math functions and structures
+ */
 #ifndef __LDARE_MATH__
 #define __LDARE_MATH__
 
@@ -7,6 +11,9 @@
 
 namespace ldare
 {
+	//---------------------------------------------------------------------------
+	// Vector2 
+	//---------------------------------------------------------------------------
 	struct Vec2
 	{
 		float x, y;
@@ -84,6 +91,9 @@ namespace ldare
 
 	};
 
+	//---------------------------------------------------------------------------
+	// Vector3
+	//---------------------------------------------------------------------------
 	struct Vec3
 	{
 		float x, y, z;
@@ -183,6 +193,9 @@ namespace ldare
 
 	};
 
+	//---------------------------------------------------------------------------
+	// Vector4
+	//---------------------------------------------------------------------------
 	struct Vec4
 	{
 		float x, y, z, w;
@@ -272,16 +285,19 @@ namespace ldare
 
 	};
 
+	//---------------------------------------------------------------------------
+	// Mat4
 	//NOTE: Matrix layout in memory is column major
-	//	 0	4	8	12
-	//	 1	5	9	13
-	//	 2	6	10	14
-	//	 3	7	11	15
-	//	 Considering Y is up and prositive Z is towards the screen:
-	//	 Column 0 is right
-	//	 Column 1 is up
-	//	 Column 2 is back
-	//	 Column 3 is position
+	// 0	4	8	12
+	// 1	5	9	13
+	// 2	6	10	14
+	// 3	7	11	15
+	// Considering Y is up and prositive Z is towards the screen:
+	// Column 0 is right
+	// Column 1 is up
+	// Column 2 is back
+	// Column 3 is position
+	//---------------------------------------------------------------------------
 	struct Mat4
 	{
 		union{
@@ -393,31 +409,31 @@ namespace ldare
 		{
 			diagonal(1.0f);
 		}
+
+		void orthographic(float left, float right, float bottom, float top, float near, float far)
+		{
+			float width = right - left;
+			float height = top - bottom;
+			float depth = far - near;
+			
+			diagonal(1.0f);
+			//ldare::Mat4 ortho;
+			ASSERT(width != 0, "Orthographic width can not be zero");
+			ASSERT(height != 0, "Orthographic height can not be zero");
+			ASSERT(depth != 0, "Orthographic depth can not be zero");
+
+			// Diagonal
+			element[0] = 2.0f / width;
+			element[5] = 2.0f / height;
+			element[10] = -(2.0f / depth);
+
+			// Last column
+			element[12] = -((right+left) / width);
+			element[13] = -((top - bottom) / height);
+			element[14] = -((near - far) / depth);
+		}
+
 	};
-
-	Mat4 createOrthographicMatrix(float left, float right, float bottom, float top, float near, float far)
-	{
-		float width = right - left;
-		float height = top - bottom;
-		float depth = far - near;
-
-		ldare::Mat4 ortho;
-		ASSERT(width != 0, "Orthographic width can not be zero");
-		ASSERT(height != 0, "Orthographic height can not be zero");
-		ASSERT(depth != 0, "Orthographic depth can not be zero");
-
-		// Diagonal
-		ortho.element[0] = 2.0f / width;
-		ortho.element[5] = 2.0f / height;
-		ortho.element[10] = -(2.0f / depth);
-
-		// Last column
-		ortho.element[12] = -((right+left) / width);
-		ortho.element[13] = -((top - bottom) / height);
-		ortho.element[14] = -((near - far) / depth);
-		return ortho;
-	}
-
 } // ldare
 
 #endif // __LDARE_MATH__
