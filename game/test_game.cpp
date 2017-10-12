@@ -51,7 +51,7 @@ void gameStart(void* mem, GameApi& gameApi)
 	if ( gameMemory == nullptr)
 	{
 		gameMemory = (GameData*) mem;
-		gameMemory->step = 300.0f;
+		gameMemory->step = SCREEN_WIDTH/(float)2;
 		gameMemory->x = gameMemory->y = 0;
 		// load material
 		gameMemory->material = gameApi.asset.loadMaterial(nullptr, nullptr, 
@@ -87,9 +87,9 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		x += gameMemory->step * deltaTime;
 
 	if (y > SCREEN_HEIGHT) y = 0;
-//	if (x < 0) x = SCREEN_WIDTH;
-//	if (y > SCREEN_HEIGHT) y = 0;
-//	if (y < 0) y = SCREEN_HEIGHT;
+	if (y < 0) y = SCREEN_HEIGHT;
+	if (x > SCREEN_WIDTH) x = 0;
+	if (x < 0) x = SCREEN_WIDTH;
 
 	gameMemory->ship.position.x = x;
 	gameMemory->ship.position.y = y;
