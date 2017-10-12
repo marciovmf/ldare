@@ -26,7 +26,7 @@ struct BITMAP_FILE_HEADER
 
 namespace ldare
 {
-	ldare::Material loadMaterial(const char8* vertex, const char8* fragment, const char8* textureFile)
+	ldare::Material loadMaterial(const char* vertex, const char* fragment, const char* textureFile)
 	{
 		ldare::Material material;
 		ldare::Bitmap bitmap;
@@ -35,7 +35,7 @@ namespace ldare
 		return material;
 	}
 
-	bool loadBitmap(const char8* file, ldare::Bitmap* bitmap)
+	bool loadBitmap(const char* file, ldare::Bitmap* bitmap)
 	{	
 		bitmap->bmpFileMemroyToRelease_ = ldare::platform::loadFileToBuffer(file, &bitmap->bmpMemorySize_);
 		if (!bitmap->bmpFileMemroyToRelease_ || bitmap->bmpMemorySize_ == 0) { return false; }
@@ -49,7 +49,7 @@ namespace ldare
 				|| bitmapHeader->BitsPerPixel != 32)
 			return false;
 
-		bitmap->pixels = (uchar8*)(bitmapHeader)+bitmapHeader->BitmapOffset;
+		bitmap->pixels = (uint8*)(bitmapHeader)+bitmapHeader->BitmapOffset;
 		bitmap->width = bitmapHeader->Width;
 		bitmap->height = bitmapHeader->Height;
 
