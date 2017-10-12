@@ -41,7 +41,7 @@ namespace ldare
 			return functionPtr;
 		}
 
-		void* loadFileToBuffer(const char8* fileName, size_t* bufferSize)
+		void* loadFileToBuffer(const char* fileName, size_t* bufferSize)
 		{
 			HANDLE hFile = CreateFile((LPCSTR)fileName,
 					GENERIC_READ,

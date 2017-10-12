@@ -20,11 +20,11 @@ RELEASE_LINK_OPTIONS=/link /subsystem:windows $(LIBS)
 CFLAGS=$(DEBUG_COMPILE_OPTIONS)
 LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
-.PHONY: game engine 
+.PHONY: game engine assets
 
 all: engine game assets
 
-game: $(LDARE_GAME)
+game: $(LDARE_GAME) assets
 
 $(LDARE_GAME): $(GAMESRC) 
 	@echo Building game dll...
@@ -32,11 +32,15 @@ $(LDARE_GAME): $(GAMESRC)
 	@echo copying game assets
 
 assets:
-	xcopy game\assets $(OUTDIR)\assets /Y /I /E /F
+	@echo copying game assets ...
+	@xcopy game\assets $(OUTDIR)\assets /Y /I /E /F
+	@echo copying standard engine assets ...
+	@xcopy assets $(OUTDIR)\assets /Y /I /E /F
 
-engine: $(LDARE_GAME) $(LDARE_CORE) 
+engine: $(LDARE_GAME) $(LDARE_CORE) assets
 	@echo Building ldare engine...
 	cl $(LDARESRC) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
 
 clean:
 	del /S /Q .\$(OUTDIR)\*
+	rd /S /Q .\$(OUTDIR)\assets

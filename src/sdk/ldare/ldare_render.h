@@ -40,7 +40,7 @@ namespace ldare
 #define SPRITE_BATCH_FLUSH_FUNC(name) void name()
 	typedef SPRITE_BATCH_FLUSH_FUNC(SpriteBatchFlushFunc);
 
-#define SPRITE_BATCH_LOAD_SHADER_FUNC(name) Shader name(const char8* vertex, const char8* fragment)
+#define SPRITE_BATCH_LOAD_SHADER_FUNC(name) Shader name(const char* vertex, const char* fragment)
 	typedef SPRITE_BATCH_LOAD_SHADER_FUNC(SpriteBatchLoadShaderFunc);
 
 	struct SpriteBatchApi

@@ -137,40 +137,18 @@ namespace ldare
 		return shaderProgram;
 	}
 
-	Shader loadShader(const char8* vertex, const char8* fragment)
+	Shader loadShader(const char* vertex, const char* fragment)
 	{
-		//TODO: remove hardcoded shader source and load it from argument path
-		const char* vertexSource = "#version 330 core\n\
-																layout (location = 0) in vec3 vPos;\n\
-																layout (location = 1) in vec3 vColor;\n\
-																layout (location = 2) in vec2 vTexCoord;\n\
-																layout (std140) uniform ldare_t\n\
-																{ \n\
-																	mat4 projectionMatrix;\n\
-																	mat4 baseModelMatrix;\n\
-																	vec2 time;\n\
-																} ldare;\n\
-																out vec4 fragColor;\n\
-																out vec2 texCoord;\n\
-																void main(){ fragColor = vec4(vColor, 0.0);\n\
-																	gl_Position = ldare.projectionMatrix * ldare.baseModelMatrix * vec4(vPos.xy, 1.0, 1.0);\n\
-																		texCoord = vTexCoord;}\n\0";
-
-		const char* fragmentSource = "#version 330 core\n\
-																	out vec4 color;\n\
-																	in vec4 fragColor;\n\
-																	in vec2 texCoord;\n\
-																	layout (std140) uniform ldare_t\n\
-																	{ \n\
-																		mat4 projectionMatrix;\n\
-																		mat4 baseModelMatrix;\n\
-																		vec2 time;\n\
-																	} ldare;\n\
-																	uniform sampler2D mainTexture;\n\
-																	vec2 coord = vec2( sin(ldare.time.y) * 2  + texCoord.x, texCoord.y);\n\
-																	void main() {	color = texture(mainTexture, coord); }\n\0";
-
+		size_t vertShaderFileSize;
+		size_t fragShaderFileSize;
+		const char* vertexSource = (const char*)platform::loadFileToBuffer(vertex, &vertShaderFileSize);
+		const char* fragmentSource = (const char*) platform::loadFileToBuffer(fragment, &fragShaderFileSize);
 		Shader shader = createShaderProgram(vertexSource, fragmentSource);
+
+		//TODO: remove this when we have a proper way to reuse file I/O memory
+		platform::memoryFree((void*)vertexSource, vertShaderFileSize);			
+		platform::memoryFree((void*)fragmentSource, fragShaderFileSize);			
+
 		return shader;
 	}
 
@@ -324,7 +302,7 @@ namespace ldare
 		glBindVertexArray(0);
 	}
 
-	ldare::Texture loadTexture(const char8* bitmapFile)
+	ldare::Texture loadTexture(const char* bitmapFile)
 	{
 		ldare::Bitmap bitmap;
 		ldare::loadBitmap(bitmapFile, &bitmap);

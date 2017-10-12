@@ -18,8 +18,6 @@ struct GameData
 	float step;
 } *gameMemory = nullptr;
 
-//#define SCREEN_WIDTH 1024
-//#define SCREEN_HEIGHT 576
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 #define FULLSCREEN 0
@@ -28,8 +26,8 @@ struct GameData
 //---------------------------------------------------------------------------
 ldare::GameContext gameInit()
 {
-	gameContext.windowWidth = SCREEN_WIDTH; 						// game window width
-	gameContext.windowHeight = SCREEN_HEIGHT; 					// game window height
+	gameContext.windowWidth = 640; 						// game window width
+	gameContext.windowHeight = 480; 					// game window height
 	gameContext.Resolution.width = SCREEN_WIDTH;
 	gameContext.Resolution.height = SCREEN_HEIGHT;
 	gameContext.gameMemorySize = sizeof(GameData);// requested game memory size
@@ -54,8 +52,10 @@ void gameStart(void* mem, GameApi& gameApi)
 		gameMemory->step = SCREEN_WIDTH/(float)2;
 		gameMemory->x = gameMemory->y = 0;
 		// load material
-		gameMemory->material = gameApi.asset.loadMaterial(nullptr, nullptr, 
-				(const char8*)"./assets/sprite.bmp");
+		gameMemory->material = gameApi.asset.loadMaterial(
+				(const char*)"./assets/sprite.vert", 
+				(const char*) "./assets/sprite.frag", 
+				(const char*)"./assets/sprite.bmp");
 	}
 
 	Sprite sprite;
