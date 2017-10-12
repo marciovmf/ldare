@@ -14,7 +14,7 @@ namespace ldare
 
 	struct Rectangle
 	{
-		float x,y, w,h;
+		float x, y, w, h;
 	};
 	//---------------------------------------------------------------------------
 	// Vector2 

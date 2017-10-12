@@ -248,7 +248,7 @@ namespace ldare
 		// map pixel coord to texture space
 		Rectangle uvRect = sprite.srcRect;
 		uvRect.x = uvRect.x / material.texture.width;
-		uvRect.y = 1 - (uvRect.y / material.texture.height);
+		uvRect.y = (uvRect.y / material.texture.height);
 		uvRect.w = uvRect.w / material.texture.width;
 		uvRect.h =  (uvRect.h / material.texture.height);
 
