@@ -51,17 +51,17 @@ void gameStart(void* mem, GameApi& gameApi)
 	if ( gameMemory == nullptr)
 	{
 		gameMemory = (GameData*) mem;
-		gameMemory->step = 5.0f;//SCREEN_WIDTH * 0.01f;
+		gameMemory->step = SCREEN_WIDTH/(float)2;
 		gameMemory->x = gameMemory->y = 0;
 		// load material
 		gameMemory->material = gameApi.asset.loadMaterial(nullptr, nullptr, 
-				(const char8*)"./assets/bg.bmp");
+				(const char8*)"./assets/sprite.bmp");
 	}
 
 	Sprite sprite;
 	sprite.color = Vec3{0.0f, 0.0f, 1.0f};
-	sprite.width = SCREEN_WIDTH;
-		sprite.height = SCREEN_HEIGHT;
+	sprite.width = 99.0f;
+		sprite.height = 75.0f;
 	sprite.position = Vec3{0.0f ,0.0f ,0.0f};
 	gameMemory->ship = sprite;
 }
@@ -69,28 +69,27 @@ void gameStart(void* mem, GameApi& gameApi)
 //---------------------------------------------------------------------------
 // Game update
 //---------------------------------------------------------------------------
-
-void gameUpdate(const Input& input, ldare::GameApi& gameApi)
+void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameApi)
 {
 	float& x = gameMemory->x;
 	float& y = gameMemory->y;
 
 	if ( input.keyboard[KBD_W].state )
-		y += gameMemory->step;
+		y += gameMemory->step * deltaTime;
 
 	if ( input.keyboard[KBD_S].state )
-		y -= gameMemory->step;
+		y -= gameMemory->step * deltaTime;
 
 	if ( input.keyboard[KBD_A].state )
-		x -= gameMemory->step;
+		x -= gameMemory->step * deltaTime;
 
 	if ( input.keyboard[KBD_D].state )
-		x += gameMemory->step;
+		x += gameMemory->step * deltaTime;
 
-//	if (x > SCREEN_WIDTH) x = 0;
-//	if (x < 0) x = SCREEN_WIDTH;
-//	if (y > SCREEN_HEIGHT) y = 0;
-//	if (y < 0) y = SCREEN_HEIGHT;
+	if (y > SCREEN_HEIGHT) y = 0;
+	if (y < 0) y = SCREEN_HEIGHT;
+	if (x > SCREEN_WIDTH) x = 0;
+	if (x < 0) x = SCREEN_WIDTH;
 
 	gameMemory->ship.position.x = x;
 	gameMemory->ship.position.y = y;

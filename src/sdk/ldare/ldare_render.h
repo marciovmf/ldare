@@ -9,6 +9,7 @@ namespace ldare
 	{
 		Mat4 projectionMatrix;
 		Mat4 baseModelMatrix;
+		Vec2 time; // (deltaTime, time)
 	};
 
 	struct Sprite
@@ -53,7 +54,7 @@ namespace ldare
 
 	void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight);
 	void setViewport(uint32 x, uint32 y, uint32 width, uint32 height);
-
+	void updateRenderer(float deltaTime);
 } // namespace ldare
 
 #endif 		// __LDARE_RENDER__

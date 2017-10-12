@@ -10,12 +10,29 @@ namespace ldare
 	namespace platform 
 	{
 		//---------------------------------------------------------------------------
-		// Requests allocation of size bytes of memory
+		// Loads an entire file to memory
 		//---------------------------------------------------------------------------
 		void* loadFileToBuffer(const char8* filename, size_t* bufferSize);
+
+		//---------------------------------------------------------------------------
+		// Requests allocation of size bytes of virtual memory
+		//---------------------------------------------------------------------------
 		void* memoryAlloc(size_t size);
+	
+		//---------------------------------------------------------------------------
+		// releases allocated virtual memory
+		//---------------------------------------------------------------------------
 		void memoryFree(void* memory);
-		void* getGlFunctionPointer(const char* glFunctionName);
+		
+		//---------------------------------------------------------------------------
+		// Get the number of ticks since engine initialization
+		//---------------------------------------------------------------------------
+		uint64 getTicks(); 
+
+		//---------------------------------------------------------------------------
+		// Get the time in seconds between 2 tick intervals
+		//---------------------------------------------------------------------------
+		float getTimeBetweenTicks(uint64 start, uint64 end); 
 	}
 }
 

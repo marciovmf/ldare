@@ -20,7 +20,7 @@
 #include <tchar.h>
 using namespace ldare;
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
-
+#define GAME_MODULE_RELOAD_INTERVAL_SECONDS 3.0
 static struct Win32_GameWindow
 {
 	HDC dc;
@@ -35,12 +35,21 @@ struct Win32_GameModuleInfo
 {
 	const char* moduleFileName;
 	HMODULE hGameModule;
-	FILETIME lastWriteTime;
+	FILETIME gameModuleWriteTime;
 	gameInitFunc *init;
 	gameStartFunc *start;
 	gameUpdateFunc *update;
 	gameStopFunc *stop;
-	int32 framesSinceLastReload;
+	float timeSinceLastReload;
+};
+
+struct Win32_GameTimer
+{
+	uint64 lastFrameTime;
+	uint64 thisFrameTime;
+	float elapsedFrameTime;
+	uint32 frameCount;
+	float deltaTime;
 };
 
 static FILETIME Win32_getFileWriteTime(const char* fileName)
@@ -74,12 +83,12 @@ static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 		return false;
 	}
 	dllFileName = dllCopyFileName;
-	gameModuleInfo.lastWriteTime = Win32_getFileWriteTime(gameModuleInfo.moduleFileName);
+	FILETIME originalDllWriteTime = Win32_getFileWriteTime(gameModuleInfo.moduleFileName);
 #endif
 
 	if ((gameModuleInfo.hGameModule = LoadLibraryA(dllFileName)))
 	{
-		GetFileTime(gameModuleInfo.hGameModule, 0, 0, &gameModuleInfo.lastWriteTime);
+		gameModuleInfo.gameModuleWriteTime = originalDllWriteTime;
 		gameModuleInfo.init = (gameInitFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameInit");
 		gameModuleInfo.start = (gameStartFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameStart");
 		gameModuleInfo.update = (gameUpdateFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameUpdate");
@@ -111,11 +120,12 @@ static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 	{
 		FILETIME writeTime = Win32_getFileWriteTime(gameModuleInfo.moduleFileName);
 		// Is there a newer version ?
-		if (CompareFileTime(&writeTime, &gameModuleInfo.lastWriteTime) > 0)
+		if (CompareFileTime(&writeTime, &gameModuleInfo.gameModuleWriteTime) > 0)
 		{
 			FreeLibrary(gameModuleInfo.hGameModule);
-			gameModuleInfo.lastWriteTime = writeTime;
+			gameModuleInfo.gameModuleWriteTime = writeTime;
 			reloaded = true;
+		Win32_loadGameModule(gameModuleInfo);
 		}
 	}
 	else
@@ -197,7 +207,6 @@ static bool Win32_CreateGameWindow(
 	return gameWindow.dc != NULL;
 }
 
-
 static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, int major, int minor)
 {
 	Win32_GameWindow dummyWindow = {};
@@ -245,7 +254,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	bool success = true;
 
 #define FETCH_GL_FUNC(type, name) success = success &&\
-	(name = (type) platform::getGlFunctionPointer((const char*)#name))
+	(name = (type) platform::Win32_getGlFunctionPointer((const char*)#name))
 	FETCH_GL_FUNC(PFNGLENABLEPROC, glEnable);
 	FETCH_GL_FUNC(PFNGLDISABLEPROC, glDisable);
 	FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
@@ -388,7 +397,6 @@ static void initGameApi(ldare::GameApi& gameApi)
 	gameApi.asset.loadMaterial = ldare::loadMaterial;
 }
 
-
 static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 {
 	MSG msg;
@@ -492,24 +500,30 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	//TODO: marcio, remove opengl calls from here and move it to renderer layer
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 
+	platform::Win32_initTimer();
+	Win32_GameTimer gameTimer = {};
+
 	while (!_gameWindow.shouldClose)
 	{
+		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
+		gameTimer.thisFrameTime = platform::getTicks();
+		
+		
 #if DEBUG
 		// Check for new game DLL every 180 frames
-		if (gameModuleInfo.framesSinceLastReload >= 180)
+		if (gameModuleInfo.timeSinceLastReload >= GAME_MODULE_RELOAD_INTERVAL_SECONDS)
 		{
 			// if game reloaded, run start again
 			if (Win32_reloadGameModule(gameModuleInfo))
 			{
-				LogInfo("Reloading game module");
+				LogInfo("Game module reloaded");
+				gameModuleInfo.timeSinceLastReload = 0;
 				gameModuleInfo.start(gameMemory, gameApi);
 			}
-
-			gameModuleInfo.framesSinceLastReload = 0;
 		}
 		else
 		{
-			gameModuleInfo.framesSinceLastReload++;
+			gameModuleInfo.timeSinceLastReload += gameTimer.deltaTime;
 		}
 #endif
 
@@ -522,8 +536,25 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		processPendingMessages(_gameWindow.hwnd, gameInput);
 
 		//Update the game
-		gameModuleInfo.update(gameInput, gameApi);
+		updateRenderer(gameTimer.deltaTime);
+		gameModuleInfo.update(gameTimer.deltaTime, gameInput, gameApi);
 		SwapBuffers(_gameWindow.dc);
+
+		// get deltaTime
+		gameTimer.deltaTime = platform::getTimeBetweenTicks(gameTimer.lastFrameTime, gameTimer.thisFrameTime);
+
+		gameTimer.frameCount++;
+		gameTimer.elapsedFrameTime += gameTimer.deltaTime;
+
+#if 0
+		// count frames per second
+		if (gameTimer.elapsedFrameTime>1)
+		{
+			gameTimer.elapsedFrameTime -=1;
+			LogInfo("%d FPS", gameTimer.frameCount);
+			gameTimer.frameCount=0;
+		}
+#endif
 	}
 
 	gameModuleInfo.stop();
