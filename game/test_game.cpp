@@ -18,6 +18,7 @@ struct GameData
 	float step;
 } *gameMemory = nullptr;
 
+
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 #define FULLSCREEN 0
@@ -55,13 +56,17 @@ void gameStart(void* mem, GameApi& gameApi)
 		gameMemory->material = gameApi.asset.loadMaterial(
 				(const char*)"./assets/sprite.vert", 
 				(const char*) "./assets/sprite.frag", 
-				(const char*)"./assets/sprite.bmp");
+				(const char*)"./assets/sokoban/tiles.bmp");
 	}
+
+	float spriteSize = 128.0f;
+	Rectangle srcWall = {7 * spriteSize, 8* spriteSize, spriteSize, spriteSize};
 
 	Sprite sprite;
 	sprite.color = Vec3{0.0f, 0.0f, 1.0f};
-	sprite.width = 99.0f;
-		sprite.height = 75.0f;
+	sprite.width = 300;
+		sprite.height = 300;
+		sprite.srcRect = srcWall;
 	sprite.position = Vec3{0.0f ,0.0f ,0.0f};
 	gameMemory->ship = sprite;
 }

@@ -245,41 +245,41 @@ namespace ldare
 		const GLuint bindingPointIndex = 0;
 		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.ubo);
 
+		// map pixel coord to texture space
+		Rectangle uvRect = sprite.srcRect;
+		uvRect.x = uvRect.x / material.texture.width;
+		uvRect.y = 1 - (uvRect.y / material.texture.height);
+		uvRect.w = uvRect.w / material.texture.width;
+		uvRect.h =  (uvRect.h / material.texture.height);
+
 		spriteBatchData.spriteCount++;
 		SpriteVertexData* vertexData = (SpriteVertexData*) spriteBatchData.gpuBuffer;
 
 		// top left
-		vertexData->position = Vec3 {
-			sprite.position.x,
-				sprite.position.y + sprite.height,
-				sprite.position.z};
 		vertexData->color = sprite.color;
-		vertexData->uv = {0.0f, 1.0f};
+		vertexData->position = Vec3 {sprite.position.x, sprite.position.y + sprite.height, sprite.position.z};
+		vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
 		vertexData++;
 
 		// bottom left
 		vertexData->position = sprite.position;
-		vertexData->color = sprite.color;
-		vertexData->uv = {0.0f, 0.0f};
+		vertexData->uv = { uvRect.x, uvRect.y};
 		vertexData++;
 
 		// bottom right
-		vertexData->position = Vec3 {
-			sprite.position.x + sprite.width,
-				sprite.position.y,
-				sprite.position.z};
-		vertexData->uv = {1.0f, 0.0f};
 		vertexData->color = sprite.color;
+		vertexData->position = 
+			Vec3 {sprite.position.x + sprite.width,	sprite.position.y, sprite.position.z};
+		vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
 		vertexData++;
 
 		// top right
-		vertexData->position = Vec3 {
-			sprite.position.x + sprite.width,
-				sprite.position.y + sprite.height,
-				sprite.position.z};
 		vertexData->color = sprite.color;
-		vertexData->uv = {1.0f, 1.0f};
+		vertexData->position = 
+			Vec3 {sprite.position.x + sprite.width, sprite.position.y + sprite.height,sprite.position.z};
+		vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
 		vertexData++;
+
 		spriteBatchData.gpuBuffer = (void*) vertexData;
 	}
 

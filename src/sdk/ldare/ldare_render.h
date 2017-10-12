@@ -18,6 +18,7 @@ namespace ldare
 		Vec3 color;
 		float width;
 		float height;
+		Rectangle srcRect;
 	};
 
 	struct SpriteVertexData
