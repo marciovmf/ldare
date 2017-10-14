@@ -143,7 +143,7 @@ void gameStart(void* mem, GameApi& gameApi)
 	if ( gameMemory == nullptr)
 	{
 		gameMemory = (GameData*) mem;
-		gameMemory->step = spriteSize;
+		gameMemory->step = spriteSize * 1;
 		gameMemory->x = gameMemory->y = 0;
 		// load material
 		gameMemory->material = gameApi.asset.loadMaterial(
@@ -182,7 +182,7 @@ void gameStart(void* mem, GameApi& gameApi)
 	sprite.position = Vec3{3 * 128.0f , 128.0f * 3,0.0f};
 	gameMemory->hero = sprite;
 	gameMemory->box = sprite;
-	gameMemory->box.position = {3 *128.0f, 2 *128.0f, 0.0f };
+	gameMemory->box.position = {5 * sprite.width, 2 * sprite.height, 0.0f };
 	gameMemory->box.srcRect = srcBox;
 
 }
