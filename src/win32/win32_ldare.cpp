@@ -442,12 +442,30 @@ static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 	}
 }
 
+void Win32_setCurrentDirectory()
+{
+  char path[256];
+       uint32 len = GetModuleFileName(NULL, path, 255);
+       char* p=path+len;
+       while( *p!= '\\')
+       {
+               *p=0;
+               p--;
+       }
+       SetCurrentDirectory(path);
+       LogInfo("Running from %s", path);
+}
+
+
+
 //---------------------------------------------------------------------------
 // Main
 //---------------------------------------------------------------------------
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	LogInfo("Initializing");
+	Win32_setCurrentDirectory();
+
 	ldare::Input gameInput = {};
 	Win32_GameModuleInfo gameModuleInfo = {};
 	gameModuleInfo.moduleFileName = "ldare_game.dll";
