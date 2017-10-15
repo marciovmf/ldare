@@ -12,6 +12,11 @@
 namespace ldare
 {
 
+	float lerp(float start, float end, float f)
+	{
+		return (start * (1.0f - f)) + (end * f);
+	}
+
 	struct Rectangle
 	{
 		float x, y, w, h;
@@ -26,12 +31,10 @@ namespace ldare
 		{ ASSERT(n >= 0 && n < 2,"vector index should be between positive and within vector size");	
 			return (&x)[n]; }
 
-		//Vec2& operator=(const Vec2& other)
-		//{
-		//	this->x = other.x;
-		//	this->y = other.y;
-		//	return *this;
-		//}
+		bool operator==(const Vec2& other)
+		{
+			return (int)	this->x == (int)	other.x && (int)	this->y == (int)	other.y ;
+		}
 
 		Vec2 operator+(const Vec2& other)
 		{
@@ -107,6 +110,13 @@ namespace ldare
 		{ 
 			ASSERT(n >= 0 && n < 3, "vector index should be between positive and within vector size");
 			return (&x)[n]; 
+		}
+
+		bool operator==(const Vec3& other)
+		{
+			return  (int)	this->x == (int)	other.x && 
+				(int)	this->y == (int)	other.y && 
+				(int)	this->z == (int)	other.z;
 		}
 
 		Vec3 operator+(const Vec3& other)
@@ -203,12 +213,18 @@ namespace ldare
 	//---------------------------------------------------------------------------
 	struct Vec4
 	{
-			float x, y, z, w;
+		float x, y, z, w;
 
 		float operator[](int32 n)
 		{ 
 			ASSERT(n >= 0 && n < 4, "vector index should be between positive and within vector size");
 			return (&x)[n]; 
+		}
+
+		bool operator==(const Vec4& other)
+		{
+			return (int)	this->x == (int)	other.x && (int)	this->y == (int)	other.y &&
+				(int)	this->z == (int)	other.z && (int)	this->w == (int)	other.w;
 		}
 
 		Vec4 operator+(const Vec4& other)
@@ -420,7 +436,7 @@ namespace ldare
 			float width = right - left;
 			float height = top - bottom;
 			float depth = far - near;
-			
+
 			diagonal(1.0f);
 			//ldare::Mat4 ortho;
 			ASSERT(width != 0, "Orthographic width can not be zero");
