@@ -33,9 +33,9 @@ $(LDARE_GAME): $(GAMESRC)
 
 assets:
 	@echo copying game assets ...
-	@xcopy game\assets $(OUTDIR)\assets /Y /I /E /F
+	xcopy game\assets $(OUTDIR)\assets /Y /I /E /F
 	@echo copying standard engine assets ...
-	@xcopy assets $(OUTDIR)\assets /Y /I /E /F
+	xcopy assets $(OUTDIR)\assets /Y /I /E /F
 
 engine: $(LDARE_GAME) $(LDARE_CORE) assets
 	@echo Building ldare engine...
