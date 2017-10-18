@@ -1,5 +1,6 @@
 #include <ldare/ldare_game.h>
 #include <stdio.h>
+using namespace ldare;
 
 // 16:9 resolutions
 // 128:72
@@ -14,8 +15,6 @@
 #define GAME_RESOLUTION_WIDTH 896
 #define GAME_RESOLUTION_HEIGHT 896
 #define FULLSCREEN 0
-
-using namespace ldare;
 static ldare::GameContext gameContext;
 
 // sprite rects
