@@ -1,9 +1,19 @@
 #include <ldare/ldare_game.h>
 #include <stdio.h>
 
-#define SCREEN_WIDTH 600
-#define SCREEN_HEIGHT 600
-#define FULLSCREEN 0
+// 16:9 resolutions
+// 128:72
+// 256:144
+// 384:216
+// 512:288
+// 640:350
+// 1024:576
+// 1280:720
+#define SCREEN_WIDTH 1024
+#define SCREEN_HEIGHT 576
+#define GAME_RESOLUTION_WIDTH 600
+#define GAME_RESOLUTION_HEIGHT 600
+#define FULLSCREEN 1
 
 using namespace ldare;
 static ldare::GameContext gameContext;
@@ -87,8 +97,8 @@ struct GameData
 
 void loadLevel(GameLevel& gameLevel, Sprite* sprites)
 {
-	float stepX = SCREEN_WIDTH/gameLevel.width;
-	float stepY = SCREEN_HEIGHT/gameLevel.height;
+	float stepX = GAME_RESOLUTION_WIDTH/gameLevel.width;
+	float stepY = GAME_RESOLUTION_HEIGHT/gameLevel.height;
 
 	for (uint32 i=0; i < gameLevel.width; i++)
 	{
@@ -120,10 +130,10 @@ void loadLevel(GameLevel& gameLevel, Sprite* sprites)
 //---------------------------------------------------------------------------
 ldare::GameContext gameInit()
 {
-	gameContext.windowWidth = 640; 						// game window width
-	gameContext.windowHeight = 480; 					// game window height
-	gameContext.Resolution.width = SCREEN_WIDTH;
-	gameContext.Resolution.height = SCREEN_HEIGHT;
+	gameContext.windowWidth = SCREEN_WIDTH; 						// game window width
+	gameContext.windowHeight = SCREEN_HEIGHT; 					// game window height
+	gameContext.Resolution.width = GAME_RESOLUTION_WIDTH;
+	gameContext.Resolution.height = GAME_RESOLUTION_HEIGHT;
 	gameContext.gameMemorySize = sizeof(GameData);// requested game memory size
 	gameContext.fullScreen = FULLSCREEN;
 	return gameContext; 											// let the engine know what we want
@@ -176,8 +186,8 @@ void gameStart(void* mem, GameApi& gameApi)
 	// Setup hero and box
 	Sprite sprite;
 	sprite.color = Vec3{0.0f, 0.0f, 1.0f};
-	sprite.width = SCREEN_WIDTH/_gameLevel.width;
-	sprite.height= SCREEN_HEIGHT/_gameLevel.height;
+	sprite.width = GAME_RESOLUTION_WIDTH/_gameLevel.width;
+	sprite.height= GAME_RESOLUTION_HEIGHT/_gameLevel.height;
 	sprite.srcRect = srcHero;
 	sprite.position = Vec3{3 * 128.0f , 128.0f * 3,0.0f};
 	gameMemory->hero = sprite;
@@ -290,6 +300,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		gameMemory->hero.position.x = x;
 		gameMemory->hero.position.y = y;
 		gameMemory->hero.srcRect = updateAnimation(*currentAnimation, deltaTime);
+		LogInfo("Hero Position = %fx%f", gameMemory->hero.position.x, gameMemory->hero.position.y);
 	}
 	else
 	{
@@ -300,10 +311,10 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		}
 	}
 
-	if (y > SCREEN_HEIGHT) y = 0;
-	if (y < 0) y = SCREEN_HEIGHT;
-	if (x > SCREEN_WIDTH) x = 0;
-	if (x < 0) x = SCREEN_WIDTH;
+	if (y > GAME_RESOLUTION_HEIGHT) y = 0;
+	if (y < 0) y = GAME_RESOLUTION_HEIGHT;
+	if (x > GAME_RESOLUTION_WIDTH) x = 0;
+	if (x < 0) x = GAME_RESOLUTION_WIDTH;
 
 	gameApi.spriteBatch.begin();
 	drawLevel(gameApi, gameMemory->tiles, _gameLevel.width * _gameLevel.height);
