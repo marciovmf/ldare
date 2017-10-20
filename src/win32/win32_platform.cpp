@@ -2,6 +2,23 @@
  * win32_platform.h
  * Win32 implementation for ldare platform functions
  */
+typedef struct _XINPUT_GAMEPAD 
+{
+	WORD  wButtons;
+	BYTE  bLeftTrigger;
+	BYTE  bRightTrigger;
+	SHORT sThumbLX;
+	SHORT sThumbLY;
+	SHORT sThumbRX;
+	SHORT sThumbRY;
+} XINPUT_GAMEPAD, *PXINPUT_GAMEPAD;
+
+typedef struct _XINPUT_STATE 
+{
+	DWORD dwPacketNumber;
+	XINPUT_GAMEPAD Gamepad;
+} XINPUT_STATE, *PXINPUT_STATE;
+
 namespace ldare 
 {
 	namespace platform 
@@ -107,6 +124,49 @@ namespace ldare
 				deltaTime = 0.016f;
 #endif
 			return deltaTime;
+		}
+
+
+#define XINPUT_GET_STATE_FUNC(name) DWORD name(DWORD dwUserIndex, XINPUT_STATE *pState)
+		typedef XINPUT_GET_STATE_FUNC(XInputGetStateFunc);
+		XInputGetStateFunc* XInputGetState = nullptr;
+		XINPUT_GET_STATE_FUNC(XInputGetStateStub)
+		{
+			return ERROR_DEVICE_NOT_CONNECTED;
+		}
+
+#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
+#define XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE 8689
+#define XINPUT_GAMEPAD_TRIGGER_THRESHOLD    30
+		//---------------------------------------------------------------------------
+		// Initializes XInput
+		//---------------------------------------------------------------------------
+		void Win32_initXInput()
+		{
+			char* xInputDllName = "xinput1_1.dll"; 
+			HMODULE hXInput = LoadLibraryA(xInputDllName);
+			if (!hXInput)
+			{				
+				xInputDllName = "xinput9_1_0.dll";
+				hXInput = LoadLibraryA(xInputDllName);
+			}
+
+			if (!hXInput)
+			{
+				xInputDllName = "xinput1_3.dll";
+				hXInput = LoadLibraryA(xInputDllName);
+			}
+
+			if (!hXInput)
+			{
+				LogError("could not initialize xinput. No suitable xinput dll found");
+				return;
+			}
+
+			LogInfo("Initializing xinput %s", xInputDllName);
+			//get xinput function pointers
+			XInputGetState = (XInputGetStateFunc*) GetProcAddress(hXInput, "XInputGetState");
+			if (!XInputGetState) XInputGetState = XInputGetStateStub;
 		}
 
 	}	// platform namespace

@@ -245,7 +245,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	float& x = gameMemory->x;
 	float& y = gameMemory->y;
 	bool update = false;
-
+#if 0
 	// start animation according to walk direction
 	if ( input.keyboard[KBD_W].thisFrame && input.keyboard[KBD_W].state)	
 	{	
@@ -268,26 +268,31 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		currentAnimation = startAnimation(_walkAnimationRight);
 		update = true;
 	}
+#endif
 
 	// Update current animation according to walk direction
-	if ( input.keyboard[KBD_W].state)	
+	if ( input.keyboard[KBD_W].state || input.gamepad[0].button[GAMEPAD_DPAD_UP].state)	
 	{
+		if ( currentAnimation != &_walkAnimationUp) currentAnimation = startAnimation(_walkAnimationUp);
 		y += gameMemory->step * deltaTime;
 		update = true;
 	}
-	else if ( input.keyboard[KBD_S].state )
+	else if ( input.keyboard[KBD_S].state  || input.gamepad[0].button[GAMEPAD_DPAD_DOWN].state)
 	{
+		if ( currentAnimation != &_walkAnimationDown) currentAnimation = startAnimation(_walkAnimationDown);
 		y -= gameMemory->step * deltaTime;
 		update = true;
 	}
 	
-	if ( input.keyboard[KBD_A].state )
+	if ( input.keyboard[KBD_A].state  || input.gamepad[0].button[GAMEPAD_DPAD_LEFT].state)
 	{
+		if ( currentAnimation != &_walkAnimationLeft) currentAnimation = startAnimation(_walkAnimationLeft);
 		x -= gameMemory->step * deltaTime;
 		update = true;
 	}
-	else if ( input.keyboard[KBD_D].state )
+	else if ( input.keyboard[KBD_D].state  || input.gamepad[0].button[GAMEPAD_DPAD_RIGHT].state)
 	{
+		if ( currentAnimation != &_walkAnimationRight) currentAnimation = startAnimation(_walkAnimationRight);
 		x += gameMemory->step * deltaTime;
 		update = true;
 	}

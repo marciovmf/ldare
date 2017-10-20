@@ -12,21 +12,56 @@ namespace ldare
 		int8 thisFrame; 			// number of state transitions during current frame
 	};
 
+#define GAMEPAD_MAX_DIGITAL_BUTTONS 14
+#define MAX_GAMEPADS 4
+
+	struct Gamepad 
+	{
+		KeyState button[GAMEPAD_MAX_DIGITAL_BUTTONS];
+		uint8 connected;	
+	};
+
 #define MAX_GAME_KBD_KEYS 255
 #define MAX_GAME_MOUSE_KEYS 5
 	struct Input
 	{
 		KeyState keyboard[MAX_GAME_KBD_KEYS];
-		KeyState mouse[4];
+		KeyState mouse[5];
 		struct 
 		{
 			int32 x;
 			int32 y;
 		} cursor;
+
+		Gamepad gamepad[4];
 	};
 
 	//---------------------------------------------------------------------------
-	// KEYBOARD KEYS / MOSUE BUTTONS macros
+	// GAMEPAD
+	//---------------------------------------------------------------------------
+#define GAMEPAD_DPAD_UP	0x0001
+#define GAMEPAD_DPAD_DOWN	0x0002
+#define GAMEPAD_DPAD_LEFT	0x0004
+#define GAMEPAD_DPAD_RIGHT	0x0008
+#define GAMEPAD_START	0x0010
+#define GAMEPAD_FN1	0x0010
+#define GAMEPAD_BACK	0x0020
+#define GAMEPAD_FN2	0x0020
+#define GAMEPAD_LEFT_THUMB	0x0040
+#define GAMEPAD_RIGHT_THUMB	0x0080
+#define GAMEPAD_LEFT_SHOULDER	0x0100
+#define GAMEPAD_RIGHT_SHOULDER	0x0200
+#define GAMEPAD_A	0x1000
+#define GAMEPAD_BTN1	0x1000
+#define GAMEPAD_B	0x2000
+#define GAMEPAD_BTN2	0x2000
+#define GAMEPAD_X	0x4000
+#define GAMEPAD_BTN3	0x4000
+#define GAMEPAD_Y	0x8000
+#define GAMEPAD_BTN4	0x8000
+
+	//---------------------------------------------------------------------------
+	// MOSUE 
 	//---------------------------------------------------------------------------
 #define MOUSE_LBUTTON     0x00
 #define MOUSE_RBUTTON     0x01
@@ -34,6 +69,9 @@ namespace ldare
 #define MOUSE_X1BUTTON    0x03
 #define MOUSE_X2BUTTON    0x04
 
+	//---------------------------------------------------------------------------
+	// KEYBOARD 
+	//---------------------------------------------------------------------------
 #define KBD_BACK          0x08
 #define KBD_TAB           0x09
 #define KBD_CLEAR         0x0C

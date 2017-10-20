@@ -63,6 +63,7 @@ static FILETIME Win32_getFileWriteTime(const char* fileName)
 
 static ldare::GameContext _gameContext;
 
+
 //---------------------------------------------------------------------------
 // Loads the Game dll.
 // Returns: true if successfully loads the game dll 
@@ -505,6 +506,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		Win32_toggleFullScreen(_gameWindow);
 	}
 
+	platform::Win32_initXInput();
 	initGameApi(gameApi);
 
 	// start the game
@@ -550,7 +552,63 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			gameInput.keyboard[i].thisFrame = 0;
 		}
 
+
+		// clear 'this frame' flags from gamepad
+		for(int gamepadIndex=0; gamepadIndex < MAX_GAMEPADS ; gamepadIndex++)
+		{
+			for(int i=0; i < GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
+			{
+				gameInput.gamepad[gamepadIndex].button[i].thisFrame = 0;
+			}
+		}
+
 		processPendingMessages(_gameWindow.hwnd, gameInput);
+
+		// get gamepad input
+		for(int16 gamepadIndex = 0; gamepadIndex < MAX_GAMEPADS; gamepadIndex++)
+		{
+			XINPUT_STATE gamepadState;
+			Gamepad& gamepad = gameInput.gamepad[gamepadIndex];
+
+			// ignore unconnected controllers
+			if ( platform::XInputGetState(gamepadIndex, &gamepadState) == ERROR_DEVICE_NOT_CONNECTED )
+			{
+				if ( gamepad.connected)
+				{
+					gamepad = {};					
+				}
+
+				gamepad.connected = 0;
+				continue;
+			}
+
+			// digital buttons
+				WORD buttons = gamepadState.Gamepad.wButtons;
+				gamepad.connected = 1;
+				uint16 buttonState = buttons & GAMEPAD_DPAD_UP;
+				gamepad.button[GAMEPAD_DPAD_UP].state =  buttonState;
+
+#define SET_GAMEPAD_BUTTON(btn) do { buttonState = buttons & btn;\
+				gamepad.button[btn].thisFrame = buttonState != gamepad.button[btn].state;\
+				gamepad.button[btn].state = buttonState;} while(0)
+
+				SET_GAMEPAD_BUTTON(GAMEPAD_DPAD_UP);			
+				SET_GAMEPAD_BUTTON(GAMEPAD_DPAD_DOWN);
+				SET_GAMEPAD_BUTTON(GAMEPAD_DPAD_LEFT);
+				SET_GAMEPAD_BUTTON(GAMEPAD_DPAD_RIGHT);
+				SET_GAMEPAD_BUTTON(GAMEPAD_START);
+				SET_GAMEPAD_BUTTON(GAMEPAD_BACK);
+				SET_GAMEPAD_BUTTON(GAMEPAD_LEFT_THUMB);
+				SET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_THUMB);
+				SET_GAMEPAD_BUTTON(GAMEPAD_LEFT_SHOULDER);
+				SET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_SHOULDER);
+				SET_GAMEPAD_BUTTON(GAMEPAD_BTN1);
+				SET_GAMEPAD_BUTTON(GAMEPAD_BTN2);
+				SET_GAMEPAD_BUTTON(GAMEPAD_BTN3);
+				SET_GAMEPAD_BUTTON(GAMEPAD_BTN4);
+#undef SET_GAMEPAD_BUTTON
+
+		}
 
 		//Update the game
 		updateRenderer(gameTimer.deltaTime);
