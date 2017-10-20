@@ -277,7 +277,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		y += gameMemory->step * deltaTime;
 		update = true;
 	}
-	else if ( input.keyboard[KBD_S].state  || input.gamepad[0].button[GAMEPAD_DPAD_DOWN].state)
+	if ( input.keyboard[KBD_S].state  || input.gamepad[0].button[GAMEPAD_DPAD_DOWN].state)
 	{
 		if ( currentAnimation != &_walkAnimationDown) currentAnimation = startAnimation(_walkAnimationDown);
 		y -= gameMemory->step * deltaTime;
@@ -290,7 +290,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		x -= gameMemory->step * deltaTime;
 		update = true;
 	}
-	else if ( input.keyboard[KBD_D].state  || input.gamepad[0].button[GAMEPAD_DPAD_RIGHT].state)
+	if ( input.keyboard[KBD_D].state  || input.gamepad[0].button[GAMEPAD_DPAD_RIGHT].state)
 	{
 		if ( currentAnimation != &_walkAnimationRight) currentAnimation = startAnimation(_walkAnimationRight);
 		x += gameMemory->step * deltaTime;
