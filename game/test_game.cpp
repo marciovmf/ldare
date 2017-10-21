@@ -245,43 +245,53 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	float& x = gameMemory->x;
 	float& y = gameMemory->y;
 	bool update = false;
+	float heroStep = gameMemory->step * deltaTime;
+
+	bool horizontalMovement = false;
 
 	// Update current animation according to walk direction
+	if ( input.getKey(KBD_A) || input.getButton(GAMEPAD_DPAD_LEFT))
+	{
+		if ( currentAnimation != &_walkAnimationLeft) 
+			currentAnimation = startAnimation(_walkAnimationLeft);
+
+		x -= heroStep;
+		update = true;
+		horizontalMovement = true;
+	}
+
+	if ( input.getKey(KBD_D) || input.getButton(GAMEPAD_DPAD_RIGHT))
+	{
+		if ( currentAnimation != &_walkAnimationRight) 
+			currentAnimation = startAnimation(_walkAnimationRight);
+
+		x += heroStep;
+		update = true;
+		horizontalMovement = true;
+	}
+
 	if ( input.getKey(KBD_W) || input.getButton(GAMEPAD_DPAD_UP))
 	{
-		if ( currentAnimation != &_walkAnimationUp) currentAnimation = startAnimation(_walkAnimationUp);
-		y += gameMemory->step * deltaTime;
+		if ( currentAnimation != &_walkAnimationUp && !horizontalMovement) 
+			currentAnimation = startAnimation(_walkAnimationUp);
+
+		y += heroStep;
 		update = true;
 	}
 
 	if ( input.getKey(KBD_S) || input.getButton(GAMEPAD_DPAD_DOWN))
 	{
-		if ( currentAnimation != &_walkAnimationDown) currentAnimation = startAnimation(_walkAnimationDown);
-		y -= gameMemory->step * deltaTime;
+		if ( currentAnimation != &_walkAnimationDown && !horizontalMovement) 
+			currentAnimation = startAnimation(_walkAnimationDown);
+
+		y -= heroStep;
 		update = true;
 	}
 	
-	if ( input.getKey(KBD_A) || input.getButton(GAMEPAD_DPAD_LEFT))
-	{
-		if ( currentAnimation != &_walkAnimationLeft) currentAnimation = startAnimation(_walkAnimationLeft);
-		x -= gameMemory->step * deltaTime;
-		update = true;
-	}
-
-	if ( input.getKey(KBD_D) || input.getButton(GAMEPAD_DPAD_RIGHT))
-	{
-		if ( currentAnimation != &_walkAnimationRight) currentAnimation = startAnimation(_walkAnimationRight);
-		x += gameMemory->step * deltaTime;
-		update = true;
-	}
 
 	if (update)
 	{
-		if ( currentAnimation == nullptr) 
-		{
-			LogError("Animation should not be null here" );
-			return;
-		};
+		ASSERT(currentAnimation != nullptr, "Animation should not be null here");
 		gameMemory->hero.position.x = x;
 		gameMemory->hero.position.y = y;
 		gameMemory->hero.srcRect = updateAnimation(*currentAnimation, deltaTime);
