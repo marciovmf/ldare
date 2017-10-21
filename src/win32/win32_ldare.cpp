@@ -374,32 +374,8 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	return true;
 }
 
-//---------------------------------------------------------------------------
-// processes Windows Keyboard messages
-//---------------------------------------------------------------------------
-static inline void Win32_ProcessKeyboardMessage(ldare::KeyState& keyState, int8 lastState,int8 state)
-{
-	//keyState.state = state;
-	//keyState.thisFrame += state != lastState || keyState.thisFrame;
-	keyState.thisFrame = state != lastState;
-	keyState.state = state;
-}
 
-static void initGameApi(ldare::GameApi& gameApi)
-{
-	// Initialize the API exposed to the game
-	initSpriteBatch();
-	gameApi.spriteBatch.begin = ldare::begin;
-	gameApi.spriteBatch.submit = ldare::submit;
-	gameApi.spriteBatch.end = ldare::end;
-	gameApi.spriteBatch.flush = ldare::flush;
-	gameApi.spriteBatch.loadShader = ldare::loadShader;
-
-	// init asset api
-	gameApi.asset.loadMaterial = ldare::loadMaterial;
-}
-
-static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
+static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 {
 	MSG msg;
 	// clear 'this frame' flags from input key state
@@ -452,7 +428,7 @@ static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 	}
 }
 
-static inline void processGamepadInput(ldare::Input& gameInput)
+static inline void Win32_processGamepadInput(ldare::Input& gameInput)
 {
 	// clear 'this frame' flags from gamepad
 	for(int gamepadIndex=0; gamepadIndex < MAX_GAMEPADS ; gamepadIndex++)
@@ -522,7 +498,19 @@ void Win32_setCurrentDirectory()
 	LogInfo("Running from %s", path);
 }
 
+static void initGameApi(ldare::GameApi& gameApi)
+{
+	// Initialize the API exposed to the game
+	initSpriteBatch();
+	gameApi.spriteBatch.begin = ldare::begin;
+	gameApi.spriteBatch.submit = ldare::submit;
+	gameApi.spriteBatch.end = ldare::end;
+	gameApi.spriteBatch.flush = ldare::flush;
+	gameApi.spriteBatch.loadShader = ldare::loadShader;
 
+	// init asset api
+	gameApi.asset.loadMaterial = ldare::loadMaterial;
+}
 
 //---------------------------------------------------------------------------
 // Main
@@ -611,8 +599,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		}
 #endif
 
-		processPendingMessages(_gameWindow.hwnd, gameInput);
-		processGamepadInput(gameInput);
+		Win32_processPendingMessages(_gameWindow.hwnd, gameInput);
+		Win32_processGamepadInput(gameInput);
 
 		//Update the game
 		updateRenderer(gameTimer.deltaTime);
