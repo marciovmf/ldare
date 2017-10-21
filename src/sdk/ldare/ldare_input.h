@@ -21,20 +21,62 @@ namespace ldare
 		uint8 connected;	
 	};
 
-#define MAX_GAME_KBD_KEYS 255
-#define MAX_GAME_MOUSE_KEYS 5
+#define MAX_KBD_KEYS 255
+#define MAX_MOUSE_KEYS 5
 	struct Input
 	{
-		KeyState keyboard[MAX_GAME_KBD_KEYS];
-		KeyState mouse[5];
+		KeyState keyboard[MAX_KBD_KEYS];
+		Gamepad gamepad[MAX_GAMEPADS];
+		KeyState mouse[MAX_MOUSE_KEYS];
 		struct 
 		{
 			int32 x;
 			int32 y;
 		} cursor;
 
-		Gamepad gamepad[4];
+
+		inline int8 getKey(uint16 key) const
+		{
+			return keyboard[key].state;
+		}
+
+		inline int8 getKeyDown(uint16 key) const
+		{
+			return keyboard[key].state && keyboard[key].thisFrame;
+		}
+
+		inline int8 getKeyUp(uint16 key) const
+		{
+			return !keyboard[key].state && keyboard[key].thisFrame;
+		}
+
+		inline int8 getButton(uint16 key, uint16 index = 0) const
+		{
+			if (index >= MAX_GAMEPADS)
+				return 0;
+			
+			const KeyState& button = gamepad[index].button[key];
+			return gamepad[index].connected && button.state;
+		}
+
+		inline int8 getButtonDown(uint16 key, uint16 index = 0) const
+		{
+			if (index >= MAX_GAMEPADS)
+				return 0;
+			
+		const KeyState& button = gamepad[index].button[key];
+			return gamepad[index].connected && button.state && button.thisFrame;
+		}
+
+		inline int8 getButtonUp(uint16 key, uint16 index = 0) const
+		{
+			if (index >= MAX_GAMEPADS)
+				return 0;
+			const KeyState& button = gamepad[index].button[key];
+			return gamepad[index].connected && !button.state && button.thisFrame;
+		}
 	};
+
 
 	//---------------------------------------------------------------------------
 	// GAMEPAD

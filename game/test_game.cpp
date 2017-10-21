@@ -229,7 +229,7 @@ static inline Rectangle& updateAnimation(Animation& animation, float deltaTime)
 		{
 			animation.elapsedTime -= animation.timePerFrame;
 			uint32 nextFrameIndex = (animation.currentFrameIndex + 1)  % animation.numFrames;
-			LogInfo("Playing frame %d", nextFrameIndex);
+			//LogInfo("Playing frame %d", nextFrameIndex);
 			animation.currentFrameIndex = nextFrameIndex;
 		}
 
@@ -245,58 +245,35 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	float& x = gameMemory->x;
 	float& y = gameMemory->y;
 	bool update = false;
-#if 0
-	// start animation according to walk direction
-	if ( input.keyboard[KBD_W].thisFrame && input.keyboard[KBD_W].state)	
-	{	
-		currentAnimation = startAnimation(_walkAnimationUp);
-		update = true;
-	}
-	else if ( input.keyboard[KBD_S].thisFrame && input.keyboard[KBD_S].state)	
-	{	
-		currentAnimation = startAnimation(_walkAnimationDown);
-		update = true;
-	}
-	
-	if ( input.keyboard[KBD_A].thisFrame && input.keyboard[KBD_A].state)	
-	{	
-		currentAnimation = startAnimation(_walkAnimationLeft);
-		update = true;
-	}
-	else if ( input.keyboard[KBD_D].thisFrame && input.keyboard[KBD_D].state)	
-	{	
-		currentAnimation = startAnimation(_walkAnimationRight);
-		update = true;
-	}
-#endif
 
 	// Update current animation according to walk direction
-	if ( input.keyboard[KBD_W].state || input.gamepad[0].button[GAMEPAD_DPAD_UP].state)	
+	if ( input.getKey(KBD_W) || input.getButton(GAMEPAD_DPAD_UP))
 	{
 		if ( currentAnimation != &_walkAnimationUp) currentAnimation = startAnimation(_walkAnimationUp);
 		y += gameMemory->step * deltaTime;
 		update = true;
 	}
-	if ( input.keyboard[KBD_S].state  || input.gamepad[0].button[GAMEPAD_DPAD_DOWN].state)
+
+	if ( input.getKey(KBD_S) || input.getButton(GAMEPAD_DPAD_DOWN))
 	{
 		if ( currentAnimation != &_walkAnimationDown) currentAnimation = startAnimation(_walkAnimationDown);
 		y -= gameMemory->step * deltaTime;
 		update = true;
 	}
 	
-	if ( input.keyboard[KBD_A].state  || input.gamepad[0].button[GAMEPAD_DPAD_LEFT].state)
+	if ( input.getKey(KBD_A) || input.getButton(GAMEPAD_DPAD_LEFT))
 	{
 		if ( currentAnimation != &_walkAnimationLeft) currentAnimation = startAnimation(_walkAnimationLeft);
 		x -= gameMemory->step * deltaTime;
 		update = true;
 	}
-	if ( input.keyboard[KBD_D].state  || input.gamepad[0].button[GAMEPAD_DPAD_RIGHT].state)
+
+	if ( input.getKey(KBD_D) || input.getButton(GAMEPAD_DPAD_RIGHT))
 	{
 		if ( currentAnimation != &_walkAnimationRight) currentAnimation = startAnimation(_walkAnimationRight);
 		x += gameMemory->step * deltaTime;
 		update = true;
 	}
-
 
 	if (update)
 	{
@@ -308,7 +285,6 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		gameMemory->hero.position.x = x;
 		gameMemory->hero.position.y = y;
 		gameMemory->hero.srcRect = updateAnimation(*currentAnimation, deltaTime);
-		LogInfo("Hero Position = %fx%f", gameMemory->hero.position.x, gameMemory->hero.position.y);
 	}
 	else
 	{

@@ -126,7 +126,7 @@ static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 			FreeLibrary(gameModuleInfo.hGameModule);
 			gameModuleInfo.gameModuleWriteTime = writeTime;
 			reloaded = true;
-		Win32_loadGameModule(gameModuleInfo);
+			Win32_loadGameModule(gameModuleInfo);
 		}
 	}
 	else
@@ -379,8 +379,10 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 //---------------------------------------------------------------------------
 static inline void Win32_ProcessKeyboardMessage(ldare::KeyState& keyState, int8 lastState,int8 state)
 {
+	//keyState.state = state;
+	//keyState.thisFrame += state != lastState || keyState.thisFrame;
+	keyState.thisFrame = state != lastState;
 	keyState.state = state;
-	keyState.thisFrame += state != lastState || keyState.thisFrame;
 }
 
 static void initGameApi(ldare::GameApi& gameApi)
@@ -400,6 +402,11 @@ static void initGameApi(ldare::GameApi& gameApi)
 static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 {
 	MSG msg;
+	// clear 'this frame' flags from input key state
+	for(int i=0; i < MAX_KBD_KEYS ; i++)
+	{
+		gameInput.keyboard[i].thisFrame = 0;
+	}
 
 	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
 	{
@@ -423,7 +430,9 @@ static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 					if (vkCode == KBD_ESCAPE)
 						_gameWindow.shouldClose = true;
 #endif
-					Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
+					//Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
+					gameInput.keyboard[vkCode].thisFrame = isDown != wasDown;
+					gameInput.keyboard[vkCode].state = isDown;
 					continue;
 				}
 				break;
@@ -443,18 +452,74 @@ static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 	}
 }
 
+static inline void processGamepadInput(ldare::Input& gameInput)
+{
+	// clear 'this frame' flags from gamepad
+	for(int gamepadIndex=0; gamepadIndex < MAX_GAMEPADS ; gamepadIndex++)
+	{
+		for(int i=0; i < GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
+		{
+			gameInput.gamepad[gamepadIndex].button[i].thisFrame = 0;
+		}
+	}
+
+	// get gamepad input
+	for(int16 gamepadIndex = 0; gamepadIndex < MAX_GAMEPADS; gamepadIndex++)
+	{
+		XINPUT_STATE gamepadState;
+		Gamepad& gamepad = gameInput.gamepad[gamepadIndex];
+
+		// ignore unconnected controllers
+		if ( platform::XInputGetState(gamepadIndex, &gamepadState) == ERROR_DEVICE_NOT_CONNECTED )
+		{
+			//	if ( gamepad.connected)
+			//	{
+			//		gamepad = {};					
+			//	}
+			gamepad.connected = 0;
+			continue;
+		}
+
+		// digital buttons
+		WORD buttons = gamepadState.Gamepad.wButtons;
+		uint16 buttonState=0;
+
+#define GET_GAMEPAD_BUTTON(btn) do { buttonState = buttons & XINPUT_##btn;\
+	gamepad.button[btn].thisFrame = buttonState != gamepad.button[btn].state;\
+	gamepad.button[btn].state = buttonState;} while(0)
+		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_UP);			
+		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_DOWN);
+		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_LEFT);
+		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_RIGHT);
+		GET_GAMEPAD_BUTTON(GAMEPAD_START);
+		GET_GAMEPAD_BUTTON(GAMEPAD_BACK);
+		GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_THUMB);
+		GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_THUMB);
+		GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_SHOULDER);
+		GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_SHOULDER);
+		GET_GAMEPAD_BUTTON(GAMEPAD_A);
+		GET_GAMEPAD_BUTTON(GAMEPAD_B);
+		GET_GAMEPAD_BUTTON(GAMEPAD_X);
+		GET_GAMEPAD_BUTTON(GAMEPAD_Y);
+#undef SET_GAMEPAD_BUTTON
+
+		gamepad.connected = 1;
+	}
+
+}
+
 void Win32_setCurrentDirectory()
 {
-  char path[256];
-       uint32 len = GetModuleFileName(NULL, path, 255);
-       char* p=path+len;
-       while( *p!= '\\')
-       {
-               *p=0;
-               p--;
-       }
-       SetCurrentDirectory(path);
-       LogInfo("Running from %s", path);
+	char path[256];
+	uint32 len = GetModuleFileName(NULL, path, 255);
+	char* p=path+len;
+	while( *p!= '\\')
+	{
+		*p=0;
+		p--;
+	}
+	SetCurrentDirectory(path);
+	LogInfo("Running from %s", path);
 }
 
 
@@ -526,8 +591,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	{
 		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
 		gameTimer.thisFrameTime = platform::getTicks();
-		
-		
+
+
 #if DEBUG
 		// Check for new game DLL every 180 frames
 		if (gameModuleInfo.timeSinceLastReload >= GAME_MODULE_RELOAD_INTERVAL_SECONDS)
@@ -546,68 +611,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		}
 #endif
 
-		// clear 'this frame' flags from input key state
-		for(int i=0; i < MAX_GAME_KBD_KEYS ; i++)
-		{
-			gameInput.keyboard[i].thisFrame = 0;
-		}
-
-
-		// clear 'this frame' flags from gamepad
-		for(int gamepadIndex=0; gamepadIndex < MAX_GAMEPADS ; gamepadIndex++)
-		{
-			for(int i=0; i < GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
-			{
-				gameInput.gamepad[gamepadIndex].button[i].thisFrame = 0;
-			}
-		}
-
 		processPendingMessages(_gameWindow.hwnd, gameInput);
-
-		// get gamepad input
-		for(int16 gamepadIndex = 0; gamepadIndex < MAX_GAMEPADS; gamepadIndex++)
-		{
-			XINPUT_STATE gamepadState;
-			Gamepad& gamepad = gameInput.gamepad[gamepadIndex];
-
-			// ignore unconnected controllers
-			if ( platform::XInputGetState(gamepadIndex, &gamepadState) == ERROR_DEVICE_NOT_CONNECTED )
-			{
-				if ( gamepad.connected)
-				{
-					gamepad = {};					
-				}
-
-				gamepad.connected = 0;
-				continue;
-			}
-
-			// digital buttons
-				WORD buttons = gamepadState.Gamepad.wButtons;
-				gamepad.connected = 1;
-				uint16 buttonState = buttons & GAMEPAD_DPAD_UP;
-				gamepad.button[GAMEPAD_DPAD_UP].state =  buttonState;
-
-#define GET_GAMEPAD_BUTTON(btn) do { buttonState = buttons & XINPUT_##btn;\
-				gamepad.button[btn].thisFrame = buttonState != gamepad.button[btn].state;\
-				gamepad.button[btn].state = buttonState;} while(0)
-				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_UP);			
-				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_DOWN);
-				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_LEFT);
-				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_RIGHT);
-				GET_GAMEPAD_BUTTON(GAMEPAD_START);
-				GET_GAMEPAD_BUTTON(GAMEPAD_BACK);
-				GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_THUMB);
-				GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_THUMB);
-				GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_SHOULDER);
-				GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_SHOULDER);
-				GET_GAMEPAD_BUTTON(GAMEPAD_A);
-				GET_GAMEPAD_BUTTON(GAMEPAD_B);
-				GET_GAMEPAD_BUTTON(GAMEPAD_X);
-				GET_GAMEPAD_BUTTON(GAMEPAD_Y);
-#undef SET_GAMEPAD_BUTTON
-
-		}
+		processGamepadInput(gameInput);
 
 		//Update the game
 		updateRenderer(gameTimer.deltaTime);
