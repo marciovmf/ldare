@@ -1,16 +1,13 @@
 #ifndef __LDARE_KEYBOARD__
 #define __LDARE_KEYBOARD__
+
 namespace ldare
 {
 
-	//---------------------------------------------------------------------------
-	// Contains input state for the current frame
-	//---------------------------------------------------------------------------
-	struct KeyState
-	{
-		int8 state; 					// 1 if key is down
-		int8 thisFrame; 			// number of state transitions during current frame
-	};
+#define KEYSTATE_PRESSED  0x01	
+#define KEYSTATE_CHANGED  0x02
+
+	typedef int8 KeyState;
 
 #define GAMEPAD_MAX_DIGITAL_BUTTONS 14
 #define MAX_GAMEPADS 4
@@ -18,7 +15,7 @@ namespace ldare
 	struct Gamepad 
 	{
 		KeyState button[GAMEPAD_MAX_DIGITAL_BUTTONS];
-		uint8 connected;	
+		uint8 connected;
 	};
 
 #define MAX_KBD_KEYS 255
@@ -37,43 +34,40 @@ namespace ldare
 
 		inline int8 getKey(uint16 key) const
 		{
-			return keyboard[key].state;
+			return keyboard[key] & (KEYSTATE_CHANGED | KEYSTATE_PRESSED);
 		}
 
 		inline int8 getKeyDown(uint16 key) const
 		{
-			return keyboard[key].state && keyboard[key].thisFrame;
+			return keyboard[key] == (KEYSTATE_CHANGED | KEYSTATE_PRESSED);
 		}
 
 		inline int8 getKeyUp(uint16 key) const
 		{
-			return !keyboard[key].state && keyboard[key].thisFrame;
+			return keyboard[key] == KEYSTATE_CHANGED;
 		}
 
 		inline int8 getButton(uint16 key, uint16 index = 0) const
 		{
 			if (index >= MAX_GAMEPADS)
 				return 0;
-			
-			const KeyState& button = gamepad[index].button[key];
-			return gamepad[index].connected && button.state;
+			return 	gamepad[index].connected && 
+				gamepad[index].button[key] & KEYSTATE_PRESSED;
 		}
 
 		inline int8 getButtonDown(uint16 key, uint16 index = 0) const
 		{
 			if (index >= MAX_GAMEPADS)
 				return 0;
-			
-		const KeyState& button = gamepad[index].button[key];
-			return gamepad[index].connected && button.state && button.thisFrame;
+			//return gamepad[index].connected && 
+			return	gamepad[index].button[key] == (KEYSTATE_CHANGED | KEYSTATE_PRESSED);
 		}
 
 		inline int8 getButtonUp(uint16 key, uint16 index = 0) const
 		{
 			if (index >= MAX_GAMEPADS)
 				return 0;
-			const KeyState& button = gamepad[index].button[key];
-			return gamepad[index].connected && !button.state && button.thisFrame;
+			return  gamepad[index].connected && gamepad[index].button[key] == KEYSTATE_CHANGED;
 		}
 	};
 

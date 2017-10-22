@@ -374,14 +374,13 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	return true;
 }
 
-
 static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 {
 	MSG msg;
-	// clear 'this frame' flags from input key state
+	// clear 'changed' bit from input key state
 	for(int i=0; i < MAX_KBD_KEYS ; i++)
 	{
-		gameInput.keyboard[i].thisFrame = 0;
+		gameInput.keyboard[i] &= ~KEYSTATE_CHANGED;
 	}
 
 	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
@@ -401,14 +400,11 @@ static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInp
 					int8 isDown = (msg.lParam & (1 << 31)) == 0;
 					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
 					int16 vkCode = msg.wParam;
-					ldare::KeyState& currentState = gameInput.keyboard[vkCode];
 #if DEBUG
 					if (vkCode == KBD_ESCAPE)
 						_gameWindow.shouldClose = true;
 #endif
-					//Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
-					gameInput.keyboard[vkCode].thisFrame = isDown != wasDown;
-					gameInput.keyboard[vkCode].state = isDown;
+					gameInput.keyboard[vkCode] = ((isDown != wasDown) << 1) | isDown;
 					continue;
 				}
 				break;
@@ -430,12 +426,12 @@ static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInp
 
 static inline void Win32_processGamepadInput(ldare::Input& gameInput)
 {
-	// clear 'this frame' flags from gamepad
+	// clear 'changed' bit from input key state
 	for(int gamepadIndex=0; gamepadIndex < MAX_GAMEPADS ; gamepadIndex++)
 	{
 		for(int i=0; i < GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
 		{
-			gameInput.gamepad[gamepadIndex].button[i].thisFrame = 0;
+			gameInput.gamepad[gamepadIndex].button[i] &= ~KEYSTATE_CHANGED;
 		}
 	}
 
@@ -448,21 +444,24 @@ static inline void Win32_processGamepadInput(ldare::Input& gameInput)
 		// ignore unconnected controllers
 		if ( platform::XInputGetState(gamepadIndex, &gamepadState) == ERROR_DEVICE_NOT_CONNECTED )
 		{
-			//	if ( gamepad.connected)
-			//	{
-			//		gamepad = {};					
-			//	}
+			if ( gamepad.connected)
+			{
+				gamepad = {};					
+			}
 			gamepad.connected = 0;
 			continue;
 		}
 
 		// digital buttons
 		WORD buttons = gamepadState.Gamepad.wButtons;
-		uint16 buttonState=0;
+		uint8 isDown=0;
+		uint8 wasDown=0;
 
-#define GET_GAMEPAD_BUTTON(btn) do { buttonState = buttons & XINPUT_##btn;\
-	gamepad.button[btn].thisFrame = buttonState != gamepad.button[btn].state;\
-	gamepad.button[btn].state = buttonState;} while(0)
+#define GET_GAMEPAD_BUTTON(btn) do {\
+		isDown = (buttons & XINPUT_##btn) > 0;\
+		wasDown = gamepad.button[btn] & KEYSTATE_PRESSED;\
+		gamepad.button[btn] = ((isDown != wasDown) << 0x01) | isDown;\
+	} while(0)
 		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_UP);			
 		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_DOWN);
 		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_LEFT);
@@ -481,7 +480,6 @@ static inline void Win32_processGamepadInput(ldare::Input& gameInput)
 
 		gamepad.connected = 1;
 	}
-
 }
 
 void Win32_setCurrentDirectory()
@@ -568,8 +566,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	if (_gameContext.Resolution.width ==0 ) _gameContext.Resolution.width = _gameContext.windowWidth;
 	if (_gameContext.Resolution.height ==0 ) _gameContext.Resolution.height = _gameContext.windowHeight;
 
-	//TODO: marcio, find somewhere else to set clear color that can happen along the game loop
-	//TODO: marcio, remove opengl calls from here and move it to renderer layer
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 
 	platform::Win32_initTimer();

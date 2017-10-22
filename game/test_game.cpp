@@ -119,7 +119,6 @@ void loadLevel(GameLevel& gameLevel, Sprite* sprites)
 				case 3: sprite.srcRect = srcTarget; break;
 				case 0:
 				default:
-								//sprite.srcRect = srcWall;
 								sprite.width = 0;
 								sprite.height = 0;
 								break;
@@ -164,7 +163,6 @@ void gameStart(void* mem, GameApi& gameApi)
 				(const char*)"./assets/sokoban/tiles.bmp");
 	}
 
-
 	// Set up walk animation
 	_walkAnimationRight.elapsedTime=0;
 	_walkAnimationRight.numFrames = 3;
@@ -199,6 +197,7 @@ void gameStart(void* mem, GameApi& gameApi)
 
 	gameMemory->step =  GAME_RESOLUTION_WIDTH/_gameLevel.width;
 }
+
 //---------------------------------------------------------------------------
 // draw level
 //---------------------------------------------------------------------------
@@ -209,6 +208,7 @@ void drawLevel(GameApi& gameApi, Sprite* sprites, uint32 count)
 		gameApi.spriteBatch.submit(gameMemory->material, sprites[i]);
 	}
 }
+
 //---------------------------------------------------------------------------
 // Start an animation
 //---------------------------------------------------------------------------
@@ -219,6 +219,7 @@ Animation* startAnimation(Animation& animation)
 		animation.currentFrameIndex = animation.timePerFrame;
 		return &animation;
 }
+
 //---------------------------------------------------------------------------
 // Updates an animation
 //---------------------------------------------------------------------------
@@ -287,7 +288,6 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		y -= heroStep;
 		update = true;
 	}
-	
 
 	if (update)
 	{
