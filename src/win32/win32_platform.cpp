@@ -151,9 +151,12 @@ namespace ldare
 			return ERROR_DEVICE_NOT_CONNECTED;
 		}
 
-#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
+//#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
+#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  9000
 #define XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE 8689
 #define XINPUT_GAMEPAD_TRIGGER_THRESHOLD    30
+#define XINPUT_MAX_AXIS_VALUE 32767
+#define XINPUT_MIN_AXIS_VALUE -32768
 		//---------------------------------------------------------------------------
 		// Initializes XInput
 		//---------------------------------------------------------------------------

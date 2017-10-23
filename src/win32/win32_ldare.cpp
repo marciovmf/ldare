@@ -478,6 +478,35 @@ static inline void Win32_processGamepadInput(ldare::Input& gameInput)
 		GET_GAMEPAD_BUTTON(GAMEPAD_Y);
 #undef SET_GAMEPAD_BUTTON
 
+		//TODO: Make these calculations directly in assembly to make it faster
+#define GAMEPAD_AXIS_VALUE(value) (value/(float)(value < 0 ? XINPUT_MIN_AXIS_VALUE * -1: XINPUT_MAX_AXIS_VALUE))
+#define GAMEPAD_AXIS_IS_DEADZONE(value, deadzone) ( value > -deadzone && value < deadzone)
+	
+	// Left thumb axis
+	int32 axisX = gamepadState.Gamepad.sThumbLX;
+	int32 axisY = gamepadState.Gamepad.sThumbLY;
+	int32 deadZone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
+
+	gamepad.axis[GAMEPAD_AXIS_LX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+		GAMEPAD_AXIS_VALUE(gamepadState.Gamepad.sThumbLX);
+
+	gamepad.axis[GAMEPAD_AXIS_LY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+		GAMEPAD_AXIS_VALUE(gamepadState.Gamepad.sThumbLY);
+	
+	// Right thumb axis
+	axisX = gamepadState.Gamepad.sThumbRX;
+	axisY = gamepadState.Gamepad.sThumbRY;
+	deadZone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
+
+	gamepad.axis[GAMEPAD_AXIS_RX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+		GAMEPAD_AXIS_VALUE(gamepadState.Gamepad.sThumbRX);
+
+	gamepad.axis[GAMEPAD_AXIS_RY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+		GAMEPAD_AXIS_VALUE(gamepadState.Gamepad.sThumbRY);
+
+#undef GAMEPAD_AXIS_IS_DEADZONE
+#undef GAMEPAD_AXIS_VALUE
+
 		gamepad.connected = 1;
 	}
 }

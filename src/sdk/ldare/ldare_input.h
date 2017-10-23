@@ -10,11 +10,13 @@ namespace ldare
 	typedef int8 KeyState;
 
 #define GAMEPAD_MAX_DIGITAL_BUTTONS 14
+#define GAMEPAD_MAX_AXIS 6
 #define MAX_GAMEPADS 4
 
 	struct Gamepad 
 	{
 		KeyState button[GAMEPAD_MAX_DIGITAL_BUTTONS];
+		float axis[GAMEPAD_MAX_AXIS];
 		uint8 connected;
 	};
 
@@ -69,32 +71,47 @@ namespace ldare
 				return 0;
 			return  gamepad[index].connected && gamepad[index].button[key] == KEYSTATE_CHANGED;
 		}
+
+		inline float getAxis(uint16 axis, uint16 index = 0) const
+		{
+			if (index >= MAX_GAMEPADS || !gamepad[index].connected)
+				return 0.0f;
+			return gamepad[index].axis[axis];
+		}
+
 	};
 
 
 	//---------------------------------------------------------------------------
 	// GAMEPAD
 	//---------------------------------------------------------------------------
-#define GAMEPAD_DPAD_UP	0x01
-#define GAMEPAD_DPAD_DOWN	0x02
-#define GAMEPAD_DPAD_LEFT	0x03
-#define GAMEPAD_DPAD_RIGHT	0x04
-#define GAMEPAD_START	0x05
-#define GAMEPAD_FN1	0x05
-#define GAMEPAD_BACK	0x06
-#define GAMEPAD_FN2	0x06
-#define GAMEPAD_LEFT_THUMB	0x07
-#define GAMEPAD_RIGHT_THUMB	0x08
-#define GAMEPAD_LEFT_SHOULDER	0x09
-#define GAMEPAD_RIGHT_SHOULDER	0x0A
-#define GAMEPAD_A	0x0B
-#define GAMEPAD_BTN1	0x0B
-#define GAMEPAD_B	0x0C
-#define GAMEPAD_BTN2	0x0C
-#define GAMEPAD_X	0x0D
-#define GAMEPAD_BTN3	0x0D
-#define GAMEPAD_Y	0x0E
-#define GAMEPAD_BTN4	0x0E
+#define GAMEPAD_DPAD_UP	0x00
+#define GAMEPAD_DPAD_DOWN	0x01
+#define GAMEPAD_DPAD_LEFT	0x02
+#define GAMEPAD_DPAD_RIGHT	0x03
+#define GAMEPAD_START	0x04
+#define GAMEPAD_FN1	0x04
+#define GAMEPAD_BACK	0x05
+#define GAMEPAD_FN2	0x05
+#define GAMEPAD_LEFT_THUMB	0x06
+#define GAMEPAD_RIGHT_THUMB	0x07
+#define GAMEPAD_LEFT_SHOULDER	0x08
+#define GAMEPAD_RIGHT_SHOULDER	0x09
+#define GAMEPAD_A	0x0A
+#define GAMEPAD_BTN1	0x0A
+#define GAMEPAD_B	0x0B
+#define GAMEPAD_BTN2	0x0B
+#define GAMEPAD_X	0x0C
+#define GAMEPAD_BTN3	0x0C
+#define GAMEPAD_Y	0x0D
+#define GAMEPAD_BTN4	0x0D
+
+#define GAMEPAD_AXIS_LX 0x00
+#define GAMEPAD_AXIS_LY 0x01
+#define GAMEPAD_AXIS_RX 0x02
+#define GAMEPAD_AXIS_RY 0x03
+#define GAMEPAD_AXIS_LTRIGGER 0x04
+#define GAMEPAD_AXIS_RTRIGGER 0x05
 
 	//---------------------------------------------------------------------------
 	// MOSUE 

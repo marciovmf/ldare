@@ -166,7 +166,7 @@ void gameStart(void* mem, GameApi& gameApi)
 	// Set up walk animation
 	_walkAnimationRight.elapsedTime=0;
 	_walkAnimationRight.numFrames = 3;
-	_walkAnimationRight.totalTime = 0.3f;
+	_walkAnimationRight.totalTime = 0.2f;
 	_walkAnimationRight.frames = _srcWalkRight;
 	_walkAnimationRight.timePerFrame = _walkAnimationRight.totalTime / _walkAnimationRight.numFrames;
 
@@ -225,6 +225,13 @@ Animation* startAnimation(Animation& animation)
 //---------------------------------------------------------------------------
 static inline Rectangle& updateAnimation(Animation& animation, float deltaTime)
 {
+		if(deltaTime < 0) 
+		{
+			deltaTime = +deltaTime;	
+			LogError("animation speed is not supposed to be less than zero");
+		}
+
+
 		animation.elapsedTime += deltaTime;
 		if (animation.elapsedTime > animation.timePerFrame)
 		{
@@ -246,46 +253,83 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	float& x = gameMemory->x;
 	float& y = gameMemory->y;
 	bool update = false;
-	float heroStep = gameMemory->step * deltaTime;
-
 	bool horizontalMovement = false;
 
 	// Update current animation according to walk direction
-	if ( input.getKey(KBD_A) || input.getButton(GAMEPAD_DPAD_LEFT))
+	float axisX = input.getAxis(GAMEPAD_AXIS_LX);
+	float axisY = input.getAxis(GAMEPAD_AXIS_LY);
+	float speed = deltaTime;
+	float heroStep = gameMemory->step * deltaTime;
+
+	if ( input.getKey(KBD_A) || input.getButton(GAMEPAD_DPAD_LEFT) ||
+		input.getButton(GAMEPAD_X) || axisX < 0)
 	{
 		if ( currentAnimation != &_walkAnimationLeft) 
 			currentAnimation = startAnimation(_walkAnimationLeft);
 
-		x -= heroStep;
+		LogInfo("axis x=%f" ,axisX);
+
+		if ( axisX < 0) 
+		{
+			x -= axisX * -heroStep;
+			speed *= -axisX;
+		}
+		else
+			x -= heroStep;
+
 		update = true;
 		horizontalMovement = true;
 	}
 
-	if ( input.getKey(KBD_D) || input.getButton(GAMEPAD_DPAD_RIGHT))
+	if ( input.getKey(KBD_D) || input.getButton(GAMEPAD_DPAD_RIGHT) ||
+				input.getButton(GAMEPAD_B) || axisX > 0)
 	{
 		if ( currentAnimation != &_walkAnimationRight) 
 			currentAnimation = startAnimation(_walkAnimationRight);
 
-		x += heroStep;
+		if ( axisX > 0)
+		{
+			x += axisX * heroStep;
+			speed *= axisX;
+		}
+		else
+			x += heroStep;
+
 		update = true;
 		horizontalMovement = true;
 	}
 
-	if ( input.getKey(KBD_W) || input.getButton(GAMEPAD_DPAD_UP))
+	if ( input.getKey(KBD_W) || input.getButton(GAMEPAD_DPAD_UP) ||
+				input.getButton(GAMEPAD_Y) || axisY > 0)
 	{
 		if ( currentAnimation != &_walkAnimationUp && !horizontalMovement) 
 			currentAnimation = startAnimation(_walkAnimationUp);
 
-		y += heroStep;
+		if ( axisY > 0)
+		{
+			y += axisY * heroStep;
+			speed *= axisY;
+		}
+		else
+			y += heroStep;
+
 		update = true;
 	}
 
-	if ( input.getKey(KBD_S) || input.getButton(GAMEPAD_DPAD_DOWN))
+	if ( input.getKey(KBD_S) || input.getButton(GAMEPAD_DPAD_DOWN) ||
+				input.getButton(GAMEPAD_A) || axisY < 0)
 	{
 		if ( currentAnimation != &_walkAnimationDown && !horizontalMovement) 
 			currentAnimation = startAnimation(_walkAnimationDown);
 
-		y -= heroStep;
+		if ( axisY < 0)
+		{
+			y -= axisY * -heroStep;
+			speed *= -axisY;
+		}
+		else
+			y -= heroStep;
+
 		update = true;
 	}
 
@@ -294,7 +338,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		ASSERT(currentAnimation != nullptr, "Animation should not be null here");
 		gameMemory->hero.position.x = x;
 		gameMemory->hero.position.y = y;
-		gameMemory->hero.srcRect = updateAnimation(*currentAnimation, deltaTime);
+		gameMemory->hero.srcRect = updateAnimation(*currentAnimation, speed);
 	}
 	else
 	{
