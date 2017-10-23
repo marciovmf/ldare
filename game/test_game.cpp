@@ -352,7 +352,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		LogInfo("%f %f", x, y);
 		gameMemory->hero.position.x = x;
 		gameMemory->hero.position.y = y;
-		gameMemory->hero.srcRect = updateAnimation(*currentAnimation, deltaTime);
+		gameMemory->hero.srcRect = updateAnimation(*currentAnimation, speed);
 	}
 	else
 	{
