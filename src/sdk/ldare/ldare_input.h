@@ -85,6 +85,7 @@ namespace ldare
 	//---------------------------------------------------------------------------
 	// GAMEPAD
 	//---------------------------------------------------------------------------
+	//digital buttons
 #define GAMEPAD_DPAD_UP	0x00
 #define GAMEPAD_DPAD_DOWN	0x01
 #define GAMEPAD_DPAD_LEFT	0x02
@@ -105,7 +106,7 @@ namespace ldare
 #define GAMEPAD_BTN3	0x0C
 #define GAMEPAD_Y	0x0D
 #define GAMEPAD_BTN4	0x0D
-
+	// axis
 #define GAMEPAD_AXIS_LX 0x00
 #define GAMEPAD_AXIS_LY 0x01
 #define GAMEPAD_AXIS_RX 0x02

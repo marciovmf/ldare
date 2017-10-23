@@ -157,6 +157,7 @@ namespace ldare
 #define XINPUT_GAMEPAD_TRIGGER_THRESHOLD    30
 #define XINPUT_MAX_AXIS_VALUE 32767
 #define XINPUT_MIN_AXIS_VALUE -32768
+#define XINPUT_MAX_TRIGGER_VALUE 255
 		//---------------------------------------------------------------------------
 		// Initializes XInput
 		//---------------------------------------------------------------------------

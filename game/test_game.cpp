@@ -261,13 +261,23 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	float speed = deltaTime;
 	float heroStep = gameMemory->step * deltaTime;
 
+//	LogInfo("axis X=%d, Y=%d, A=%d, B=%d U=%d, D=%d, L=%d, R=%d (%f, %f)" , 
+//			input.getButton(GAMEPAD_X),
+//			input.getButton(GAMEPAD_Y),
+//			input.getButton(GAMEPAD_A),
+//			input.getButton(GAMEPAD_B),
+//			input.getButton(GAMEPAD_DPAD_UP),
+//			input.getButton(GAMEPAD_DPAD_DOWN),
+//			input.getButton(GAMEPAD_DPAD_LEFT),
+//			input.getButton(GAMEPAD_DPAD_RIGHT),
+//			axisX, axisY);
+	
+// Movement LEFT
 	if ( input.getKey(KBD_A) || input.getButton(GAMEPAD_DPAD_LEFT) ||
-		input.getButton(GAMEPAD_X) || axisX < 0)
+		input.getButton(GAMEPAD_X) || (axisX < 0.0f))
 	{
 		if ( currentAnimation != &_walkAnimationLeft) 
 			currentAnimation = startAnimation(_walkAnimationLeft);
-
-		LogInfo("axis x=%f" ,axisX);
 
 		if ( axisX < 0) 
 		{
@@ -281,8 +291,9 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		horizontalMovement = true;
 	}
 
+	// Movement RIGHT
 	if ( input.getKey(KBD_D) || input.getButton(GAMEPAD_DPAD_RIGHT) ||
-				input.getButton(GAMEPAD_B) || axisX > 0)
+				input.getButton(GAMEPAD_B) || (axisX > 0.0f))
 	{
 		if ( currentAnimation != &_walkAnimationRight) 
 			currentAnimation = startAnimation(_walkAnimationRight);
@@ -299,8 +310,9 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		horizontalMovement = true;
 	}
 
+	// Movement UP
 	if ( input.getKey(KBD_W) || input.getButton(GAMEPAD_DPAD_UP) ||
-				input.getButton(GAMEPAD_Y) || axisY > 0)
+				input.getButton(GAMEPAD_Y)  || (axisY > 0.0f))
 	{
 		if ( currentAnimation != &_walkAnimationUp && !horizontalMovement) 
 			currentAnimation = startAnimation(_walkAnimationUp);
@@ -315,9 +327,10 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 
 		update = true;
 	}
-
+	
+	// Movement DOWN
 	if ( input.getKey(KBD_S) || input.getButton(GAMEPAD_DPAD_DOWN) ||
-				input.getButton(GAMEPAD_A) || axisY < 0)
+				input.getButton(GAMEPAD_A)  || (axisY < 0.0f))
 	{
 		if ( currentAnimation != &_walkAnimationDown && !horizontalMovement) 
 			currentAnimation = startAnimation(_walkAnimationDown);
@@ -336,9 +349,10 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	if (update)
 	{
 		ASSERT(currentAnimation != nullptr, "Animation should not be null here");
+		LogInfo("%f %f", x, y);
 		gameMemory->hero.position.x = x;
 		gameMemory->hero.position.y = y;
-		gameMemory->hero.srcRect = updateAnimation(*currentAnimation, speed);
+		gameMemory->hero.srcRect = updateAnimation(*currentAnimation, deltaTime);
 	}
 	else
 	{

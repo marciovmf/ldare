@@ -488,10 +488,10 @@ static inline void Win32_processGamepadInput(ldare::Input& gameInput)
 	int32 deadZone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
 
 	gamepad.axis[GAMEPAD_AXIS_LX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
-		GAMEPAD_AXIS_VALUE(gamepadState.Gamepad.sThumbLX);
+		GAMEPAD_AXIS_VALUE(axisX);
 
 	gamepad.axis[GAMEPAD_AXIS_LY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
-		GAMEPAD_AXIS_VALUE(gamepadState.Gamepad.sThumbLY);
+		GAMEPAD_AXIS_VALUE(axisY);
 	
 	// Right thumb axis
 	axisX = gamepadState.Gamepad.sThumbRX;
@@ -499,10 +499,22 @@ static inline void Win32_processGamepadInput(ldare::Input& gameInput)
 	deadZone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
 
 	gamepad.axis[GAMEPAD_AXIS_RX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
-		GAMEPAD_AXIS_VALUE(gamepadState.Gamepad.sThumbRX);
+		GAMEPAD_AXIS_VALUE(axisX);
 
 	gamepad.axis[GAMEPAD_AXIS_RY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
-		GAMEPAD_AXIS_VALUE(gamepadState.Gamepad.sThumbRY);
+		GAMEPAD_AXIS_VALUE(axisY);
+
+
+	// Left trigger
+	axisX = gamepadState.Gamepad.bLeftTrigger;
+	axisY = gamepadState.Gamepad.bRightTrigger;
+	deadZone = XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+
+	gamepad.axis[GAMEPAD_AXIS_LTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :	
+		axisX/(float) XINPUT_MAX_TRIGGER_VALUE;
+
+	gamepad.axis[GAMEPAD_AXIS_RTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+		axisY/(float) XINPUT_MAX_TRIGGER_VALUE;
 
 #undef GAMEPAD_AXIS_IS_DEADZONE
 #undef GAMEPAD_AXIS_VALUE
