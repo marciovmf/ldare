@@ -63,6 +63,7 @@ static FILETIME Win32_getFileWriteTime(const char* fileName)
 
 static ldare::GameContext _gameContext;
 
+
 //---------------------------------------------------------------------------
 // Loads the Game dll.
 // Returns: true if successfully loads the game dll 
@@ -125,7 +126,7 @@ static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 			FreeLibrary(gameModuleInfo.hGameModule);
 			gameModuleInfo.gameModuleWriteTime = writeTime;
 			reloaded = true;
-		Win32_loadGameModule(gameModuleInfo);
+			Win32_loadGameModule(gameModuleInfo);
 		}
 	}
 	else
@@ -373,32 +374,14 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	return true;
 }
 
-//---------------------------------------------------------------------------
-// processes Windows Keyboard messages
-//---------------------------------------------------------------------------
-static inline void Win32_ProcessKeyboardMessage(ldare::KeyState& keyState, int8 lastState,int8 state)
-{
-	keyState.state = state;
-	keyState.thisFrame += state != lastState || keyState.thisFrame;
-}
-
-static void initGameApi(ldare::GameApi& gameApi)
-{
-	// Initialize the API exposed to the game
-	initSpriteBatch();
-	gameApi.spriteBatch.begin = ldare::begin;
-	gameApi.spriteBatch.submit = ldare::submit;
-	gameApi.spriteBatch.end = ldare::end;
-	gameApi.spriteBatch.flush = ldare::flush;
-	gameApi.spriteBatch.loadShader = ldare::loadShader;
-
-	// init asset api
-	gameApi.asset.loadMaterial = ldare::loadMaterial;
-}
-
-static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
+static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 {
 	MSG msg;
+	// clear 'changed' bit from input key state
+	for(int i=0; i < MAX_KBD_KEYS ; i++)
+	{
+		gameInput.keyboard[i] &= ~KEYSTATE_CHANGED;
+	}
 
 	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
 	{
@@ -417,12 +400,11 @@ static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 					int8 isDown = (msg.lParam & (1 << 31)) == 0;
 					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
 					int16 vkCode = msg.wParam;
-					ldare::KeyState& currentState = gameInput.keyboard[vkCode];
 #if DEBUG
 					if (vkCode == KBD_ESCAPE)
 						_gameWindow.shouldClose = true;
 #endif
-					Win32_ProcessKeyboardMessage(gameInput.keyboard[vkCode], wasDown, isDown);
+					gameInput.keyboard[vkCode] = ((isDown != wasDown) << 1) | isDown;
 					continue;
 				}
 				break;
@@ -442,21 +424,132 @@ static inline void processPendingMessages(HWND hwnd, ldare::Input& gameInput)
 	}
 }
 
-void Win32_setCurrentDirectory()
+static inline void Win32_processGamepadInput(ldare::Input& gameInput)
 {
-  char path[256];
-       uint32 len = GetModuleFileName(NULL, path, 255);
-       char* p=path+len;
-       while( *p!= '\\')
-       {
-               *p=0;
-               p--;
-       }
-       SetCurrentDirectory(path);
-       LogInfo("Running from %s", path);
+	// clear 'changed' bit from input key state
+	for(int gamepadIndex=0; gamepadIndex < MAX_GAMEPADS ; gamepadIndex++)
+	{
+		for(int i=0; i < GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
+		{
+			gameInput.gamepad[gamepadIndex].button[i] &= ~KEYSTATE_CHANGED;
+		}
+	}
+
+	// get gamepad input
+	for(int16 gamepadIndex = 0; gamepadIndex < MAX_GAMEPADS; gamepadIndex++)
+	{
+		XINPUT_STATE gamepadState;
+		Gamepad& gamepad = gameInput.gamepad[gamepadIndex];
+
+		// ignore unconnected controllers
+		if ( platform::XInputGetState(gamepadIndex, &gamepadState) == ERROR_DEVICE_NOT_CONNECTED )
+		{
+			if ( gamepad.connected)
+			{
+				gamepad = {};					
+			}
+			gamepad.connected = 0;
+			continue;
+		}
+
+		// digital buttons
+		WORD buttons = gamepadState.Gamepad.wButtons;
+		uint8 isDown=0;
+		uint8 wasDown=0;
+
+#define GET_GAMEPAD_BUTTON(btn) do {\
+		isDown = (buttons & XINPUT_##btn) > 0;\
+		wasDown = gamepad.button[btn] & KEYSTATE_PRESSED;\
+		gamepad.button[btn] = ((isDown != wasDown) << 0x01) | isDown;\
+	} while(0)
+		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_UP);			
+		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_DOWN);
+		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_LEFT);
+		GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_RIGHT);
+		GET_GAMEPAD_BUTTON(GAMEPAD_START);
+		GET_GAMEPAD_BUTTON(GAMEPAD_BACK);
+		GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_THUMB);
+		GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_THUMB);
+		GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_SHOULDER);
+		GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_SHOULDER);
+		GET_GAMEPAD_BUTTON(GAMEPAD_A);
+		GET_GAMEPAD_BUTTON(GAMEPAD_B);
+		GET_GAMEPAD_BUTTON(GAMEPAD_X);
+		GET_GAMEPAD_BUTTON(GAMEPAD_Y);
+#undef SET_GAMEPAD_BUTTON
+
+		//TODO: Make these calculations directly in assembly to make it faster
+#define GAMEPAD_AXIS_VALUE(value) (value/(float)(value < 0 ? XINPUT_MIN_AXIS_VALUE * -1: XINPUT_MAX_AXIS_VALUE))
+#define GAMEPAD_AXIS_IS_DEADZONE(value, deadzone) ( value > -deadzone && value < deadzone)
+	
+	// Left thumb axis
+	int32 axisX = gamepadState.Gamepad.sThumbLX;
+	int32 axisY = gamepadState.Gamepad.sThumbLY;
+	int32 deadZone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
+
+	gamepad.axis[GAMEPAD_AXIS_LX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+		GAMEPAD_AXIS_VALUE(axisX);
+
+	gamepad.axis[GAMEPAD_AXIS_LY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+		GAMEPAD_AXIS_VALUE(axisY);
+	
+	// Right thumb axis
+	axisX = gamepadState.Gamepad.sThumbRX;
+	axisY = gamepadState.Gamepad.sThumbRY;
+	deadZone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
+
+	gamepad.axis[GAMEPAD_AXIS_RX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+		GAMEPAD_AXIS_VALUE(axisX);
+
+	gamepad.axis[GAMEPAD_AXIS_RY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+		GAMEPAD_AXIS_VALUE(axisY);
+
+
+	// Left trigger
+	axisX = gamepadState.Gamepad.bLeftTrigger;
+	axisY = gamepadState.Gamepad.bRightTrigger;
+	deadZone = XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+
+	gamepad.axis[GAMEPAD_AXIS_LTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :	
+		axisX/(float) XINPUT_MAX_TRIGGER_VALUE;
+
+	gamepad.axis[GAMEPAD_AXIS_RTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+		axisY/(float) XINPUT_MAX_TRIGGER_VALUE;
+
+#undef GAMEPAD_AXIS_IS_DEADZONE
+#undef GAMEPAD_AXIS_VALUE
+
+		gamepad.connected = 1;
+	}
 }
 
+void Win32_setCurrentDirectory()
+{
+	char path[256];
+	uint32 len = GetModuleFileName(NULL, path, 255);
+	char* p=path+len;
+	while( *p!= '\\')
+	{
+		*p=0;
+		p--;
+	}
+	SetCurrentDirectory(path);
+	LogInfo("Running from %s", path);
+}
 
+static void initGameApi(ldare::GameApi& gameApi)
+{
+	// Initialize the API exposed to the game
+	initSpriteBatch();
+	gameApi.spriteBatch.begin = ldare::begin;
+	gameApi.spriteBatch.submit = ldare::submit;
+	gameApi.spriteBatch.end = ldare::end;
+	gameApi.spriteBatch.flush = ldare::flush;
+	gameApi.spriteBatch.loadShader = ldare::loadShader;
+
+	// init asset api
+	gameApi.asset.loadMaterial = ldare::loadMaterial;
+}
 
 //---------------------------------------------------------------------------
 // Main
@@ -505,6 +598,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		Win32_toggleFullScreen(_gameWindow);
 	}
 
+	platform::Win32_initXInput();
 	initGameApi(gameApi);
 
 	// start the game
@@ -513,8 +607,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	if (_gameContext.Resolution.width ==0 ) _gameContext.Resolution.width = _gameContext.windowWidth;
 	if (_gameContext.Resolution.height ==0 ) _gameContext.Resolution.height = _gameContext.windowHeight;
 
-	//TODO: marcio, find somewhere else to set clear color that can happen along the game loop
-	//TODO: marcio, remove opengl calls from here and move it to renderer layer
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 
 	platform::Win32_initTimer();
@@ -524,8 +616,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	{
 		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
 		gameTimer.thisFrameTime = platform::getTicks();
-		
-		
+
+
 #if DEBUG
 		// Check for new game DLL every 180 frames
 		if (gameModuleInfo.timeSinceLastReload >= GAME_MODULE_RELOAD_INTERVAL_SECONDS)
@@ -544,13 +636,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		}
 #endif
 
-		// clear 'this frame' flags from input key state
-		for(int i=0; i < MAX_GAME_KBD_KEYS ; i++)
-		{
-			gameInput.keyboard[i].thisFrame = 0;
-		}
-
-		processPendingMessages(_gameWindow.hwnd, gameInput);
+		Win32_processPendingMessages(_gameWindow.hwnd, gameInput);
+		Win32_processGamepadInput(gameInput);
 
 		//Update the game
 		updateRenderer(gameTimer.deltaTime);
