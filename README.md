@@ -11,4 +11,5 @@ That said, It is resonable to consider the 'next' Lundum Dare as a project miles
  As the first Lundum Dare approaches, we are in a state where it is already possible to write small 2D games.
  Features include a fast sprite renderer (no fancy stuff yet), spritesheet support, joystick support.
  Hopefully more features will be redy on time for Lundum Dare.
+
 ![latest screenshot](screenshot.gif)
