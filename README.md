@@ -9,10 +9,10 @@ That said, It is resonable to consider the 'next' Lundum Dare as a project miles
 
 # What can I do with it so far ?
  As the first Lundum Dare approaches, we are in a state where it is already possible to write small 2D games.
-  - Fast sprite renderer (no fancy stuff yet)
-	- spritesheet support
-	- joystick support
-	- Good memory management (so far)	
+- Fast sprite renderer (no fancy stuff yet)
+- spritesheet support
+- joystick support
+- Good memory management (so far)	
 
 	Hopefully more features will be redy on time for Lundum Dare
 ![latest screenshot](screenshot.gif)
