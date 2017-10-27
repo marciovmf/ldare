@@ -1,32 +1,121 @@
 #ifndef __LDARE_KEYBOARD__
 #define __LDARE_KEYBOARD__
+
 namespace ldare
 {
 
-	//---------------------------------------------------------------------------
-	// Contains input state for the current frame
-	//---------------------------------------------------------------------------
-	struct KeyState
+#define KEYSTATE_PRESSED  0x01	
+#define KEYSTATE_CHANGED  0x02
+
+	typedef int8 KeyState;
+
+#define GAMEPAD_MAX_DIGITAL_BUTTONS 14
+#define GAMEPAD_MAX_AXIS 6
+#define MAX_GAMEPADS 4
+
+	struct Gamepad 
 	{
-		int8 state; 					// 1 if key is down
-		int8 thisFrame; 			// number of state transitions during current frame
+		KeyState button[GAMEPAD_MAX_DIGITAL_BUTTONS];
+		float axis[GAMEPAD_MAX_AXIS];
+		uint8 connected;
 	};
 
-#define MAX_GAME_KBD_KEYS 255
-#define MAX_GAME_MOUSE_KEYS 5
+#define MAX_KBD_KEYS 255
+#define MAX_MOUSE_KEYS 5
 	struct Input
 	{
-		KeyState keyboard[MAX_GAME_KBD_KEYS];
-		KeyState mouse[4];
+		KeyState keyboard[MAX_KBD_KEYS];
+		Gamepad gamepad[MAX_GAMEPADS];
+		KeyState mouse[MAX_MOUSE_KEYS];
 		struct 
 		{
 			int32 x;
 			int32 y;
 		} cursor;
+
+
+		inline int8 getKey(uint16 key) const
+		{
+			return keyboard[key] & (KEYSTATE_CHANGED | KEYSTATE_PRESSED);
+		}
+
+		inline int8 getKeyDown(uint16 key) const
+		{
+			return keyboard[key] == (KEYSTATE_CHANGED | KEYSTATE_PRESSED);
+		}
+
+		inline int8 getKeyUp(uint16 key) const
+		{
+			return keyboard[key] == KEYSTATE_CHANGED;
+		}
+
+		inline int8 getButton(uint16 key, uint16 index = 0) const
+		{
+			if (index >= MAX_GAMEPADS)
+				return 0;
+			return 	gamepad[index].connected && 
+				gamepad[index].button[key] & KEYSTATE_PRESSED;
+		}
+
+		inline int8 getButtonDown(uint16 key, uint16 index = 0) const
+		{
+			if (index >= MAX_GAMEPADS)
+				return 0;
+			//return gamepad[index].connected && 
+			return	gamepad[index].button[key] == (KEYSTATE_CHANGED | KEYSTATE_PRESSED);
+		}
+
+		inline int8 getButtonUp(uint16 key, uint16 index = 0) const
+		{
+			if (index >= MAX_GAMEPADS)
+				return 0;
+			return  gamepad[index].connected && gamepad[index].button[key] == KEYSTATE_CHANGED;
+		}
+
+		inline float getAxis(uint16 axis, uint16 index = 0) const
+		{
+			if (index >= MAX_GAMEPADS || !gamepad[index].connected)
+				return 0.0f;
+			return gamepad[index].axis[axis];
+		}
+
 	};
 
+
 	//---------------------------------------------------------------------------
-	// KEYBOARD KEYS / MOSUE BUTTONS macros
+	// GAMEPAD
+	//---------------------------------------------------------------------------
+	//digital buttons
+#define GAMEPAD_DPAD_UP	0x00
+#define GAMEPAD_DPAD_DOWN	0x01
+#define GAMEPAD_DPAD_LEFT	0x02
+#define GAMEPAD_DPAD_RIGHT	0x03
+#define GAMEPAD_START	0x04
+#define GAMEPAD_FN1	0x04
+#define GAMEPAD_BACK	0x05
+#define GAMEPAD_FN2	0x05
+#define GAMEPAD_LEFT_THUMB	0x06
+#define GAMEPAD_RIGHT_THUMB	0x07
+#define GAMEPAD_LEFT_SHOULDER	0x08
+#define GAMEPAD_RIGHT_SHOULDER	0x09
+#define GAMEPAD_A	0x0A
+#define GAMEPAD_BTN1	0x0A
+#define GAMEPAD_B	0x0B
+#define GAMEPAD_BTN2	0x0B
+#define GAMEPAD_X	0x0C
+#define GAMEPAD_BTN3	0x0C
+#define GAMEPAD_Y	0x0D
+#define GAMEPAD_BTN4	0x0D
+	// axis
+#define GAMEPAD_AXIS_LX 0x00
+#define GAMEPAD_AXIS_LY 0x01
+#define GAMEPAD_AXIS_RX 0x02
+#define GAMEPAD_AXIS_RY 0x03
+#define GAMEPAD_AXIS_LTRIGGER 0x04
+#define GAMEPAD_AXIS_RTRIGGER 0x05
+
+	//---------------------------------------------------------------------------
+	// MOSUE 
 	//---------------------------------------------------------------------------
 #define MOUSE_LBUTTON     0x00
 #define MOUSE_RBUTTON     0x01
@@ -34,6 +123,9 @@ namespace ldare
 #define MOUSE_X1BUTTON    0x03
 #define MOUSE_X2BUTTON    0x04
 
+	//---------------------------------------------------------------------------
+	// KEYBOARD 
+	//---------------------------------------------------------------------------
 #define KBD_BACK          0x08
 #define KBD_TAB           0x09
 #define KBD_CLEAR         0x0C
