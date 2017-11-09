@@ -39,7 +39,11 @@ assets:
 
 engine: $(LDARE_GAME) $(LDARE_CORE) assets
 	@echo Building ldare engine...
-	cl $(LDARESRC) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
+cl $(LDARESRC) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) /link /subsystem:console $(LIBS)
+
+tool: src\win32\tools\makefont.cpp
+	cl src\win32\tools\makefont.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\  $(CFLAGS) $(LINKFLAGS)
+
 
 clean:
 	del /S /Q .\$(OUTDIR)\*
