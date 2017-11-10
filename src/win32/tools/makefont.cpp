@@ -5,6 +5,7 @@
 
 using namespace std;
 
+
 void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 {
 	// bitmap dimensions
@@ -58,38 +59,104 @@ void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 	DeleteObject(bitmap);
 }
 
+uint32 nextPow2(uint32 value)
+{
+ --value;
+ value |= value >> 1;
+ value |= value >> 2;
+ value |= value >> 4;
+ value |= value >> 8;
+ value |= value >> 16;
+ return ++value;
+}
+
+HGDIOBJ loadFontFile(HDC dc, char* fontFile,  char* fontName, uint32 fontSize)
+{
+	if (!AddFontResourceEx(fontFile, FR_PRIVATE, 0))
+	{
+		return 0;
+	}
+
+	LOGFONT logFont =
+	{
+		-MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), 72),
+		0,
+		0,
+		0,
+		FW_NORMAL,
+		FALSE, // italic
+		FALSE, // underline
+		FALSE, // strikeout
+		DEFAULT_CHARSET,
+		OUT_TT_ONLY_PRECIS,
+		CLIP_DEFAULT_PRECIS,
+		ANTIALIASED_QUALITY,
+		DEFAULT_PITCH
+	};
+
+	uint32 fontNameLen = strlen(fontName);
+	if (fontNameLen > LF_FACESIZE) fontNameLen = LF_FACESIZE;
+
+	for (int i=0; i < fontNameLen; i++)
+	{
+   logFont.lfFaceName[i] = fontName[i];
+	}
+
+	HFONT hFont = CreateFontIndirect(&logFont);
+	if (!hFont)
+	{
+		LogError("Could not create logic font");
+		return 0;
+	}
+
+	return SelectObject(dc, hFont);
+}
+
+RECT calcFontBitmapSize(HDC dc, const char* fontString, uint32 maxLineWidth, uint32 spacing)
+{
+	RECT rect = {};
+	SIZE fontStringSize;
+	uint32 fontStringLen = strlen(fontString);
+	GetTextExtentPoint32(dc, fontString, fontStringLen, &fontStringSize);
+	uint32 fullLineSize = fontStringSize.cx + fontStringLen * spacing;
+	uint32 numLines =  fullLineSize / maxLineWidth + 1;
+	rect.right = nextPow2(fullLineSize / numLines);
+	rect.bottom = nextPow2(spacing + numLines * fontStringSize.cy);
+	return rect;
+}
+
 int _tmain(int argc, _TCHAR** argv)
 {
-
-	if (argc != 2)
+	if (argc != 5)
 	{
-		LogInfo("usage:\n makefont TTF-file");
+		LogInfo("usage:\n makefont TTF-file font-size font-name maxwidth");
 		return 0;
 	}
 
 	char* fontFile = argv[1];
-	TEXTMETRIC fontMetrics;
+	uint32 fontSize = atoi(argv[2]);
+	_TCHAR* fontName = (char*)argv[3];
+	uint32 maxLineWidth = nextPow2(atoi(argv[4])-1);
 	HDC dc;
   const char* fontString = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-:,[{()}]";
-	SIZE fontStringSize;
 	int32 fontStringLen = strlen(fontString);
-	HBITMAP bitmapFont;
   HFONT hFont;
 
-	if (!AddFontResourceEx(fontFile, FR_PRIVATE, 0))
-	{
-		LogInfo("Could not load font file %s", fontFile);
-		return 1; 
-	}
-
 	dc = CreateCompatibleDC(GetDC(0));
-	//dc = GetDC(0);
 	if (dc == 0)
 	{
 		LogInfo("Could not create a compatible Device context");
 		return 1; 
 	}
 
+	hFont = (HFONT)loadFontFile(dc, fontFile, fontName, fontSize);
+	if (!hFont)
+	{
+		LogInfo("Could not load font file %s", fontFile);
+		return 1;
+	}
+
+	TEXTMETRIC fontMetrics;
 	if (!GetTextMetrics(dc, &fontMetrics))
 	{
 		LogInfo("Could not get metrics for font file %s", fontFile);
@@ -98,30 +165,35 @@ int _tmain(int argc, _TCHAR** argv)
 
 	const uint32 spacing = 2;
 
- LOGFONT myFont;
-	RECT rect = {};
-	//TODO: select the current font!
-	GetTextExtentPoint32(dc, fontString, fontStringLen, &fontStringSize);
-	rect.right = fontStringSize.cx + fontStringLen * spacing;
-	rect.bottom = fontStringSize.cy;
+	RECT rect = calcFontBitmapSize(dc, fontString, maxLineWidth, spacing);
 	HBITMAP hDcBitmap = CreateCompatibleBitmap(dc, rect.right, rect.bottom);
 	SelectObject(dc, hDcBitmap);
 	SetTextColor(dc, RGB(255,255,255));
 	SetBkColor(dc,RGB(0,0,0));
 
 	uint32 gliphX = 0;
+	uint32 gliphY = 0;
 	char gliph;
-	char* gliphPtr = (char*)fontString[1];
-
+  
+  uint32 nextLine = fontStringLen/2;
 	for (int i=0; i < fontStringLen; i++)
 	{
 		// TODO: get proper gliph height
 		SIZE gliphSize;
-		gliph = fontString[i];
-		//gliphPtr++;
+		gliph = *fontString;
+		++fontString;
+
 		GetTextExtentPoint32(dc, &gliph, 1, &gliphSize);
-		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, 0, gliphSize.cx, gliphSize.cy, 0);
-		TextOut(dc, gliphX, 0, &gliph, 1);
+
+		// check if we need to break the line
+		if (gliphX + gliphSize.cx >= maxLineWidth)
+		{
+			gliphX = 0;
+			gliphY += gliphSize.cy + spacing;
+		}
+
+		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
+		TextOut(dc, gliphX, gliphY, &gliph, 1);
 		gliphX += gliphSize.cx + spacing;
 	}
 
