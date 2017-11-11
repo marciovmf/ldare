@@ -3,7 +3,7 @@ ldare is game engine being developed from scratch for the sole purpose of learni
 development skills.
 Each and every single feature is written from scratch with absolutely no third party code or libraries.
 
-#ldare and Lundum Dare
+# ldare and Lundum Dare
 The project started as a game engine for creating games for the Lundum Dare Game jam, hence the (provisory) name.
 That said, It is resonable to consider the 'next' Lundum Dare as a project milestone for testing and releasing features.
 
@@ -11,5 +11,8 @@ That said, It is resonable to consider the 'next' Lundum Dare as a project miles
  As the first Lundum Dare approaches, we are in a state where it is already possible to write small 2D games.
  Features include a fast sprite renderer (no fancy stuff yet), spritesheet support, joystick support.
  Hopefully more features will be redy on time for Lundum Dare.
+ 
+ # What's coming up ?
+ Check [here](https://github.com/marciovmf/ldare/projects/2) for the development roadmap.
 
 ![latest screenshot](screenshot.gif)
