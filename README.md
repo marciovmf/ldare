@@ -1,6 +1,5 @@
-# LDARE engine
-ldare is game engine being developed from scratch for the sole purpose of learning and practcing essential game
-development skills.
+# LDARE
+ ldare is game engine being developed from scratch for learning and practcing essential game development skills.
 Each and every single feature is written from scratch with absolutely no third party code or libraries.
 
 The project started as a game engine for creating games for the Lundum Dare Game jam, hence the (provisory) name.
