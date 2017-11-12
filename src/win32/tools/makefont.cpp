@@ -5,6 +5,21 @@
 
 using namespace std;
 
+HDC makeFontDC(void** bmpMem, uint32 width, uint32 height)
+{
+	HDC dc = CreateCompatibleDC(GetDC(0));
+	BITMAPINFO bmp = {};
+	bmp.bmiHeader.biSize = sizeof(bmp.bmiHeader);
+	bmp.bmiHeader.biWidth = width;
+	bmp.bmiHeader.biHeight = height;
+	bmp.bmiHeader.biPlanes = 1;
+	bmp.bmiHeader.biBitCount = 32;
+	bmp.bmiHeader.biCompression = BI_RGB;
+	HBITMAP hBitmap = CreateDIBSection(dc, &bmp, DIB_RGB_COLORS, bmpMem, 0, 0);
+	SelectObject(dc, hBitmap);
+	SetBkColor(dc, RGB(0, 0, 0));
+	return dc;
+}
 
 void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 {
@@ -125,6 +140,8 @@ RECT calcFontBitmapSize(HDC dc, const char* fontString, uint32 maxLineWidth, uin
 	return rect;
 }
 
+char bmpFileName[128];
+
 int _tmain(int argc, _TCHAR** argv)
 {
 	if (argc != 5)
@@ -142,7 +159,14 @@ int _tmain(int argc, _TCHAR** argv)
 	int32 fontStringLen = strlen(fontString);
   HFONT hFont;
 
-	dc = CreateCompatibleDC(GetDC(0));
+	uint32 fontWidth = 1024;
+	uint32 fontHeight = 1024;
+	uint32 dcBitmapSize = 1024 * 1024 * sizeof(uint32);
+  void* bmpMem = malloc(dcBitmapSize);
+	memset(bmpMem, 0, dcBitmapSize);
+
+	dc = makeFontDC(&bmpMem, fontWidth, fontHeight);
+
 	if (dc == 0)
 	{
 		LogInfo("Could not create a compatible Device context");
@@ -191,12 +215,14 @@ int _tmain(int argc, _TCHAR** argv)
 			gliphX = 0;
 			gliphY += gliphSize.cy + spacing;
 		}
-
+		
 		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
 		TextOut(dc, gliphX, gliphY, &gliph, 1);
 		gliphX += gliphSize.cx + spacing;
 	}
 
-	saveBitmap(dc,rect,"font.bmp");
+
+  sprintf(bmpFileName, "%s.bmp", fontName);
+	saveBitmap(dc,rect, bmpFileName);
 	return 0;
 }
