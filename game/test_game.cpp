@@ -91,6 +91,7 @@ struct GameData
 	Vec2 resolution;
 	Sprite hero;
 	Material material;
+	Material fontMaterial;
 	float x=0;
 	float y=0;
 	float step;
@@ -161,6 +162,10 @@ void gameStart(void* mem, GameApi& gameApi)
 				(const char*)"./assets/sprite.vert", 
 				(const char*) "./assets/sprite.frag", 
 				(const char*)"./assets/sokoban/tiles.bmp");
+		gameMemory->fontMaterial = gameApi.asset.loadMaterial(
+				(const char*)"./assets/font.vert", 
+				(const char*) "./assets/font.frag", 
+				(const char*)"./assets/Capture it.bmp");
 	}
 
 	// Set up walk animation
@@ -205,7 +210,7 @@ void drawLevel(GameApi& gameApi, Sprite* sprites, uint32 count)
 {
 	for(uint32 i =0; i < count; i++)
 	{
-		gameApi.spriteBatch.submit(gameMemory->material, sprites[i]);
+		gameApi.spriteBatch.submit(sprites[i]);
 	}
 }
 
@@ -368,12 +373,19 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	if (x > GAME_RESOLUTION_WIDTH) x = 0;
 	if (x < 0) x = GAME_RESOLUTION_WIDTH;
 
-	gameApi.spriteBatch.begin();
-	drawLevel(gameApi, gameMemory->tiles, _gameLevel.width * _gameLevel.height);
-	gameApi.spriteBatch.submit(gameMemory->material, gameMemory->hero);
-	gameApi.spriteBatch.submit(gameMemory->material, gameMemory->box);
-	gameApi.spriteBatch.end();
+
 	gameApi.spriteBatch.flush();
+	gameApi.spriteBatch.begin(gameMemory->material);
+		drawLevel(gameApi, gameMemory->tiles, _gameLevel.width * _gameLevel.height);
+		gameApi.spriteBatch.submit(gameMemory->hero);
+		gameApi.spriteBatch.submit(gameMemory->box);
+	gameApi.spriteBatch.end();
+
+	gameApi.spriteBatch.begin(gameMemory->fontMaterial);
+		drawLevel(gameApi, gameMemory->tiles, _gameLevel.width * _gameLevel.height);
+		gameApi.spriteBatch.submit(gameMemory->hero);
+	gameApi.spriteBatch.end();
+
 }
 
 //---------------------------------------------------------------------------

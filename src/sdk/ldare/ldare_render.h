@@ -29,13 +29,13 @@ namespace ldare
 	};
 
 
-#define SPRITE_BATCH_BEGIN_FUNC(name) void name()
+#define SPRITE_BATCH_BEGIN_FUNC(name) void name(const ldare::Material& material)
 	typedef SPRITE_BATCH_BEGIN_FUNC(SpriteBatchBeginFunc);
 
 #define SPRITE_BATCH_END_FUNC(name) void name()
 	typedef SPRITE_BATCH_END_FUNC(SpriteBatchEndFunc);
 
-#define SPRITE_BATCH_SUBMIT_FUNC(name) void name(const ldare::Material& material, const ldare::Sprite& sprite)
+#define SPRITE_BATCH_SUBMIT_FUNC(name) void name(const ldare::Sprite& sprite)
 	typedef SPRITE_BATCH_SUBMIT_FUNC(SpriteBatchSubmitFunc);
 
 #define SPRITE_BATCH_FLUSH_FUNC(name) void name()

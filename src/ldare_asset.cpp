@@ -59,10 +59,10 @@ namespace ldare
 		for (uint32 i = 0; i < numPixels; i++)
 		{
 			uint32 argb = *(((uint32*)bitmap->pixels) + i);
-			uint32 a = (argb & 0x000000FF) << 24;
 			uint32 r = (argb & 0xFF000000) >> 24;
-			uint32 b = (argb & 0x0000FF00) << 8;
 			uint32 g = (argb & 0x00FF0000) >> 8;
+			uint32 b = (argb & 0x0000FF00) << 8;
+			uint32 a = (argb & 0x000000FF) << 24;
 			*((uint32*)bitmap->pixels + i) = r | g | b | a;
 		}
 

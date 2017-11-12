@@ -49,6 +49,7 @@ extern "C"
 	 PFNGLBINDBUFFERBASEPROC glBindBufferBase;
 	 PFNGLGETUNIFORMBLOCKINDEXPROC glGetUniformBlockIndex;
 	 PFNGLSCISSORPROC glScissor;
+	 PFNGLDEPTHFUNCPROC glDepthFunc;
 
 }
 #endif // _LDARE_GL__

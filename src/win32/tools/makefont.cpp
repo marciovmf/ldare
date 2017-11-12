@@ -5,87 +5,52 @@
 
 using namespace std;
 
-HDC makeFontDC(void** bmpMem, uint32 width, uint32 height)
+struct FontImportInput
+{
+	char* ttfFontFile;
+	char* fontName;
+	char* fontString;
+	uint32 fontStringLen;
+	uint32 maxLineWidth;
+	uint32 fontSize;
+};
+
+static char bmpFileName[128];
+
+static void createBitmapInfo(BITMAPINFO* bmpInfo, uint32 width, uint32 height)
+{
+	BITMAPINFO bmp = {};
+	bmpInfo->bmiHeader.biSize = sizeof(bmp.bmiHeader);
+	bmpInfo->bmiHeader.biWidth = width;
+	bmpInfo->bmiHeader.biHeight = height;
+	bmpInfo->bmiHeader.biPlanes = 1;
+	bmpInfo->bmiHeader.biBitCount = 32;
+	bmpInfo->bmiHeader.biCompression = BI_RGB;
+}
+
+static HDC makeFontDC(void** bmpMem, uint32 width, uint32 height)
 {
 	HDC dc = CreateCompatibleDC(GetDC(0));
-	BITMAPINFO bmp = {};
-	bmp.bmiHeader.biSize = sizeof(bmp.bmiHeader);
-	bmp.bmiHeader.biWidth = width;
-	bmp.bmiHeader.biHeight = height;
-	bmp.bmiHeader.biPlanes = 1;
-	bmp.bmiHeader.biBitCount = 32;
-	bmp.bmiHeader.biCompression = BI_RGB;
+	BITMAPINFO bmp;
+	createBitmapInfo(&bmp, width, height);
 	HBITMAP hBitmap = CreateDIBSection(dc, &bmp, DIB_RGB_COLORS, bmpMem, 0, 0);
 	SelectObject(dc, hBitmap);
-	SetBkColor(dc, RGB(0, 0, 0));
+	//SetBkColor(dc, RGB(255, 0, 0));
 	return dc;
 }
 
-void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
+static uint32 nextPow2(uint32 value)
 {
-	// bitmap dimensions
-	int bitmap_dx = bitmapRect.right -  bitmapRect.left;
-	int bitmap_dy = bitmapRect.bottom - bitmapRect.top;
-
-	// create file
-	ofstream file(filename, ios::binary);
-	if(!file) return;
-
-	// save bitmap file headers
-	BITMAPFILEHEADER fileHeader;
-	BITMAPINFOHEADER infoHeader;
-
-	fileHeader.bfType      = 0x4d42;
-	fileHeader.bfSize      = 0;
-	fileHeader.bfReserved1 = 0;
-	fileHeader.bfReserved2 = 0;
-	fileHeader.bfOffBits   = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
-
-	infoHeader.biSize          = sizeof(infoHeader);
-	infoHeader.biWidth         = bitmap_dx;
-	infoHeader.biHeight        = bitmap_dy;
-	infoHeader.biPlanes        = 1;
-	infoHeader.biBitCount      = 24;
-	infoHeader.biCompression   = BI_RGB;
-	infoHeader.biSizeImage     = 0;
-	infoHeader.biXPelsPerMeter = 0;
-	infoHeader.biYPelsPerMeter = 0;
-	infoHeader.biClrUsed       = 0;
-	infoHeader.biClrImportant  = 0;
-
-	file.write((char*)&fileHeader, sizeof(fileHeader));
-	file.write((char*)&infoHeader, sizeof(infoHeader));
-
-	// dibsection information
-	BITMAPINFO info;
-	info.bmiHeader = infoHeader; 
-
-	BYTE* memory = 0;
-	HDC memDC =  CreateCompatibleDC(dc);
-	HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, (void**)&memory, 0, 0);
-	SelectObject(memDC, bitmap);
-	BitBlt(memDC, 0, 0, bitmap_dx, bitmap_dy, dc, 0, 0, SRCCOPY);
-	DeleteDC(memDC);
-
-	// save dibsection data
-	int bytes = (((24*bitmap_dx + 31) & (~31))/8)*bitmap_dy;
-	file.write((const char*)memory, bytes);
-
-	DeleteObject(bitmap);
+	--value;
+	value |= value >> 1;
+	value |= value >> 2;
+	value |= value >> 4;
+	value |= value >> 8;
+	value |= value >> 16;
+	return ++value;
 }
 
-uint32 nextPow2(uint32 value)
-{
- --value;
- value |= value >> 1;
- value |= value >> 2;
- value |= value >> 4;
- value |= value >> 8;
- value |= value >> 16;
- return ++value;
-}
-
-HGDIOBJ loadFontFile(HDC dc, char* fontFile,  char* fontName, uint32 fontSize)
+static HGDIOBJ loadFontFile(HDC dc, char* fontFile,  char* fontName, uint32 fontSize)
 {
 	if (!AddFontResourceEx(fontFile, FR_PRIVATE, 0))
 	{
@@ -94,7 +59,7 @@ HGDIOBJ loadFontFile(HDC dc, char* fontFile,  char* fontName, uint32 fontSize)
 
 	LOGFONT logFont =
 	{
-		-MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), 72),
+		fontSize,//-MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), fontSize),
 		0,
 		0,
 		0,
@@ -114,7 +79,7 @@ HGDIOBJ loadFontFile(HDC dc, char* fontFile,  char* fontName, uint32 fontSize)
 
 	for (int i=0; i < fontNameLen; i++)
 	{
-   logFont.lfFaceName[i] = fontName[i];
+		logFont.lfFaceName[i] = fontName[i];
 	}
 
 	HFONT hFont = CreateFontIndirect(&logFont);
@@ -127,7 +92,7 @@ HGDIOBJ loadFontFile(HDC dc, char* fontFile,  char* fontName, uint32 fontSize)
 	return SelectObject(dc, hFont);
 }
 
-RECT calcFontBitmapSize(HDC dc, const char* fontString, uint32 maxLineWidth, uint32 spacing)
+static RECT calcFontBitmapSize(HDC dc, const char* fontString, uint32 maxLineWidth, uint32 spacing)
 {
 	RECT rect = {};
 	SIZE fontStringSize;
@@ -140,32 +105,86 @@ RECT calcFontBitmapSize(HDC dc, const char* fontString, uint32 maxLineWidth, uin
 	return rect;
 }
 
-char bmpFileName[128];
-
-int _tmain(int argc, _TCHAR** argv)
+static bool parseArgs(uint32 argc, _TCHAR** argv, FontImportInput* input)
 {
-	if (argc != 5)
+	if (argc != 6)
 	{
-		LogInfo("usage:\n makefont TTF-file font-size font-name maxwidth");
+		printf("usage:\n makefont TTF-file font-name font-size maxwidth fontstring\n");
 		return 0;
 	}
 
-	char* fontFile = argv[1];
-	uint32 fontSize = atoi(argv[2]);
-	_TCHAR* fontName = (char*)argv[3];
-	uint32 maxLineWidth = nextPow2(atoi(argv[4])-1);
-	HDC dc;
-  const char* fontString = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-:,[{()}]";
-	int32 fontStringLen = strlen(fontString);
-  HFONT hFont;
+	input->ttfFontFile = argv[1];
+	input->fontName = (char*)argv[2];
+	input->fontSize = atoi(argv[3]);
+	input->maxLineWidth = nextPow2(atoi(argv[4])-1);
+	input->fontString = argv[5];
+	input->fontStringLen = strlen(input->fontString);
+	return true;
+}
+
+static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
+{
+	// bitmap dimensions
+	int bitmap_dx = bitmapRect.right -  bitmapRect.left;
+	int bitmap_dy = bitmapRect.bottom - bitmapRect.top;
+
+	// create file
+	ofstream file(filename, ios::binary);
+	if(!file) return;
+
+	BITMAPFILEHEADER fileHeader;
+	fileHeader.bfType      = 0x4d42;
+	fileHeader.bfSize      = 0;
+	fileHeader.bfReserved1 = 0;
+	fileHeader.bfReserved2 = 0;
+	fileHeader.bfOffBits   = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+
+	BITMAPINFO bitmapInfo;
+	createBitmapInfo(&bitmapInfo, bitmap_dx, bitmap_dy);
+
+	// dibsection information
+	BITMAPINFO info;
+	info.bmiHeader = bitmapInfo.bmiHeader;
+	int bitmapSize= bitmapInfo.bmiHeader.biBitCount/8 * (bitmap_dx * bitmap_dy);
+
+	BYTE* memory = 0;
+	HDC memDC =  CreateCompatibleDC(dc);
+	HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, (void**)&memory, 0, 0);
+	SelectObject(memDC, bitmap);
+	
+	//BitBlt(memDC, 0, 0, bitmap_dx, bitmap_dy, dc, 0, 0, SRCERASE);
+	BLENDFUNCTION blend = {};
+	blend.BlendOp = AC_SRC_OVER;
+	blend.SourceConstantAlpha = 255;
+
+	AlphaBlend(memDC, 0, 0, bitmap_dx, bitmap_dy, dc, 0, 0, bitmap_dx, bitmap_dy, blend);
+
+	// save dibsection data
+	file.write((char*)&fileHeader, sizeof(BITMAPFILEHEADER));
+	file.write((char*)&bitmapInfo.bmiHeader, sizeof(BITMAPINFOHEADER));
+	file.write((const char*)memory, bitmapSize);
+	file.close();
+
+	DeleteDC(memDC);
+	DeleteObject(bitmap);
+}
+
+int _tmain(int argc, _TCHAR** argv)
+{
+	FontImportInput input;
+
+	if (!parseArgs(argc, argv, &input))
+	{
+		return 1;
+	}
 
 	uint32 fontWidth = 1024;
 	uint32 fontHeight = 1024;
-	uint32 dcBitmapSize = 1024 * 1024 * sizeof(uint32);
-  void* bmpMem = malloc(dcBitmapSize);
-	memset(bmpMem, 0, dcBitmapSize);
+	uint32 dcBitmapSize = 1024 * 1024 * 4;
+	void* bmpMem;
 
-	dc = makeFontDC(&bmpMem, fontWidth, fontHeight);
+	HDC dc = makeFontDC(&bmpMem, fontWidth, fontHeight);
+	memset(bmpMem, 0, dcBitmapSize);
 
 	if (dc == 0)
 	{
@@ -173,56 +192,58 @@ int _tmain(int argc, _TCHAR** argv)
 		return 1; 
 	}
 
-	hFont = (HFONT)loadFontFile(dc, fontFile, fontName, fontSize);
+	HFONT hFont = (HFONT)loadFontFile(dc, input.ttfFontFile, input.fontName, input.fontSize);
 	if (!hFont)
 	{
-		LogInfo("Could not load font file %s", fontFile);
+		LogInfo("Could not load font file %s", input.ttfFontFile);
 		return 1;
 	}
 
 	TEXTMETRIC fontMetrics;
 	if (!GetTextMetrics(dc, &fontMetrics))
 	{
-		LogInfo("Could not get metrics for font file %s", fontFile);
+		LogInfo("Could not get metrics for font file %s", input.ttfFontFile);
 		return 1; 
 	}
 
 	const uint32 spacing = 2;
 
-	RECT rect = calcFontBitmapSize(dc, fontString, maxLineWidth, spacing);
+	RECT rect = calcFontBitmapSize(dc, input.fontString, input.maxLineWidth, spacing);
 	HBITMAP hDcBitmap = CreateCompatibleBitmap(dc, rect.right, rect.bottom);
 	SelectObject(dc, hDcBitmap);
+	SetBkMode(dc, TRANSPARENT);
 	SetTextColor(dc, RGB(255,255,255));
-	SetBkColor(dc,RGB(0,0,0));
 
 	uint32 gliphX = 0;
 	uint32 gliphY = 0;
 	char gliph;
-  
-  uint32 nextLine = fontStringLen/2;
-	for (int i=0; i < fontStringLen; i++)
+	char* fontStringPtr = input.fontString;
+
+	uint32 nextLine = input.fontStringLen/2;
+	for (int i=0; i < input.fontStringLen; i++)
 	{
 		// TODO: get proper gliph height
 		SIZE gliphSize;
-		gliph = *fontString;
-		++fontString;
+		gliph = *fontStringPtr;
+		++fontStringPtr;
 
 		GetTextExtentPoint32(dc, &gliph, 1, &gliphSize);
 
 		// check if we need to break the line
-		if (gliphX + gliphSize.cx >= maxLineWidth)
+		if (gliphX + gliphSize.cx >= input.maxLineWidth)
 		{
 			gliphX = 0;
 			gliphY += gliphSize.cy + spacing;
 		}
-		
+
 		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
+		SetBkMode(dc, TRANSPARENT);
 		TextOut(dc, gliphX, gliphY, &gliph, 1);
 		gliphX += gliphSize.cx + spacing;
 	}
 
 
-  sprintf(bmpFileName, "%s.bmp", fontName);
+	sprintf(bmpFileName, "%s.bmp", input.fontName);
 	saveBitmap(dc,rect, bmpFileName);
 	return 0;
 }

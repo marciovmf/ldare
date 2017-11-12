@@ -210,12 +210,19 @@ namespace ldare
 		glBindVertexArray(0);
 		checkNoGlError();
 
+		//TODO: Marcio, this is a hack for testing stuff in 2D. Move this to material state
+		glClearColor(0, 0, 0, 0);
+		glDisable(GL_DEPTH_TEST);
+		//glDepthFunc(GL_ALWAYS);
 		glDisable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
+		glDisable(GL_DEBUG_OUTPUT);
 		return 1;
 	}
 
-	void begin()
+	void begin(const ldare::Material& material)
 	{
+		spriteBatchData.material = material;
 		spriteBatchData.spriteCount = 0;
 
 		if ( updateGlobalShaderData)
@@ -233,13 +240,13 @@ namespace ldare
 		spriteBatchData.gpuBuffer = (GLvoid*) glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
 	}
 
-	void submit(const ldare::Material& material, const Sprite& sprite)
+	void submit(const Sprite& sprite)
 	{
+		Material& material = spriteBatchData.material;
 		// sprite vertex order 0,1,2,2,3,0
 		// 1 -- 2
 		// |    |
 		// 0 -- 3
-		spriteBatchData.material = material;
 		// bind uniform
 		unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldare");
 		const GLuint bindingPointIndex = 0;
@@ -283,23 +290,23 @@ namespace ldare
 		spriteBatchData.gpuBuffer = (void*) vertexData;
 	}
 
+	void flush()
+	{
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+
 	void end()
 	{
 		glUnmapBuffer(GL_ARRAY_BUFFER);
-		glClearColor(0, 0, 0, 0);
-		//TODO: sort draw calls per material 
-	}
-
-	void flush()
-	{
 		glBindTexture(GL_TEXTURE_2D, spriteBatchData.material.texture.id);
 		glUseProgram(spriteBatchData.material.shader);
 		glBindVertexArray(spriteBatchData.vao);
-		glClear(GL_COLOR_BUFFER_BIT);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteBatchData.ibo);
 		glDrawElements(GL_TRIANGLES, 6 * spriteBatchData.spriteCount, GL_UNSIGNED_SHORT, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
+
+		//TODO: sort draw calls per material 
 	}
 
 	ldare::Texture loadTexture(const char* bitmapFile)
