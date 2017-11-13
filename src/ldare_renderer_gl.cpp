@@ -16,6 +16,7 @@
 #define SPRITE_ATTRIB_COLOR 1
 #define SPRITE_ATTRIB_UV 2
 
+
 namespace ldare 
 {
 	static bool updateGlobalShaderData = false;
@@ -194,11 +195,11 @@ namespace ldare
 		glVertexAttribPointer(SPRITE_ATTRIB_VERTEX, 3, GL_FLOAT, GL_FALSE,
 				SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)0);
 
-		glVertexAttribPointer(SPRITE_ATTRIB_COLOR, 3, GL_FLOAT, GL_FALSE,
+		glVertexAttribPointer(SPRITE_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE,
 				SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)(3 * sizeof(float))); 
 
 		glVertexAttribPointer(SPRITE_ATTRIB_UV, 2, GL_FLOAT, GL_FALSE,
-				SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)(6 * sizeof(float))); 
+				SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)(7 * sizeof(float))); 
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		
@@ -211,12 +212,14 @@ namespace ldare
 		checkNoGlError();
 
 		//TODO: Marcio, this is a hack for testing stuff in 2D. Move this to material state
-		glClearColor(0, 0, 0, 0);
-		glDisable(GL_DEPTH_TEST);
-		//glDepthFunc(GL_ALWAYS);
-		glDisable(GL_CULL_FACE);
-		glDisable(GL_BLEND);
-		glDisable(GL_DEBUG_OUTPUT);
+		glClearColor(1, 1, 1, 1);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		//glDepthFunc(GL_LEQUAL);
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_DEBUG_OUTPUT);
 		return 1;
 	}
 
@@ -264,11 +267,12 @@ namespace ldare
 
 		// top left
 		vertexData->color = sprite.color;
-		vertexData->position = Vec3 {sprite.position.x, sprite.position.y + sprite.height, sprite.position.z};
+		vertexData->position = Vec3{sprite.position.x, sprite.position.y + sprite.height, sprite.position.z};
 		vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
 		vertexData++;
 
 		// bottom left
+		vertexData->color = sprite.color;
 		vertexData->position = sprite.position;
 		vertexData->uv = { uvRect.x, uvRect.y};
 		vertexData++;
@@ -292,7 +296,7 @@ namespace ldare
 
 	void flush()
 	{
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
 	void end()

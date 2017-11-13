@@ -10,15 +10,14 @@ layout (std140) uniform ldare_t
 } ldare;
 
 uniform sampler2D mainTexture;
-
 vec2 coord = vec2( texCoord.x, texCoord.y);
 
 void main() 
 {
-	color = texture(mainTexture, coord);
-	//TODO: this is a hack! Remove this when we properly order our drawcalls!
-	if (color.xyz==vec3(0)) discard;
+	 vec4 textureColor = texture(mainTexture, coord);
+	 //color = vec4(fragColor.rgb, textureColor.a);
 
-	color = vec4(1.0, 1.0, 1.0, 0.0);
+	 color = vec4(fragColor.rgb, fragColor.a * textureColor.a);
+	 //color = (fragColor.rgba) * textureColor.a;
 }
 

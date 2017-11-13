@@ -50,6 +50,7 @@ extern "C"
 	 PFNGLGETUNIFORMBLOCKINDEXPROC glGetUniformBlockIndex;
 	 PFNGLSCISSORPROC glScissor;
 	 PFNGLDEPTHFUNCPROC glDepthFunc;
+	 PFNGLBLENDFUNCPROC glBlendFunc;
 
 }
 #endif // _LDARE_GL__

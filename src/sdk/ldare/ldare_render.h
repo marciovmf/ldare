@@ -15,7 +15,7 @@ namespace ldare
 	struct Sprite
 	{
 		Vec3 position;
-		Vec3 color;
+		Vec4 color;
 		float width;
 		float height;
 		Rectangle srcRect;
@@ -24,7 +24,7 @@ namespace ldare
 	struct SpriteVertexData
 	{
 		Vec3 position;
-		Vec3 color;
+		Vec4 color;
 		Vec2 uv;
 	};
 

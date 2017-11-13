@@ -298,6 +298,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	FETCH_GL_FUNC(PFNGLGETUNIFORMBLOCKINDEXPROC, glGetUniformBlockIndex);
 	FETCH_GL_FUNC(PFNGLSCISSORPROC, glScissor);
 	FETCH_GL_FUNC(PFNGLDEPTHFUNCPROC, glDepthFunc);
+	FETCH_GL_FUNC(PFNGLBLENDFUNCPROC, glBlendFunc);
 #undef FETCH_GL_FUNC
 
 	if (!success)
