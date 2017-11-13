@@ -15,8 +15,16 @@ using namespace ldare;
 #define GAME_RESOLUTION_WIDTH 896
 #define GAME_RESOLUTION_HEIGHT 896
 #define FULLSCREEN 0
-static ldare::GameContext gameContext;
 
+#define LEVEL_Z 0.1
+#define HERO_Z 0.2
+#define FONT_Z 0.3
+//#define FONT_NAME "./assets/Caviar Dreams.bmp"
+#define FONT_NAME "./assets/Capture it.bmp"
+//#define FONT_NAME "./assets/Roboto Thin.bmp"
+#define FONT_COLOR Vec4{0.3f, 0.6f, 0.8f, 1.0f}
+
+static ldare::GameContext gameContext;
 // sprite rects
 static float spriteSize = 128.0f;
 static Rectangle srcWall = {7 * spriteSize, 0, spriteSize, spriteSize};
@@ -64,6 +72,8 @@ static Rectangle _srcWalkDown[] =
 	{ 2 * spriteSize, 2 * spriteSize, spriteSize, spriteSize},
 };
 
+static Rectangle _testRect;
+
 // hero animations
 static struct GameLevel
 {
@@ -90,6 +100,7 @@ struct GameData
 {
 	Vec2 resolution;
 	Sprite hero;
+	Sprite fontSprite;
 	Material material;
 	Material fontMaterial;
 	float x=0;
@@ -110,7 +121,7 @@ void loadLevel(GameLevel& gameLevel, Sprite* sprites)
 		{
 			uint32 e = (uint32) ( i + j* gameLevel.width);
 			Sprite& sprite = sprites[e];
-			sprite.position = { stepX * i,  GAME_RESOLUTION_HEIGHT - stepY - (stepY * j), 0};
+			sprite.position = { stepX * i,  GAME_RESOLUTION_HEIGHT - stepY - (stepY * j), LEVEL_Z};
 			sprite.width = stepX;
 			sprite.height = stepY;
 			switch (gameLevel.map[e])
@@ -165,7 +176,7 @@ void gameStart(void* mem, GameApi& gameApi)
 		gameMemory->fontMaterial = gameApi.asset.loadMaterial(
 				(const char*)"./assets/font.vert", 
 				(const char*) "./assets/font.frag", 
-				(const char*)"./assets/Capture it.bmp");
+				(const char*) FONT_NAME);
 	}
 
 	// Set up walk animation
@@ -190,15 +201,30 @@ void gameStart(void* mem, GameApi& gameApi)
 
 	// Setup hero and box
 	Sprite sprite;
-	sprite.color = Vec3{0.0f, 0.0f, 1.0f};
+	sprite.color = Vec4{1.0f, 0.0f, 1.0f, 0.0f};
 	sprite.width = GAME_RESOLUTION_WIDTH/_gameLevel.width;
 	sprite.height= GAME_RESOLUTION_HEIGHT/_gameLevel.height;
 	sprite.srcRect = srcHero;
-	sprite.position = Vec3{3 * 128.0f , 128.0f * 3,0.0f};
+	sprite.position = Vec3{3 * 128.0f , 128.0f * 3, HERO_Z};
 	gameMemory->hero = sprite;
 	gameMemory->box = sprite;
-	gameMemory->box.position = {5 * sprite.width, 2 * sprite.height, 0.0f };
+	gameMemory->box.position = {5 * sprite.width, 2 * sprite.height, 1.0f };
 	gameMemory->box.srcRect = srcBox;
+
+  // Setup font sprite
+	float fontRatio = gameMemory->fontMaterial.texture.width / gameMemory->fontMaterial.texture.height;
+	sprite = { };
+	sprite.color = FONT_COLOR;
+	sprite.width = gameMemory->fontMaterial.texture.width;
+	sprite.height = gameMemory->fontMaterial.texture.height;	
+	sprite.position = Vec3{0, 0, FONT_Z};
+	_testRect = {0, 0,	
+		gameMemory->fontMaterial.texture.width,	
+		gameMemory->fontMaterial.texture.height
+	};
+	sprite.srcRect = _testRect;
+
+	gameMemory->fontSprite = sprite;
 
 	gameMemory->step =  GAME_RESOLUTION_WIDTH/_gameLevel.width;
 }
@@ -219,9 +245,8 @@ void drawLevel(GameApi& gameApi, Sprite* sprites, uint32 count)
 //---------------------------------------------------------------------------
 Animation* startAnimation(Animation& animation)
 {
-		// force start of 1st frame
-		animation.elapsedTime = animation.numFrames - 1;
-		animation.currentFrameIndex = animation.timePerFrame;
+		animation.elapsedTime = 0;
+		animation.currentFrameIndex = 0;
 		return &animation;
 }
 
@@ -357,6 +382,8 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		LogInfo("%f %f", x, y);
 		gameMemory->hero.position.x = x;
 		gameMemory->hero.position.y = y;
+		gameMemory->hero.position.z = HERO_Z;
+
 		gameMemory->hero.srcRect = updateAnimation(*currentAnimation, speed);
 	}
 	else
@@ -374,16 +401,24 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	if (x < 0) x = GAME_RESOLUTION_WIDTH;
 
 
+	gameMemory->fontSprite.color = {
+   2 *x / GAME_RESOLUTION_WIDTH,
+	2 * y / GAME_RESOLUTION_HEIGHT,
+  2 * x / GAME_RESOLUTION_WIDTH - y / GAME_RESOLUTION_HEIGHT,
+	 0.8
+	};
+
 	gameApi.spriteBatch.flush();
+
+	// Opaque objects first
 	gameApi.spriteBatch.begin(gameMemory->material);
-		drawLevel(gameApi, gameMemory->tiles, _gameLevel.width * _gameLevel.height);
-		gameApi.spriteBatch.submit(gameMemory->hero);
+		//drawLevel(gameApi, gameMemory->tiles, _gameLevel.width * _gameLevel.height);
 		gameApi.spriteBatch.submit(gameMemory->box);
+		gameApi.spriteBatch.submit(gameMemory->hero);
 	gameApi.spriteBatch.end();
 
 	gameApi.spriteBatch.begin(gameMemory->fontMaterial);
-		drawLevel(gameApi, gameMemory->tiles, _gameLevel.width * _gameLevel.height);
-		gameApi.spriteBatch.submit(gameMemory->hero);
+		gameApi.spriteBatch.submit(gameMemory->fontSprite);
 	gameApi.spriteBatch.end();
 
 }
