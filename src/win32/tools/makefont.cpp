@@ -59,7 +59,7 @@ static HGDIOBJ loadFontFile(HDC dc, char* fontFile,  char* fontName, uint32 font
 
 	LOGFONT logFont =
 	{
-		fontSize,//-MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), fontSize),
+		-MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), 72),
 		0,
 		0,
 		0,
