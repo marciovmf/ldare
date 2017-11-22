@@ -2,6 +2,8 @@
  * win32_platform.h
  * Win32 implementation for ldare platform functions
  */
+#include <XAudio2.h> 							// Default Windows SDK XAudio header
+#include "win32_ldare_xaudio2.h" 	// Custom XAudio header form old XAudio <= 2.7
 
 #define XINPUT_GAMEPAD_DPAD_UP	0x0001
 #define XINPUT_GAMEPAD_DPAD_DOWN	0x0002
@@ -151,7 +153,7 @@ namespace ldare
 			return ERROR_DEVICE_NOT_CONNECTED;
 		}
 
-//#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
+		//#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
 #define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  9000
 #define XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE 8689
 #define XINPUT_GAMEPAD_TRIGGER_THRESHOLD    30
@@ -161,9 +163,10 @@ namespace ldare
 		//---------------------------------------------------------------------------
 		// Initializes XInput
 		//---------------------------------------------------------------------------
+
 		void Win32_initXInput()
 		{
-			char* xInputDllName = "xinput1_1.dll"; 
+			char* xInputDllName = "xinput1_3.dll";
 			HMODULE hXInput = LoadLibraryA(xInputDllName);
 			if (!hXInput)
 			{				
@@ -173,20 +176,86 @@ namespace ldare
 
 			if (!hXInput)
 			{
-				xInputDllName = "xinput1_3.dll";
+				xInputDllName = "xinput1_1.dll";
 				hXInput = LoadLibraryA(xInputDllName);
 			}
 
 			if (!hXInput)
 			{
-				LogError("could not initialize xinput. No suitable xinput dll found");
+				LogError("could not initialize XInput. No suitable xinput dll found.");
 				return;
 			}
 
-			LogInfo("Initializing xinput %s", xInputDllName);
+			LogInfo("XInput %s initialized.", xInputDllName);
 			//get xinput function pointers
 			XInputGetState = (XInputGetStateFunc*) GetProcAddress(hXInput, "XInputGetState");
 			if (!XInputGetState) XInputGetState = XInputGetStateStub;
+		}
+
+		//---------------------------------------------------------------------------
+		// Initializes XAudio2
+		//--------------------------------------------------------------------------- 
+
+		typedef decltype(&XAudio2Create) XAudio2CreateFunc;
+
+		void Win32_initXAudio()
+		{
+			XAudio2CreateFunc ptrXAudio2Create = nullptr;
+			IXAudio2* pXAudio2;
+			IXAudio2_7* pXAudio2_7 ;
+			const char* ErrorInitializingMsg = "Error initializing %s.";
+			bool usingLegacyXAudio = false;
+
+			// XAudio2.8
+			char* xAudioDllName = "xaudio2_8.dll"; 
+			HMODULE xAudioLib = LoadLibraryA(xAudioDllName);
+			if (!xAudioLib)
+			{
+				xAudioDllName = "xaudio2_9.dll";
+				xAudioLib = LoadLibraryA(xAudioDllName);
+			}
+			// XAudio2.9
+			if (!xAudioLib)
+			{
+				xAudioDllName = "xaudio2_7.dll";
+				xAudioLib = LoadLibraryA(xAudioDllName);
+				usingLegacyXAudio = true;
+			}
+			// XAudio2.7 (Old creepy COM dll)
+			if (!xAudioLib)
+			{
+				LogError("could not initialize XAudio2. No suitable xinput dll found.");
+				return;
+			}
+
+			HRESULT hr;
+
+			if (usingLegacyXAudio)
+			{
+				pXAudio2_7 = InitXAudio2_7();
+				if (FAILED(pXAudio2_7))
+				{
+					LogError(ErrorInitializingMsg, xAudioDllName);
+					return;
+				}
+				pXAudio2 = (IXAudio2*) pXAudio2_7;
+			}
+			else
+			{
+				ptrXAudio2Create = (XAudio2CreateFunc) GetProcAddress(xAudioLib, "XAudio2Create");
+				hr = ptrXAudio2Create(&pXAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
+				if (FAILED(hr))
+				{
+					LogError(ErrorInitializingMsg, xAudioDllName);
+					return;
+				}
+			}
+
+			IXAudio2MasteringVoice* pMasterVoice = NULL;
+			if (FAILED(hr = pXAudio2->CreateMasteringVoice( &pMasterVoice)))
+				return;
+
+			LogInfo("XAudio2 %s initialized.", xAudioDllName);
 		}
 
 	}	// platform namespace

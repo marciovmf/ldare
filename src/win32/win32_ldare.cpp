@@ -29,6 +29,7 @@ static struct Win32_GameWindow
 	RECT windowModeRect;
 	LONG windowModeStyle;
 	bool shouldClose;
+	bool isFullScreen;
 } _gameWindow;
 
 struct Win32_GameModuleInfo
@@ -146,12 +147,27 @@ LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 			_gameWindow.shouldClose = true;	
 			break;
 
+		case WM_MOVE:
+			{			
+				// update window mode rect
+				if ( !_gameWindow.isFullScreen)
+				{
+					GetWindowRect(hwnd, &_gameWindow.windowModeRect);
+				}
+			}
+			break;
 		case WM_SIZE:
 			{
-				RECT windowRect;
-				GetClientRect(_gameWindow.hwnd,&windowRect);
-				setViewportAspectRatio(windowRect.right, 
-						windowRect.bottom, _gameContext.Resolution.width, _gameContext.Resolution.height);
+				RECT rect;
+				GetClientRect(hwnd, &rect);
+				setViewportAspectRatio(rect.right, rect.bottom, _gameContext.Resolution.width, _gameContext.Resolution.height);
+				// update window mode rect
+				if (wParam == SIZE_RESTORED && !_gameWindow.isFullScreen)
+				{
+					GetWindowRect(hwnd, &rect);
+					_gameWindow.windowModeRect.right = (uint32)LOWORD(lParam);
+					_gameWindow.windowModeRect.bottom = (uint32)HIWORD(lParam);
+				}
 				break;
 			}
 
@@ -175,11 +191,26 @@ static bool Win32_RegisterGameWindowClass(HINSTANCE hInstance, TCHAR* className)
 
 static void Win32_toggleFullScreen(Win32_GameWindow& gameWindow)
 {
-	HWND desktop = GetDesktopWindow();
-	RECT rect;
-	GetClientRect(desktop, &rect);
-	SetWindowLong(gameWindow.hwnd, GWL_STYLE, WS_POPUP);
-	SetWindowPos(gameWindow.hwnd, HWND_TOP, 0, 0, rect.right, rect.bottom, SWP_FRAMECHANGED);
+	LONG currentStyle =  GetWindowLong(gameWindow.hwnd, GWL_STYLE);
+	LONG newStyle = 0;
+	RECT newRect;
+	if (gameWindow.isFullScreen)
+	{
+		LogInfo("leaving full screen");
+		newStyle = gameWindow.windowModeStyle;
+		newRect = gameWindow.windowModeRect;
+		gameWindow.isFullScreen = false;
+	}
+	else
+	{
+		LogInfo("Entering full screen");
+		newStyle = WS_POPUP;
+		GetClientRect(GetDesktopWindow(), &newRect);
+		gameWindow.isFullScreen = true;
+	}
+
+	SetWindowLong(gameWindow.hwnd, GWL_STYLE, newStyle);
+	SetWindowPos(gameWindow.hwnd, HWND_TOP, newRect.left, newRect.top, newRect.right, newRect.bottom, SWP_SHOWWINDOW);
 }
 
 static bool Win32_CreateGameWindow(
@@ -198,12 +229,13 @@ static bool Win32_CreateGameWindow(
 			hInstance,
 			NULL);
 
-	GetClientRect(gameWindow.hwnd, &gameWindow.windowModeRect);
+	GetWindowRect(gameWindow.hwnd, &gameWindow.windowModeRect);
 	gameWindow.windowModeStyle = GetWindowLong(gameWindow.hwnd, GWL_STYLE);
 	if (!gameWindow.hwnd)
 		return false;
 
 	gameWindow.dc = GetDC(gameWindow.hwnd);
+
 	return gameWindow.dc != NULL;
 }
 
@@ -401,7 +433,13 @@ static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInp
 					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
 					int16 vkCode = msg.wParam;
 #if DEBUG
-					if (vkCode == KBD_ESCAPE)
+				if (vkCode == KBD_F12 && isDown)
+				{
+					Win32_toggleFullScreen(_gameWindow);
+					continue;
+				}
+
+				if (vkCode == KBD_ESCAPE)
 						_gameWindow.shouldClose = true;
 #endif
 					gameInput.keyboard[vkCode] = ((isDown != wasDown) << 1) | isDown;
@@ -599,6 +637,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	}
 
 	platform::Win32_initXInput();
+	platform::Win32_initXAudio();
 	initGameApi(gameApi);
 
 	// start the game
