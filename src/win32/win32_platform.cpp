@@ -206,15 +206,15 @@ namespace ldare
 			const char* ErrorInitializingMsg = "Error initializing %s.";
 			bool usingLegacyXAudio = false;
 
-			// XAudio2.8
-			char* xAudioDllName = "xaudio2_8.dll"; 
+			// XAudio2.9
+			char* xAudioDllName = "xaudio2_9.dll"; 
 			HMODULE xAudioLib = LoadLibraryA(xAudioDllName);
 			if (!xAudioLib)
 			{
-				xAudioDllName = "xaudio2_9.dll";
+				xAudioDllName = "xaudio2_8.dll";
 				xAudioLib = LoadLibraryA(xAudioDllName);
 			}
-			// XAudio2.9
+			// XAudio2.8
 			if (!xAudioLib)
 			{
 				xAudioDllName = "xaudio2_7.dll";
@@ -252,8 +252,13 @@ namespace ldare
 			}
 
 			IXAudio2MasteringVoice* pMasterVoice = NULL;
-			if (FAILED(hr = pXAudio2->CreateMasteringVoice( &pMasterVoice)))
-				return;
+
+			hr = pXAudio2->CreateMasteringVoice( &pMasterVoice);
+			if (FAILED(hr))
+			{
+					LogError("Could not init XAudio2", xAudioDllName);
+					return;
+			}
 
 			LogInfo("XAudio2 %s initialized.", xAudioDllName);
 		}

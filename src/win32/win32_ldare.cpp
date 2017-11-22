@@ -18,6 +18,7 @@
 #include <windows.h>
 #include <winuser.h>
 #include <tchar.h>
+#include <objbase.h>
 using namespace ldare;
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 #define GAME_MODULE_RELOAD_INTERVAL_SECONDS 3.0
@@ -636,6 +637,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		Win32_toggleFullScreen(_gameWindow);
 	}
 
+	CoInitialize(NULL);
 	platform::Win32_initXInput();
 	platform::Win32_initXAudio();
 	initGameApi(gameApi);
@@ -702,6 +704,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	gameModuleInfo.stop();
 	LogInfo("Finished");
+	CoUninitialize();
 	return 0;
 }
 

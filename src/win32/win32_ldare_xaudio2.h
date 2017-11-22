@@ -302,7 +302,6 @@ IXAudio2_7* InitXAudio2_7()
 	// Instantiate the appropriate XAudio2 engine
 	IXAudio2_7* pXAudio2;
 
-	CoInitialize(nullptr);
 
 #ifdef __cplusplus
 
@@ -340,7 +339,6 @@ IXAudio2_7* InitXAudio2_7()
 
 #endif // #ifdef __cplusplus
 
-	CoUninitialize();
 	return pXAudio2;
 }
 
