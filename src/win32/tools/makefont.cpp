@@ -170,7 +170,7 @@ static bool parseArgs(uint32 argc, _TCHAR** argv, FontImportInput* input)
 	input->maxLineWidth = nextPow2(atoi(argv[3])-1);
 	input->fontString = argv[4];
 	input->fontStringLen = strlen(input->fontString);
-	
+
 	// Load stuff from the TTF file
 	FontInfo fontInfo;
 	loadTTFData(input->ttfFontFile, &fontInfo);
@@ -208,7 +208,7 @@ static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 	HDC memDC =  CreateCompatibleDC(dc);
 	HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, (void**)&memory, 0, 0);
 	SelectObject(memDC, bitmap);
-	
+
 	//BitBlt(memDC, 0, 0, bitmap_dx, bitmap_dy, dc, 0, 0, SRCERASE);
 	BLENDFUNCTION blend = {};
 	blend.BlendOp = AC_SRC_OVER;
