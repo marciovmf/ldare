@@ -53,6 +53,7 @@ bool loadTTFData(const char* ttfFile, FontInfo* fontInfo)
 			fontInfo->fontFamily = getFontName( (TTFNameTableHeader*) nameTable);
 		}
 	}
+	CloseHandle(hFile);
 	delete data;
 	return fontInfo->fontFamily != nullptr;
 }
