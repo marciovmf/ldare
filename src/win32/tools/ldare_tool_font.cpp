@@ -1,5 +1,4 @@
 #include <ldare/ldare.h>
-#include "../../ldare_platform.h"
 #include "ldare_ttf.h"
 #include <windows.h>
 #include <tchar.h>
@@ -7,19 +6,24 @@
 
 using namespace std;
 
-struct FontInfo
+#define MAX_FONT_NAME_SIZE 32
+
+struct FontImportInput
 {
-	const char* fontFamily;
+	char* ttfFontFile;
+	char fontName[MAX_FONT_NAME_SIZE];
+	char* fontString;
+	uint32 fontStringLen;
+	uint32 maxLineWidth;
+	uint32 fontSize;
 };
 
-bool loadTTFData(const char* ttfFile, FontInfo* fontInfo)
+uint32 getFontName(const char* ttfFile, char* fontNameBuffer, uint32 fontNameBufferSize)
 {
 	uint32 bufferSize;
 	int8* data;
 	DWORD numBytesRead=0;
 	HANDLE hFile = CreateFile(ttfFile, GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-
-	fontInfo->fontFamily = nullptr;
 
 	// Look for HEAD table
 	if (hFile == INVALID_HANDLE_VALUE)
@@ -34,41 +38,16 @@ bool loadTTFData(const char* ttfFile, FontInfo* fontInfo)
 	ReadFile(hFile, (void*)data, bufferSize, &numBytesRead, NULL);
 	DWORD lastError = GetLastError();
 
-	TTFFileHeader *ttfHeader = (TTFFileHeader*)data;
+	const TTFNameTableHeader *nameTable = (TTFNameTableHeader*) 
+		getTTFTablePtr((const uint8*)data, TTF_NAME_TABLE);
 
-	// start of table entries
-	TTFTableEntry* tableEntry = (TTFTableEntry*) (data + sizeof(TTFFileHeader));
+	uint32 numCharacterCopied = getTTFString(nameTable, fontNameBuffer, fontNameBufferSize, 
+			TTF_NAME_FONT_FAMILY_ID);
 
-	// find name table
-	uint32 numTables = BYTESWAP16(ttfHeader->numTables);
-	int8 nameTag[4] = { 'n', 'a', 'm', 'e' };
-	for (uint32 i = 0; i < numTables; i++)
-	{
-		TTFTableEntry* entry = tableEntry;
-		tableEntry++;
-		// check entry table name
-		if (*((uint32*)nameTag) == entry->tag)
-		{
-			TTFNameTableHeader *nameTable = (TTFNameTableHeader*) (data + BYTESWAP32(entry->offset));
-			fontInfo->fontFamily = getFontName( (TTFNameTableHeader*) nameTable);
-		}
-	}
 	CloseHandle(hFile);
 	delete data;
-	return fontInfo->fontFamily != nullptr;
+	return numCharacterCopied;
 }
-
-struct FontImportInput
-{
-	char* ttfFontFile;
-	const char* fontName;
-	char* fontString;
-	uint32 fontStringLen;
-	uint32 maxLineWidth;
-	uint32 fontSize;
-};
-
-static char bmpFileName[128];
 
 static void createBitmapInfo(BITMAPINFO* bmpInfo, uint32 width, uint32 height)
 {
@@ -172,11 +151,8 @@ static bool parseArgs(uint32 argc, _TCHAR** argv, FontImportInput* input)
 	input->fontString = argv[4];
 	input->fontStringLen = strlen(input->fontString);
 
-	// Load stuff from the TTF file
-	FontInfo fontInfo;
-	loadTTFData(input->ttfFontFile, &fontInfo);
-	input->fontName = fontInfo.fontFamily;
-
+	// Load font name from the TTF file
+	getFontName(input->ttfFontFile, input->fontName, MAX_FONT_NAME_SIZE);
 	return true;
 }
 
@@ -250,14 +226,12 @@ int _tmain(int argc, _TCHAR** argv)
 		return 1; 
 	}
 
-
 	HFONT hFont = (HFONT)loadFontFile(dc, input.ttfFontFile, input.fontName, input.fontSize);
 	if (!hFont)
 	{
 		LogInfo("Could not load font file %s", input.ttfFontFile);
 		return 1;
 	}
-
 
 	TEXTMETRIC fontMetrics;
 	if (!GetTextMetrics(dc, &fontMetrics))
@@ -304,7 +278,7 @@ int _tmain(int argc, _TCHAR** argv)
 		gliphX += gliphSize.cx + spacing;
 	}
 
-
+	char bmpFileName[128];
 	sprintf(bmpFileName, "%s.bmp", input.fontName);
 	saveBitmap(dc,rect, bmpFileName);
 	return 0;

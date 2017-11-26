@@ -3,6 +3,7 @@
 
 #include <string.h>
 
+// Byte ordering macros
 #define BYTESWAP16(value) (uint16)((((value) & 0x000000FF ) << 8) | (((value) & 0x0000FF00 ) >> 8))
 
 #define BYTESWAP32(value) \
@@ -10,6 +11,9 @@
 	 (((value) & 0x0000FF00 ) << 8)   |\
 	 (((value) & 0x00FF0000 ) >> 8)   |\
 	 (((value) & 0xFF000000 ) >> 24))
+
+// 'name' header 
+#define TTF_NAME_TABLE 0x656d616e
 
 struct TTFTableEntry
 {
@@ -46,40 +50,71 @@ struct TTFNameRecord
 	uint16	offset;
 };
 
+// String ids for getTTFString()
 #define TTF_NAME_FONT_FAMILY_ID 1
 #define TTF_NAME_UNIQUE_FONT_ID 3
 
-#define TTF_NAMES_UNLOCALIZED 0
-#define TTF_NAMES_LOCALIZED 1
 
 #define MAX_TTF_FONT_NAM_LEN 32
 static int8 _fontName[MAX_TTF_FONT_NAM_LEN];
 
-const char* getFontName(TTFNameTableHeader *nameHeader)	
+uint32 getTTFString(const TTFNameTableHeader *nameHeader, 
+		char* outputBuffer, 
+		uint32 bufferSize, 
+		uint32 stringId)	
 {
-	if ( nameHeader->format != TTF_NAMES_UNLOCALIZED)
+	// 0 means unlocalized strings, 1 means localized strings
+	if ( nameHeader->format != 0)
 	{
 		LogError("Localized TTF files not supported yet."); 
-		return nullptr;
+		return 0;
 	}
 
+	uint32 stringSize = 0;
 	uint32 numStrings = BYTESWAP16(nameHeader->count);
 	TTFNameRecord* nameRecord = (TTFNameRecord*) ((uint8*)nameHeader + sizeof(TTFNameTableHeader));
-	uint8* stringStorageStart = ((uint8*)nameHeader) +  sizeof(TTFNameTableHeader) + sizeof(TTFNameRecord) * numStrings;
+	uint8* stringStorageStart = 
+		((uint8*)nameHeader) + sizeof(TTFNameTableHeader) + sizeof(TTFNameRecord) * numStrings;
+
 	for ( uint32 i = 0; i < numStrings; i++)
 	{
-		if ( BYTESWAP16(nameRecord->nameID) == TTF_NAME_FONT_FAMILY_ID)
+		if ( BYTESWAP16(nameRecord->nameID) == stringId)
 		{
-			strncpy((char*)_fontName, 
-					(const char*) (stringStorageStart + BYTESWAP16(nameRecord->offset)), 
-					BYTESWAP16(nameRecord->length));
 
+			stringSize = MIN(BYTESWAP16(nameRecord->length), bufferSize);
+
+			strncpy(outputBuffer, (const char*) (stringStorageStart + BYTESWAP16(nameRecord->offset)), stringSize);
 			break;
 		}
 		nameRecord++;
 	}
-	return (const char*) _fontName;
+	return stringSize;
 }
 
+void* getTTFTablePtr(const uint8* data, uint32 tableName)
+{
+	// Look for HEAD table
+	TTFFileHeader *ttfHeader = (TTFFileHeader*)data;
+
+	// start of table entries
+	TTFTableEntry* tableEntry = (TTFTableEntry*) (data + sizeof(TTFFileHeader));
+
+	// find name table
+	uint32 numTables = BYTESWAP16(ttfHeader->numTables);
+	//int8 nameTag[4] = { 'n', 'a', 'm', 'e' };
+	for (uint32 i = 0; i < numTables; i++)
+	{
+		TTFTableEntry* entry = tableEntry;
+		tableEntry++;
+		// check entry table name
+		//if (*((uint32*)nameTag) == entry->tag)
+		if (tableName == entry->tag)
+		{
+			return (void*)(data + BYTESWAP32(entry->offset));
+		}
+	}
+
+	return nullptr;
+}
 
 #endif // __LDARE_TTF__

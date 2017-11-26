@@ -41,8 +41,8 @@ engine: $(LDARE_GAME) $(LDARE_CORE) assets
 	@echo Building ldare engine...
 	cl $(LDARESRC) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) /link /subsystem:console $(LIBS)
 
-tool: src\win32\tools\makefont.cpp
-	cl src\win32\tools\makefont.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\  $(CFLAGS) $(LINKFLAGS)
+tool: src\win32\tools\ldare_tool_font.cpp
+	cl src\win32\tools\ldare_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\  $(CFLAGS) $(LINKFLAGS)
 
 
 clean:

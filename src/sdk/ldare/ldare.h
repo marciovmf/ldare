@@ -38,6 +38,9 @@ typedef uint64_t uint64;
 #define MEGABYTE(value) (size_t) (KILOBYTE(value) * 1024LL)
 #define GIGABYTE(value) (size_t) (MEGABYTE(value) * 1024LL)
 
+#define MAX(a,b) ((a) > (b) ? a : b)
+#define MIN(a,b) ((a) < (b) ? a : b)
+
 //sdk includes
 #include "ldare_math.h"
 #include "ldare_input.h"
