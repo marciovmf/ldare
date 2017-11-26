@@ -1,0 +1,19 @@
+//TODO list 
+src\ldare_asset.cpp:57 - //TODO:  implement this with SIMD to make it faster 
+src\ldare_memory.cpp:33 - //TODO:  include a member in HEAP for counting the total wasted memory ? 
+src\ldare_renderer_gl.cpp:149 - //TODO:  remove this when we have a proper way to reuse file I/O memory 
+src\ldare_renderer_gl.cpp:214 - //TODO:  Marcio, this is a hack for testing stuff in 2D. Move this to material state 
+src\ldare_renderer_gl.cpp:313 - //TODO:  sort draw calls per material  
+src\ldare_renderer_gl.cpp:326 - //TODO:  make filtering paremetrizable when importing texture 
+src\sdk\ldare\ldare_asset.h:14 - //TODO:  Remove this when memory/asset manager is done 
+src\sdk\ldare\ldare_asset.h:52 - //TODO:  this is for testing only. materials will be defined by JSON file on something similar 
+src\win32\win32_ldare.cpp:75 - //TODO:  marcio, make sure executable directory is current directory. 
+src\win32\win32_ldare.cpp:483 - //TODO:  Make these calculations directly in assembly to make it faster 
+src\win32\win32_platform.cpp:99 - //TODO:  alloc memory from the proper Heap 
+ 
+//NOTE list 
+src\ldare_asset.cpp:45 - //NOTE:  compression info at https 
+src\ldare_asset.cpp:56 - //NOTE:  Pixel format in memory is ABGR. Must rearrange it as RGBA to make OpenGL happy  
+src\sdk\ldare\ldare_math.h:310 - //NOTE:  Matrix layout in memory is column major 
+ 
+//BUG list 
