@@ -263,5 +263,9 @@ namespace ldare
 			LogInfo("XAudio2 %s initialized.", xAudioDllName);
 		}
 
+		void createAudioBuffer(RIFFAudioChunk* fmt, RIFFAudioChunk* data)
+		{
+		}
+
 	}	// platform namespace
 } 	// ldare namespace

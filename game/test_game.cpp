@@ -96,6 +96,7 @@ struct GameData
 	float step;
 	Sprite tiles[50];
 	Sprite box;
+	Audio audio;
 } *gameMemory = nullptr;
 
 void loadLevel(GameLevel& gameLevel, Sprite* sprites)
@@ -161,6 +162,8 @@ void gameStart(void* mem, GameApi& gameApi)
 				(const char*)"./assets/sprite.vert", 
 				(const char*) "./assets/sprite.frag", 
 				(const char*)"./assets/sokoban/tiles.bmp");
+
+		gameApi.asset.loadAudio("/assets/audio.wav", &gameMemory->audio);
 	}
 
 	// Set up walk animation
