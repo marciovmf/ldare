@@ -96,7 +96,8 @@ struct GameData
 	float step;
 	Sprite tiles[50];
 	Sprite box;
-	Audio audio;
+	Audio audio1;
+	Audio audio2;
 } *gameMemory = nullptr;
 
 void loadLevel(GameLevel& gameLevel, Sprite* sprites)
@@ -163,7 +164,8 @@ void gameStart(void* mem, GameApi& gameApi)
 				(const char*) "./assets/sprite.frag", 
 				(const char*)"./assets/sokoban/tiles.bmp");
 
-		gameApi.asset.loadAudio("./assets/audio.wav", &gameMemory->audio);
+		gameApi.asset.loadAudio("./assets/audio1.wav", &gameMemory->audio1);
+		gameApi.asset.loadAudio("./assets/audio2.wav", &gameMemory->audio2);
 	}
 
 	// Set up walk animation
@@ -292,6 +294,15 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 
 		update = true;
 		horizontalMovement = true;
+	}
+
+	if ( input.getKeyDown(KBD_J))
+	{
+		gameApi.asset.playAudio(&gameMemory->audio1);
+	}
+	else if ( input.getKeyDown(KBD_K))
+	{
+		gameApi.asset.playAudio(&gameMemory->audio2);
 	}
 
 	// Movement RIGHT

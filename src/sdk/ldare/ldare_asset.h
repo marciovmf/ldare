@@ -23,6 +23,7 @@ namespace ldare
 	struct Audio
 	{
 		//TODO: Remove this when memory/asset manager is done
+		uint32 id;
 		void*  audioFileMemoryToRelease_;
 		size_t audioMemorySize_;
 
@@ -49,14 +50,21 @@ namespace ldare
 
 	typedef ASSET_API_LOAD_AUDIO(loadAudioFunc);
 
+#define ASSET_API_PLAY_AUDIO(name) \
+	 void name(const ldare::Audio* audio)
+
+	typedef ASSET_API_PLAY_AUDIO(playAudioFunc);
+
 	struct AssetApi
 	{
 		loadMaterialFunc* loadMaterial;
 		loadAudioFunc* loadAudio;
+		playAudioFunc* playAudio;
 	};
 
 	bool loadBitmap(const char* file, ldare::Bitmap* bitmap);
 	bool loadAudio(const char* file, ldare::Audio* audio);
+	void playAudio(const ldare::Audio* audio);
 	void freeBitmap(ldare::Bitmap* bitmap);
 } // namespace ldare
 

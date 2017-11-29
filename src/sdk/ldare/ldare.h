@@ -7,6 +7,7 @@
 #ifndef __LDARE_H__
 #define __LDARE_H__
 
+//TODO: Make LogMsg macro behave like a single line instruction for using with 'blockless ifs'
 #ifdef DEBUG
 #	include <stdio.h>
 #	define LogMsg(prefix, msg, ...) printf("\n%s - ", prefix); printf(msg, __VA_ARGS__); printf("\n\t%s:%d", __FILE__, __LINE__)

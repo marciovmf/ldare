@@ -197,13 +197,13 @@ namespace ldare
 		//--------------------------------------------------------------------------- 
 
 		typedef decltype(&XAudio2Create) XAudio2CreateFunc;
-		static IXAudio2_7* pXAudio2_7;
+		static IXAudio2* pXAudio2;
 
 		void Win32_initXAudio()
 		{
 			XAudio2CreateFunc ptrXAudio2Create = nullptr;
-			IXAudio2* pXAudio2;
-			//IXAudio2_7* pXAudio2_7;
+			//IXAudio2* pXAudio2;
+			IXAudio2_7* pXAudio2_7;
 			const char* ErrorInitializingMsg = "Error initializing %s.";
 			bool usingLegacyXAudio = false;
 
@@ -265,31 +265,82 @@ namespace ldare
 		}
 
 		//TODO: This is a test. We can play only on sound at a time for now. Make it property after lundum dare. 
-		static WAVEFORMATEXTENSIBLE wfx = {};
-		static XAUDIO2_BUFFER buffer = {};
+		//static WAVEFORMATEXTENSIBLE wfx = {};
+		//static XAUDIO2_BUFFER buffer = {};
+		//static IXAudio2SourceVoice* pSourceVoice;
 
-		void createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
+		struct BoundAudio
 		{
+			XAUDIO2_BUFFER buffer;
+			IXAudio2SourceVoice* voice;
+		};
+
+
+#define LDARE_MAX_AUDIO 32
+		static BoundAudio audioList[LDARE_MAX_AUDIO];
+		static uint32 numAudios = 0;
+
+		// Returns the audio buffer id
+		uint32 createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
+		{
+			BoundAudio* audio = nullptr;
+			uint32 audioId = numAudios;
+
+			if (numAudios < LDARE_MAX_AUDIO)
+			{
+				// Get an audio buffer from the list
+				audio = &(audioList[audioId]);
+				numAudios++;
+			}
+			else
+			{
+				return -1;
+			}
+
 			// set format
-			wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
+		 	WAVEFORMATEXTENSIBLE wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
 			// set data
 			BYTE *pDataBuffer = (BYTE*) data;
 
 			// set XAUDIO2 instructions on what and how to play
-			buffer.AudioBytes = dataSize;
-			buffer.pAudioData = (BYTE*) data;
-			buffer.Flags = XAUDIO2_END_OF_STREAM;
+			audio->buffer.AudioBytes = dataSize;
+			audio->buffer.pAudioData = (BYTE*) data;
+			audio->buffer.Flags = XAUDIO2_END_OF_STREAM;
 
-			IXAudio2SourceVoice* pSourceVoice;
+			// IXAudio2SourceVoice* pSourceVoice;
 			HRESULT hr;
-			if (FAILED(hr = pXAudio2_7->CreateSourceVoice(&pSourceVoice, (WAVEFORMATEX*)&wfx)))
+			if (FAILED(hr = pXAudio2->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx)))
 				LogError("Error creating source voice");
 
-			if( FAILED(hr = pSourceVoice->SubmitSourceBuffer( &buffer ) ) )
-				LogError("Error submitting audio buffer");
+		//	if( FAILED(hr = pSourceVoice->SubmitSourceBuffer( &buffer ) ) )
+		//		LogError("Error submitting audio buffer");
 
-			if ( FAILED(hr = pSourceVoice->Start( 0 ) ) )
-				LogError("Error playing audio");
+		//	if ( FAILED(hr = pSourceVoice->Start( 0 ) ) )
+		//		LogError("Error playing audio");
+		//
+			return audioId; 
 		}
+
+
+		void playAudio(uint32 audioBufferId)
+		{
+			if (numAudios >= LDARE_MAX_AUDIO || numAudios <= 0)
+				return;
+
+			BoundAudio* audio = &(audioList[audioBufferId]);
+			HRESULT hr = audio->voice->SubmitSourceBuffer(&audio->buffer);
+
+			if (hr < 0) 
+			{
+				LogError("Error %x submitting audio buffer", hr);
+			}
+
+			hr = audio->voice->Start(0);
+			if (hr < 0)
+			{
+				LogError("Error %x playing audio", hr);
+			}
+		}
+
 	}	// platform namespace
 } 	// ldare namespace

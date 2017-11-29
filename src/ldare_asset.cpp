@@ -157,8 +157,13 @@ namespace ldare
 			return false;
 		}
 
-		ldare::platform::createAudioBuffer(fmt, fmtSize, data, dataSize);
+		audio->id = ldare::platform::createAudioBuffer(fmt, fmtSize, data, dataSize);
 		return true;
+	}
+
+	void playAudio(const ldare::Audio* audio)
+	{
+		ldare::platform::playAudio(audio->id);
 	}
 
 } // namespace ldare
