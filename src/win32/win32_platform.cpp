@@ -197,12 +197,13 @@ namespace ldare
 		//--------------------------------------------------------------------------- 
 
 		typedef decltype(&XAudio2Create) XAudio2CreateFunc;
+		static IXAudio2_7* pXAudio2_7;
 
 		void Win32_initXAudio()
 		{
 			XAudio2CreateFunc ptrXAudio2Create = nullptr;
 			IXAudio2* pXAudio2;
-			IXAudio2_7* pXAudio2_7 ;
+			//IXAudio2_7* pXAudio2_7;
 			const char* ErrorInitializingMsg = "Error initializing %s.";
 			bool usingLegacyXAudio = false;
 
@@ -263,9 +264,32 @@ namespace ldare
 			LogInfo("XAudio2 %s initialized.", xAudioDllName);
 		}
 
-		void createAudioBuffer(RIFFAudioChunk* fmt, RIFFAudioChunk* data)
-		{
-		}
+		//TODO: This is a test. We can play only on sound at a time for now. Make it property after lundum dare. 
+		static WAVEFORMATEXTENSIBLE wfx = {};
+		static XAUDIO2_BUFFER buffer = {};
 
+		void createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
+		{
+			// set format
+			wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
+			// set data
+			BYTE *pDataBuffer = (BYTE*) data;
+
+			// set XAUDIO2 instructions on what and how to play
+			buffer.AudioBytes = dataSize;
+			buffer.pAudioData = (BYTE*) data;
+			buffer.Flags = XAUDIO2_END_OF_STREAM;
+
+			IXAudio2SourceVoice* pSourceVoice;
+			HRESULT hr;
+			if (FAILED(hr = pXAudio2_7->CreateSourceVoice(&pSourceVoice, (WAVEFORMATEX*)&wfx)))
+				LogError("Error creating source voice");
+
+			if( FAILED(hr = pSourceVoice->SubmitSourceBuffer( &buffer ) ) )
+				LogError("Error submitting audio buffer");
+
+			if ( FAILED(hr = pSourceVoice->Start( 0 ) ) )
+				LogError("Error playing audio");
+		}
 	}	// platform namespace
 } 	// ldare namespace

@@ -163,7 +163,7 @@ void gameStart(void* mem, GameApi& gameApi)
 				(const char*) "./assets/sprite.frag", 
 				(const char*)"./assets/sokoban/tiles.bmp");
 
-		gameApi.asset.loadAudio("/assets/audio.wav", &gameMemory->audio);
+		gameApi.asset.loadAudio("./assets/audio.wav", &gameMemory->audio);
 	}
 
 	// Set up walk animation

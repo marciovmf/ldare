@@ -23,6 +23,19 @@ struct BITMAP_FILE_HEADER
 	uint32	ColorsUsed;   		//* Number of colors in the image */
 	uint32	ColorsImportant;	//* Minimum number of important colors */
 };
+
+struct RIFFAudioHeaderChunk
+{
+	uint32 signature;
+	uint32 chunkSize;
+	uint32 chunkType;
+};
+
+struct RIFFAudioChunk
+{
+	uint32 signature;
+	uint32 chunkSize;
+};
 #ifdef _MSC_VER
 #pragma pack(pop)
 #endif
@@ -31,25 +44,9 @@ struct BITMAP_FILE_HEADER
 // WAV file format specifics
 //---------------------------------------------------------------------------
 #define RIFF_FORMAT_WAVE 0x45564157
+#define RIFF_FOURCC_RIFF 0x46464952
 #define RIFF_FOURCC_FMT 0x20746d66
 #define RIFF_FOURCC_DATA 0x61746164
-
-struct RIFFAudioHeaderChunk
-{
-	uint32 signature;
-	uint32 chunkSize;
-	uint32 chunkType;
-	uint8* data;
-};
-
-struct RIFFAudioChunk
-{
-	uint32 signature;
-	uint32 chunkSize;
-	uint32 chunkType;
-	uint8* data;
-};
-
 namespace ldare
 {
 	//---------------------------------------------------------------------------
@@ -106,47 +103,61 @@ namespace ldare
 	//---------------------------------------------------------------------------
 	// Audio loading
 	//---------------------------------------------------------------------------
-	static bool findAudioChunk(RIFFAudioHeaderChunk& riffHeader, uint32 fourcc, RIFFAudioChunk* chunk)
+	static void* findAudioChunk(void* riffFileData, uint32 riffDataSize, uint32 fourcc, uint32* outSize)
 	{
-		uint8* data = riffHeader.data;
-		chunk = (RIFFAudioChunk*) data;
-		bool endOfBuffer = false;
+		*outSize = 0;
+		uint8* data = (uint8*) riffFileData;
+		uint8* endOfBuffer = data + riffDataSize;
 
-		while (!endOfBuffer)
+		while ( data < endOfBuffer)
 		{
-			if (chunk->signature == fourcc)
+			RIFFAudioChunk *chunk = (RIFFAudioChunk*) data;
+			if ( chunk->signature == fourcc)
 			{
-				return true;
+				*outSize = chunk->chunkSize;
+				return data + sizeof(RIFFAudioChunk);
 			}
-			data += chunk->chunkSize;
-			endOfBuffer = data - riffHeader.data >= riffHeader.chunkSize;
+			data += chunk->chunkSize + sizeof(RIFFAudioChunk);
 		}
-
-		return false;
+		return nullptr;
 	}
 
 	bool loadAudio(const char* file, ldare::Audio* audio)
 	{
 		audio->audioFileMemoryToRelease_ = ldare::platform::loadFileToBuffer(file, (size_t*) &audio->audioMemorySize_);
 
-		if (! audio->audioFileMemoryToRelease_ || audio->audioMemorySize_ == 0) { return false; }
+		if (! audio->audioFileMemoryToRelease_ || audio->audioMemorySize_ == 0)
+			return false; 
 
 		RIFFAudioHeaderChunk* riffHeader = (RIFFAudioHeaderChunk*) audio->audioFileMemoryToRelease_;
-		riffHeader->data = (uint8*)(sizeof(RIFFAudioHeaderChunk) - sizeof(uint32*));
+		void* riffData = ((uint8*)audio->audioFileMemoryToRelease_ + sizeof(RIFFAudioHeaderChunk));
 
 		//TODO: check for RIFF signature and type here!
+		if (riffHeader->signature != RIFF_FOURCC_RIFF || riffHeader->chunkType != RIFF_FORMAT_WAVE)
+		{
+			LogError("Invalid wave file");
+			//TODO: Free file memory here!
+		}
 
 		// find 'fmt' chunk
-		uint32 FOURCCfmt = 0;
-		RIFFAudioChunk fmtChunk;
-		findAudioChunk(*riffHeader, FOURCCfmt, &fmtChunk);
+		uint32 fmtSize;
+		void* fmt = findAudioChunk(riffData, riffHeader->chunkSize, RIFF_FOURCC_FMT, &fmtSize);
+		if ( fmt == nullptr) 
+		{
+			LogError("Error loading wave format table");
+			return false;
+		}
 
 		// find 'data' chunk
-		uint32 FOURCCdata = 0;
-		RIFFAudioChunk dataChunk;
-		findAudioChunk(*riffHeader, FOURCCdata, &dataChunk);
+		uint32 dataSize;
+		void* data = findAudioChunk(riffData, riffHeader->chunkSize, RIFF_FOURCC_DATA, &dataSize);
+		if ( data == nullptr) 
+		{
+			LogError("Error loading wave data table");
+			return false;
+		}
 
-		//ldare::platform::createAudioBuffer(
+		ldare::platform::createAudioBuffer(fmt, fmtSize, data, dataSize);
 		return true;
 	}
 
