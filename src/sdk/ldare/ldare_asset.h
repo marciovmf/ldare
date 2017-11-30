@@ -65,7 +65,7 @@ namespace ldare
 	bool loadBitmap(const char* file, ldare::Bitmap* bitmap);
 	bool loadAudio(const char* file, ldare::Audio* audio);
 	void playAudio(const ldare::Audio* audio);
-	void freeBitmap(ldare::Bitmap* bitmap);
+	void freeAsset(void* memory, size_t size);
 } // namespace ldare
 
 #endif // __LDARE_ASSET__

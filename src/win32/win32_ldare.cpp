@@ -477,7 +477,7 @@ static inline void Win32_processGamepadInput(ldare::Input& gameInput)
 	// get gamepad input
 	for(int16 gamepadIndex = 0; gamepadIndex < MAX_GAMEPADS; gamepadIndex++)
 	{
-		XINPUT_STATE gamepadState;
+		ldare::platform::XINPUT_STATE gamepadState;
 		Gamepad& gamepad = gameInput.gamepad[gamepadIndex];
 
 		// ignore unconnected controllers
@@ -589,7 +589,6 @@ static void initGameApi(ldare::GameApi& gameApi)
 	// init asset api
 	gameApi.asset.loadMaterial = ldare::loadMaterial;
 	gameApi.asset.loadAudio = ldare::loadAudio;
-	gameApi.asset.playAudio = ldare::playAudio;
 }
 
 //---------------------------------------------------------------------------
@@ -659,6 +658,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	{
 		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
 		gameTimer.thisFrameTime = platform::getTicks();
+
 
 #if DEBUG
 		// Check for new game DLL every 180 frames

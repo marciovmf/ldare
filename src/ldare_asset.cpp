@@ -95,9 +95,9 @@ namespace ldare
 		return true;
 	}
 
-	void freeBitmap(ldare::Bitmap* bitmap)
+	void freeAsset(void* memory, size_t size)
 	{
-		ldare::platform::memoryFree(bitmap->bmpFileMemoryToRelease_, bitmap->bmpMemorySize_);
+		ldare::platform::memoryFree(memory, size);
 	}
 
 	//---------------------------------------------------------------------------

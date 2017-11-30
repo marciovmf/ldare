@@ -20,27 +20,47 @@
 #define XINPUT_GAMEPAD_X	0x4000
 #define XINPUT_GAMEPAD_Y	0x8000
 
-typedef struct _XINPUT_GAMEPAD 
-{
-	WORD  wButtons;
-	BYTE  bLeftTrigger;
-	BYTE  bRightTrigger;
-	SHORT sThumbLX;
-	SHORT sThumbLY;
-	SHORT sThumbRX;
-	SHORT sThumbRY;
-} XINPUT_GAMEPAD, *PXINPUT_GAMEPAD;
 
-typedef struct _XINPUT_STATE 
-{
-	DWORD dwPacketNumber;
-	XINPUT_GAMEPAD Gamepad;
-} XINPUT_STATE, *PXINPUT_STATE;
-
+		//#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
+#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  9000
+#define XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE 8689
+#define XINPUT_GAMEPAD_TRIGGER_THRESHOLD    30
+#define XINPUT_MAX_AXIS_VALUE 32767
+#define XINPUT_MIN_AXIS_VALUE -32768
+#define XINPUT_MAX_TRIGGER_VALUE 255
+	
 namespace ldare 
 {
 	namespace platform 
 	{
+		//---------------------------------------------------------------------------
+		// Input specific structures and
+		//---------------------------------------------------------------------------
+		typedef struct _XINPUT_GAMEPAD 
+		{
+			WORD  wButtons;
+			BYTE  bLeftTrigger;
+			BYTE  bRightTrigger;
+			SHORT sThumbLX;
+			SHORT sThumbLY;
+			SHORT sThumbRX;
+			SHORT sThumbRY;
+		} XINPUT_GAMEPAD, *PXINPUT_GAMEPAD;
+
+		typedef struct _XINPUT_STATE 
+		{
+			DWORD dwPacketNumber;
+			XINPUT_GAMEPAD Gamepad;
+		} XINPUT_STATE, *PXINPUT_STATE;
+
+#define XINPUT_GET_STATE_FUNC(name) DWORD name(DWORD dwUserIndex, XINPUT_STATE *pState)
+		typedef XINPUT_GET_STATE_FUNC(XInputGetStateFunc);
+		XInputGetStateFunc* XInputGetState = nullptr;
+		XINPUT_GET_STATE_FUNC(XInputGetStateStub)
+		{
+			return ERROR_DEVICE_NOT_CONNECTED;
+		}
+
 		static struct Win32TimerData
 		{
 			LARGE_INTEGER ticksPerSecond;
@@ -144,22 +164,6 @@ namespace ldare
 			return deltaTime;
 		}
 
-
-#define XINPUT_GET_STATE_FUNC(name) DWORD name(DWORD dwUserIndex, XINPUT_STATE *pState)
-		typedef XINPUT_GET_STATE_FUNC(XInputGetStateFunc);
-		XInputGetStateFunc* XInputGetState = nullptr;
-		XINPUT_GET_STATE_FUNC(XInputGetStateStub)
-		{
-			return ERROR_DEVICE_NOT_CONNECTED;
-		}
-
-		//#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
-#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  9000
-#define XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE 8689
-#define XINPUT_GAMEPAD_TRIGGER_THRESHOLD    30
-#define XINPUT_MAX_AXIS_VALUE 32767
-#define XINPUT_MIN_AXIS_VALUE -32768
-#define XINPUT_MAX_TRIGGER_VALUE 255
 		//---------------------------------------------------------------------------
 		// Initializes XInput
 		//---------------------------------------------------------------------------
@@ -192,14 +196,30 @@ namespace ldare
 			if (!XInputGetState) XInputGetState = XInputGetStateStub;
 		}
 
-		//---------------------------------------------------------------------------
-		// Initializes XAudio2
-		//--------------------------------------------------------------------------- 
 
+		//---------------------------------------------------------------------------
+		//  
+		//  Audio structures and functions
+		//
+		//---------------------------------------------------------------------------
+#define LDARE_MAX_AUDIO 32
 		typedef decltype(&XAudio2Create) XAudio2CreateFunc;
 		static IXAudio2* pXAudio2 = nullptr;
 		static IXAudio2_7* pXAudio2_7 = nullptr; 
 
+		// represents an audio buffer bound to a source voice
+		struct BoundAudio
+		{
+			XAUDIO2_BUFFER buffer;
+			IXAudio2SourceVoice* voice;
+		};
+
+		static BoundAudio _boundBufferList[LDARE_MAX_AUDIO];
+		static uint32 _boundBufferCount = 0;
+
+		//---------------------------------------------------------------------------
+		// Initializes XAudio2
+		//--------------------------------------------------------------------------- 
 		void Win32_initXAudio()
 		{
 			XAudio2CreateFunc ptrXAudio2Create = nullptr;
@@ -235,7 +255,7 @@ namespace ldare
 			{
 				//pXAudio2 = XAudio2_7Create(XAUDIO2_DEBUG_ENGINE);
 				pXAudio2_7 = XAudio2_7Create();
-				
+
 				if (FAILED(pXAudio2_7))
 				{
 					LogError(ErrorInitializingMsg, xAudioDllName);
@@ -244,9 +264,9 @@ namespace ldare
 				pXAudio2_7->StartEngine();
 #ifdef DEBUG
 				XAUDIO2_DEBUG_CONFIGURATION debug = {};
-		    debug.TraceMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS;
-		    debug.BreakMask = XAUDIO2_LOG_ERRORS;
-		    pXAudio2_7->SetDebugConfiguration( &debug, 0 );
+				debug.TraceMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS;
+				debug.BreakMask = XAUDIO2_LOG_ERRORS;
+				pXAudio2_7->SetDebugConfiguration( &debug, 0 );
 
 				pXAudio2 = (IXAudio2*) pXAudio2_7;
 #endif //DEBUG
@@ -267,38 +287,27 @@ namespace ldare
 
 			if (FAILED(hr))
 			{
-					LogError("Could not init XAudio2", xAudioDllName);
-					return;
+				LogError("Could not init XAudio2", xAudioDllName);
+				return;
 			}
 			LogInfo("XAudio2 %s initialized.", xAudioDllName);
 		}
 
-		//TODO: This is a test. We can play only on sound at a time for now. Make it property after lundum dare. 
-		//static WAVEFORMATEXTENSIBLE wfx = {};
-		//static XAUDIO2_BUFFER buffer = {};
-		//static IXAudio2SourceVoice* pSourceVoice;
 
-		struct BoundAudio
-		{
-			XAUDIO2_BUFFER buffer;
-			IXAudio2SourceVoice* voice;
-		};
-
-#define LDARE_MAX_AUDIO 32
-		static BoundAudio audioList[LDARE_MAX_AUDIO];
-		static uint32 numAudios = 0;
-
-		// Returns the audio buffer id
+		//---------------------------------------------------------------------------
+		// Plays an audio buffer
+		// Returns the created buffer id
+		//---------------------------------------------------------------------------
 		uint32 createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
 		{
 			BoundAudio* audio = nullptr;
-			uint32 audioId = numAudios;
+			uint32 audioId = _boundBufferCount;
 
-			if (numAudios < LDARE_MAX_AUDIO)
+			if (_boundBufferCount < LDARE_MAX_AUDIO)
 			{
 				// Get an audio buffer from the list
-				audio = &(audioList[audioId]);
-				numAudios++;
+				audio = &(_boundBufferList[audioId]);
+				_boundBufferCount++;
 			}
 			else
 			{
@@ -306,7 +315,7 @@ namespace ldare
 			}
 
 			// set format
-		 	WAVEFORMATEXTENSIBLE wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
+			WAVEFORMATEXTENSIBLE wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
 			// set data
 			BYTE *pDataBuffer = (BYTE*) data;
 
@@ -315,10 +324,8 @@ namespace ldare
 			audio->buffer.pAudioData = (BYTE*) data;
 			audio->buffer.Flags = XAUDIO2_END_OF_STREAM;
 
-			// IXAudio2SourceVoice* pSourceVoice;
-
 			HRESULT hr = 0;
-			
+			//TODO: figure out how to use one single struct for both modern and legacy XAudio
 			if (pXAudio2_7 != nullptr)
 			{
 				hr = pXAudio2_7->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
@@ -334,12 +341,15 @@ namespace ldare
 			return audioId; 
 		}
 
+		//---------------------------------------------------------------------------
+		// Plays an audio buffer
+		//---------------------------------------------------------------------------
 		void playAudio(uint32 audioBufferId)
 		{
-			if (numAudios >= LDARE_MAX_AUDIO || numAudios <= 0)
+			if (_boundBufferCount >= LDARE_MAX_AUDIO || _boundBufferCount <= 0)
 				return;
 
-			BoundAudio* audio = &(audioList[audioBufferId]);
+			BoundAudio* audio = &(_boundBufferList[audioBufferId]);
 			HRESULT hr = audio->voice->SubmitSourceBuffer(&audio->buffer);
 
 			if (hr < 0) 

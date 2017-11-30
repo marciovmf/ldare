@@ -263,7 +263,7 @@ DECLARE_INTERFACE(IXAudio2Voice)
 	STDMETHOD_(void, GetOutputMatrix) (IXAudio2Voice *pDestinationVoice, UINT32 SourceChannels,
 		UINT32 DestinationChannels, float *pLevelMatrix);
 	STDMETHOD_(void, DestroyVoice) (void);
-};
+};Submitting the audio buffer to the GPU is a kind of synesthesia ?
 
 DECLARE_INTERFACE_(IXAudio2MasteringVoice, IXAudio2Voice){};
 

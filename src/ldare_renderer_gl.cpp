@@ -316,7 +316,7 @@ namespace ldare
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		ldare::freeBitmap(&bitmap);
+		ldare::freeAsset(bitmap.bmpFileMemoryToRelease_, bitmap.bmpMemorySize_);
 
 		ldare::Texture texture = {};
 		texture.width = bitmap.width;
