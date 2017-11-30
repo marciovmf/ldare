@@ -197,13 +197,12 @@ namespace ldare
 		//--------------------------------------------------------------------------- 
 
 		typedef decltype(&XAudio2Create) XAudio2CreateFunc;
-		static IXAudio2* pXAudio2;
+		static IXAudio2* pXAudio2 = nullptr;
+		static IXAudio2_7* pXAudio2_7 = nullptr; 
 
 		void Win32_initXAudio()
 		{
 			XAudio2CreateFunc ptrXAudio2Create = nullptr;
-			//IXAudio2* pXAudio2;
-			IXAudio2_7* pXAudio2_7;
 			const char* ErrorInitializingMsg = "Error initializing %s.";
 			bool usingLegacyXAudio = false;
 
@@ -230,16 +229,28 @@ namespace ldare
 			}
 
 			HRESULT hr;
+			IXAudio2MasteringVoice* pMasterVoice = NULL;
 
 			if (usingLegacyXAudio)
 			{
-				pXAudio2_7 = InitXAudio2_7();
+				//pXAudio2 = XAudio2_7Create(XAUDIO2_DEBUG_ENGINE);
+				pXAudio2_7 = XAudio2_7Create();
+				
 				if (FAILED(pXAudio2_7))
 				{
 					LogError(ErrorInitializingMsg, xAudioDllName);
 					return;
 				}
+				pXAudio2_7->StartEngine();
+#ifdef DEBUG
+				XAUDIO2_DEBUG_CONFIGURATION debug = {};
+		    debug.TraceMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS;
+		    debug.BreakMask = XAUDIO2_LOG_ERRORS;
+		    pXAudio2_7->SetDebugConfiguration( &debug, 0 );
+
 				pXAudio2 = (IXAudio2*) pXAudio2_7;
+#endif //DEBUG
+				hr = pXAudio2_7->CreateMasteringVoice( &pMasterVoice);
 			}
 			else
 			{
@@ -250,17 +261,15 @@ namespace ldare
 					LogError(ErrorInitializingMsg, xAudioDllName);
 					return;
 				}
+				hr = pXAudio2->CreateMasteringVoice( &pMasterVoice);
 			}
 
-			IXAudio2MasteringVoice* pMasterVoice = NULL;
 
-			hr = pXAudio2->CreateMasteringVoice( &pMasterVoice);
 			if (FAILED(hr))
 			{
 					LogError("Could not init XAudio2", xAudioDllName);
 					return;
 			}
-
 			LogInfo("XAudio2 %s initialized.", xAudioDllName);
 		}
 
@@ -274,7 +283,6 @@ namespace ldare
 			XAUDIO2_BUFFER buffer;
 			IXAudio2SourceVoice* voice;
 		};
-
 
 #define LDARE_MAX_AUDIO 32
 		static BoundAudio audioList[LDARE_MAX_AUDIO];
@@ -308,19 +316,23 @@ namespace ldare
 			audio->buffer.Flags = XAUDIO2_END_OF_STREAM;
 
 			// IXAudio2SourceVoice* pSourceVoice;
-			HRESULT hr;
-			if (FAILED(hr = pXAudio2->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx)))
+
+			HRESULT hr = 0;
+			
+			if (pXAudio2_7 != nullptr)
+			{
+				hr = pXAudio2_7->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
+			}
+			else
+			{
+				hr = pXAudio2->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
+			}
+			if (FAILED(hr))
+			{
 				LogError("Error creating source voice");
-
-		//	if( FAILED(hr = pSourceVoice->SubmitSourceBuffer( &buffer ) ) )
-		//		LogError("Error submitting audio buffer");
-
-		//	if ( FAILED(hr = pSourceVoice->Start( 0 ) ) )
-		//		LogError("Error playing audio");
-		//
+			}
 			return audioId; 
 		}
-
 
 		void playAudio(uint32 audioBufferId)
 		{

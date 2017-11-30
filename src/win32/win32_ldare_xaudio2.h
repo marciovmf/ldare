@@ -6,6 +6,11 @@
 #include <unknwn.h>
 #include <mmreg.h>
 
+// All structures defined in this file use tight field packing
+#ifdef _MSC_VER
+#pragma pack(push, 1)
+#endif 
+
 #ifdef __cplusplus
 #define DECLSPEC_UUID_WRAPPER(x) __declspec(uuid(#x))
 #ifdef INITGUID
@@ -45,14 +50,15 @@ DEFINE_CLSID(XAudio2_7, 5a508685, a254, 4fba, 9b, 82, 9a, 24, b0, 03, 06, af);
 DEFINE_CLSID(XAudio2_7_Debug, db05ea35, 0329, 4d4b, a5, 3a, 6d, ea, d0, 3d, 38, 52);
 DEFINE_IID(IXAudio2_7, 8bcf1f58, 9fe7, 4583, 8a, c6, e2, ad, c4, 65, c8, bb);
 
-
+#define XAUDIO2_DEBUG_ENGINE       0x0001
+#if 0
 #define XAUDIO2_7_COMMIT_NOW         0
 #define XAUDIO2_7_DEFAULT_CHANNELS   0
 #define XAUDIO2_7_DEFAULT_SAMPLERATE 0
 #define XAUDIO2_7_DEFAULT_FREQ_RATIO 4.0f
-#define XAUDIO2_7_DEBUG_ENGINE       0x0001
 #define XAUDIO2_7_LOOP_INFINITE      255
 #define XAUDIO2_7_VOICE_NOSRC        0x0004
+#endif
 
 enum XAUDIO2_DEVICE_ROLE
 {
@@ -65,6 +71,7 @@ enum XAUDIO2_DEVICE_ROLE
 	InvalidDeviceRole = ~GlobalDefaultDevice
 };
 
+
 struct XAUDIO2_DEVICE_DETAILS
 {
 	WCHAR DeviceID[256];
@@ -72,6 +79,7 @@ struct XAUDIO2_DEVICE_DETAILS
 	XAUDIO2_DEVICE_ROLE Role;
 	WAVEFORMATEXTENSIBLE OutputFormat;
 };
+
 
 //TODO:(marcio) enable this IF necessary or delete if not going to be used
 #if 0
@@ -273,6 +281,7 @@ DECLARE_INTERFACE_(IXAudio2SourceVoice, IXAudio2Voice)
 	STDMETHOD(SetFrequencyRatio) (float Ratio, UINT32 OperationSet = XAUDIO2_7_COMMIT_NOW);
 	STDMETHOD_(void, GetFrequencyRatio) (float *pRatio);
 };
+
 #endif // 0
 
 DECLARE_INTERFACE_(IXAudio2_7, IUnknown)
@@ -297,30 +306,29 @@ DECLARE_INTERFACE_(IXAudio2_7, IUnknown)
 	STDMETHOD_(void, GetPerformanceData) (XAUDIO2_PERFORMANCE_DATA *pPerfData);
 	STDMETHOD_(void, SetDebugConfiguration) (const XAUDIO2_DEBUG_CONFIGURATION *pDebugConfiguration, void *pReserved = NULL);
 };
-IXAudio2_7* InitXAudio2_7()
+
+IXAudio2_7* XAudio2_7Create(uint32 flags X2DEFAULT(0))
 {
 	// Instantiate the appropriate XAudio2 engine
-	IXAudio2_7* pXAudio2;
-
+	IXAudio2_7* pXAudio2_7;
 
 #ifdef __cplusplus
-
-	HRESULT hr = CoCreateInstance(__uuidof(XAudio2_7),
-		NULL, CLSCTX_INPROC_SERVER, __uuidof(IXAudio2_7), (void**)&pXAudio2);
+ 
+	HRESULT hr = CoCreateInstance((flags & XAUDIO2_DEBUG_ENGINE) ? __uuidof(XAudio2_7_Debug) :
+			__uuidof(XAudio2_7), NULL, CLSCTX_INPROC_SERVER, __uuidof(IXAudio2_7), (void**)&pXAudio2_7);
 	if (SUCCEEDED(hr))
 	{
-	
-		hr = pXAudio2->Initialize(0, XAUDIO2_DEFAULT_PROCESSOR);
+		hr = pXAudio2_7->Initialize(0, XAUDIO2_DEFAULT_PROCESSOR);
 
 		if (FAILED(hr))
 		{
-			pXAudio2->Release();
+			pXAudio2_7->Release();
 		}
 	}
 
-#else
+#else 
 
-	HRESULT hr = CoCreateInstance((Flags & XAUDIO2_7_DEBUG_ENGINE) ? &CLSID_XAudio2_7_Debug : &CLSID_XAudio2_7,
+	HRESULT hr = CoCreateInstance((flags & XAUDIO2_DEBUG_ENGINE) ? &CLSID_XAudio2_Debug : &CLSID_XAudio2_7,
 		NULL, CLSCTX_INPROC_SERVER, &IID_IXAudio2, (void**)&pXAudio2_7);
 	if (SUCCEEDED(hr))
 	{
@@ -333,12 +341,15 @@ IXAudio2_7* InitXAudio2_7()
 		else
 		{
 			LogError("Failed to initialize legacy XAudio2");
-			pXAudio2->lpVtbl->Release(pXAudio2);
+			pXAudio2->lpVtbl->Release(pXAudio2_7);
 		}
 	}
 
 #endif // #ifdef __cplusplus
 
-	return pXAudio2;
+	//return (IXAudio2*) pXAudio2_7;
+	return  pXAudio2_7;
 }
-
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
