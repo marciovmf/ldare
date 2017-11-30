@@ -1,4 +1,4 @@
-# LDARE
+![latest screenshot](logo.png)
  ldare is game engine being developed from scratch for learning and practcing essential game development skills.
 Each and every single feature is written from scratch with absolutely no third party code or libraries.
 
