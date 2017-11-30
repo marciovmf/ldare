@@ -589,6 +589,7 @@ static void initGameApi(ldare::GameApi& gameApi)
 	// init asset api
 	gameApi.asset.loadMaterial = ldare::loadMaterial;
 	gameApi.asset.loadAudio = ldare::loadAudio;
+	gameApi.asset.playAudio = ldare::playAudio;
 }
 
 //---------------------------------------------------------------------------
