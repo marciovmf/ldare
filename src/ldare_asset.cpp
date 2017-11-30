@@ -1,56 +1,58 @@
-//---------------------------------------------------------------------------
-// BMP file format specifics
-//---------------------------------------------------------------------------
-#ifdef _MSC_VER
-#pragma pack(push,1)
-#endif
-struct BITMAP_FILE_HEADER
-{
-	uint16	FileType;					/* File type, always 4D42h ("BM") */
-	uint32	FileSize;					//* Size of the file in bytes */
-	uint16	Reserved1;				//* Always 0 */
-	uint16	Reserved2;				//* Always 0 */
-	uint32	BitmapOffset;			//* Starting position of image data in bytes */
-	uint32	Size;							//* Size of this header in bytes */
-	int32	Width;          		//* Image width in pixels */
-	int32	Height;         		//* Image height in pixels */
-	uint16  Planes;       		//* Number of color planes */
-	uint16  BitsPerPixel; 		//* Number of bits per pixel */
-	uint32	Compression;  		//* Compression methods used */
-	uint32	SizeOfBitmap; 		//* Size of bitmap in bytes */
-	int32	HorzResolution; 		//* Horizontal resolution in pixels per meter */
-	int32	VertResolution; 		//* Vertical resolution in pixels per meter */
-	uint32	ColorsUsed;   		//* Number of colors in the image */
-	uint32	ColorsImportant;	//* Minimum number of important colors */
-};
 
-struct RIFFAudioHeaderChunk
-{
-	uint32 signature;
-	uint32 chunkSize;
-	uint32 chunkType;
-};
-
-struct RIFFAudioChunk
-{
-	uint32 signature;
-	uint32 chunkSize;
-};
-#ifdef _MSC_VER
-#pragma pack(pop)
-#endif
-
-//---------------------------------------------------------------------------
-// WAV file format specifics
-//---------------------------------------------------------------------------
 #define RIFF_FORMAT_WAVE 0x45564157
 #define RIFF_FOURCC_RIFF 0x46464952
 #define RIFF_FOURCC_FMT 0x20746d66
 #define RIFF_FOURCC_DATA 0x61746164
 namespace ldare
 {
+
+#ifdef _MSC_VER
+#pragma pack(push,1)
+#endif
 	//---------------------------------------------------------------------------
-	// Material loading
+	// BMP file format specifics
+	//---------------------------------------------------------------------------
+struct BITMAP_FILE_HEADER
+	{
+		uint16	FileType;					/* File type, always 4D42h ("BM") */
+		uint32	FileSize;					//* Size of the file in bytes */
+		uint16	Reserved1;				//* Always 0 */
+		uint16	Reserved2;				//* Always 0 */
+		uint32	BitmapOffset;			//* Starting position of image data in bytes */
+		uint32	Size;							//* Size of this header in bytes */
+		int32	Width;          		//* Image width in pixels */
+		int32	Height;         		//* Image height in pixels */
+		uint16  Planes;       		//* Number of color planes */
+		uint16  BitsPerPixel; 		//* Number of bits per pixel */
+		uint32	Compression;  		//* Compression methods used */
+		uint32	SizeOfBitmap; 		//* Size of bitmap in bytes */
+		int32	HorzResolution; 		//* Horizontal resolution in pixels per meter */
+		int32	VertResolution; 		//* Vertical resolution in pixels per meter */
+		uint32	ColorsUsed;   		//* Number of colors in the image */
+		uint32	ColorsImportant;	//* Minimum number of important colors */
+	};
+
+//---------------------------------------------------------------------------
+// WAV file format specifics
+//---------------------------------------------------------------------------
+	struct RIFFAudioHeaderChunk
+	{
+		uint32 signature;
+		uint32 chunkSize;
+		uint32 chunkType;
+	};
+
+	struct RIFFAudioChunk
+	{
+		uint32 signature;
+		uint32 chunkSize;
+	};
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
+
+	//---------------------------------------------------------------------------
+	// Material functions
 	//---------------------------------------------------------------------------
 	ldare::Material loadMaterial(const char* vertex, const char* fragment, const char* textureFile)
 	{
@@ -101,7 +103,7 @@ namespace ldare
 	}
 
 	//---------------------------------------------------------------------------
-	// Audio loading
+	// Audio functions
 	//---------------------------------------------------------------------------
 	static void* findAudioChunk(void* riffFileData, uint32 riffDataSize, uint32 fourcc, uint32* outSize)
 	{
@@ -135,7 +137,7 @@ namespace ldare
 		if (riffHeader->signature != RIFF_FOURCC_RIFF || riffHeader->chunkType != RIFF_FORMAT_WAVE)
 		{
 			LogError("Invalid wave file");
-			ldare::platform::freeAsset(audio->audioFileMemoryToRelease_, audio->audioMemorySize_);
+			freeAsset(audio->audioFileMemoryToRelease_, audio->audioMemorySize_);
 		}
 
 		// find 'fmt' chunk

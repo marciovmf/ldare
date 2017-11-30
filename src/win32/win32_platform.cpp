@@ -137,6 +137,12 @@ namespace ldare
 			VirtualFree(memory, size, MEM_DECOMMIT);	
 		}
 
+		//---------------------------------------------------------------------------
+		//  
+		//  Timer structures and functions
+		//
+		//---------------------------------------------------------------------------
+
 		void Win32_initTimer()
 		{
 			QueryPerformanceFrequency(&_timerData.ticksPerSecond);
@@ -163,11 +169,21 @@ namespace ldare
 #endif
 			return deltaTime;
 		}
+	
+		//---------------------------------------------------------------------------
+		//  
+		//  Audio structures and functions
+		//
+		//---------------------------------------------------------------------------
+
+#define LDARE_MAX_AUDIO 32
+		typedef decltype(&XAudio2Create) XAudio2CreateFunc;
+		static IXAudio2* pXAudio2 = nullptr;
+		static IXAudio2_7* pXAudio2_7 = nullptr; 
 
 		//---------------------------------------------------------------------------
 		// Initializes XInput
 		//---------------------------------------------------------------------------
-
 		void Win32_initXInput()
 		{
 			char* xInputDllName = "xinput1_3.dll";
@@ -195,17 +211,6 @@ namespace ldare
 			XInputGetState = (XInputGetStateFunc*) GetProcAddress(hXInput, "XInputGetState");
 			if (!XInputGetState) XInputGetState = XInputGetStateStub;
 		}
-
-
-		//---------------------------------------------------------------------------
-		//  
-		//  Audio structures and functions
-		//
-		//---------------------------------------------------------------------------
-#define LDARE_MAX_AUDIO 32
-		typedef decltype(&XAudio2Create) XAudio2CreateFunc;
-		static IXAudio2* pXAudio2 = nullptr;
-		static IXAudio2_7* pXAudio2_7 = nullptr; 
 
 		// represents an audio buffer bound to a source voice
 		struct BoundAudio
@@ -293,7 +298,6 @@ namespace ldare
 			LogInfo("XAudio2 %s initialized.", xAudioDllName);
 		}
 
-
 		//---------------------------------------------------------------------------
 		// Plays an audio buffer
 		// Returns the created buffer id
@@ -352,13 +356,13 @@ namespace ldare
 			BoundAudio* audio = &(_boundBufferList[audioBufferId]);
 			HRESULT hr = audio->voice->SubmitSourceBuffer(&audio->buffer);
 
-			if (hr < 0) 
+			if (FAILED(hr))
 			{
 				LogError("Error %x submitting audio buffer", hr);
 			}
 
 			hr = audio->voice->Start(0);
-			if (hr < 0)
+			if (FAILED(hr))
 			{
 				LogError("Error %x playing audio", hr);
 			}
