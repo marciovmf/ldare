@@ -39,7 +39,7 @@ namespace ldare
 		size_t bmpMemorySize_;
 	};
 
-	//TODO: this is for testing only. materials will be defined by JSON file on something similar
+	//TODO: this is for testing only. materials will be defined on a custom asset file on something similar
 #define ASSET_API_LOAD_MATERIAL(name) \
 	ldare::Material name(const char* vertexShader, const char* fragmentShader, const char* textureFile)
 

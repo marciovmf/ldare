@@ -132,11 +132,10 @@ namespace ldare
 		RIFFAudioHeaderChunk* riffHeader = (RIFFAudioHeaderChunk*) audio->audioFileMemoryToRelease_;
 		void* riffData = ((uint8*)audio->audioFileMemoryToRelease_ + sizeof(RIFFAudioHeaderChunk));
 
-		//TODO: check for RIFF signature and type here!
 		if (riffHeader->signature != RIFF_FOURCC_RIFF || riffHeader->chunkType != RIFF_FORMAT_WAVE)
 		{
 			LogError("Invalid wave file");
-			//TODO: Free file memory here!
+			ldare::platform::freeAsset(audio->audioFileMemoryToRelease_, audio->audioMemorySize_);
 		}
 
 		// find 'fmt' chunk
