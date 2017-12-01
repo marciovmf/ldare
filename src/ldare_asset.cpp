@@ -93,7 +93,6 @@ struct BITMAP_FILE_HEADER
 			uint32 a = (argb & 0x000000FF) << 24;
 			*((uint32*)bitmap->pixels + i) = r | g | b | a;
 		}
-
 		return true;
 	}
 

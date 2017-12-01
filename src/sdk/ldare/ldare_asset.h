@@ -39,6 +39,52 @@ namespace ldare
 		size_t bmpMemorySize_;
 	};
 
+#define LDARE_ASSET_TYPE_FONT 0x1
+
+	struct AssetName
+	{
+		uint32 nameSize;
+		uint32 nameOffset;
+	};
+
+	struct AssetEntry
+	{
+		uint32 type; 						// asset type
+		uint32 dataOffset; 			// offset to data from start of file
+		uint32 dataSize; 				// size of data
+		uint32 assetNameId; 		// asset name id
+	};
+
+	struct AssetHeader
+	{
+		uint32 magic; 					// 0x4C444146 'LDAF' ldare asset file
+		uint16 major; 					// major version
+		uint16 minor; 					// minor version
+		uint32 numAssets; 			// number of assets in this file
+	};
+
+	struct FontAsset
+	{
+		uint32 numGliphs; 			// number of font gliphs
+		uint32 rasterWidth; 	 	// width of font raster bitmap
+		uint32 rasterHeight; 		// height of font raster bitmap
+		uint32 gliphDataOffset; // offset to gliph list from this header
+		uint32 rasterDataOffset;// offset to font bitmap from this header
+		uint16 firstCodePoint;  // first character codepoint defined in the font
+		uint16 lastCodePoint;  	// last character codepoint defined in the font
+		uint16 defaultCodePoint;// default character to be substituted in the font
+  	uint32 averageCharWidth;// average character width
+  	uint32 MaxCharWidth; 		// max character width
+	};
+
+	struct FontGliphRect
+	{
+		uint32 x;
+		uint32 y;
+		uint32 w;
+		uint32 h;
+	};
+
 	//TODO: this is for testing only. materials will be defined on a custom asset file on something similar
 #define ASSET_API_LOAD_MATERIAL(name) \
 	ldare::Material name(const char* vertexShader, const char* fragmentShader, const char* textureFile)

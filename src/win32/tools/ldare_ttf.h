@@ -13,7 +13,8 @@
 	 (((value) & 0xFF000000 ) >> 24))
 
 // 'name' header 
-#define TTF_NAME_TABLE 0x656d616e
+#define TTF_NAME_TABLE 0x656D616E
+#define TTF_CMAP_TABLE 0x70616D63
 
 struct TTFTableEntry
 {
@@ -39,6 +40,7 @@ struct TTFNameTableHeader
 	uint16	stringOffset;
 };
 
+// name table
 // if TTRNameTableHeader.format == 0, it points to this structure
 struct TTFNameRecord 
 {
@@ -50,13 +52,23 @@ struct TTFNameRecord
 	uint16	offset;
 };
 
+// cmap table
+struct TTFCmapHeader
+{
+	uint16 version;
+	uint16 numTables;
+};
+
+struct TTFEncodingRecord
+{
+	uint16 platformId; 				// Expected to be 3 - Windows
+	uint16 encodingId; 				// Expected to be 1 - Unicode BMP (UCS-2)
+	uint32 offset;
+};
+
 // String ids for getTTFString()
 #define TTF_NAME_FONT_FAMILY_ID 1
 #define TTF_NAME_UNIQUE_FONT_ID 3
-
-
-#define MAX_TTF_FONT_NAM_LEN 32
-static int8 _fontName[MAX_TTF_FONT_NAM_LEN];
 
 uint32 getTTFString(const TTFNameTableHeader *nameHeader, 
 		char* outputBuffer, 
@@ -80,9 +92,7 @@ uint32 getTTFString(const TTFNameTableHeader *nameHeader,
 	{
 		if ( BYTESWAP16(nameRecord->nameID) == stringId)
 		{
-
 			stringSize = MIN(BYTESWAP16(nameRecord->length), bufferSize);
-
 			strncpy(outputBuffer, (const char*) (stringStorageStart + BYTESWAP16(nameRecord->offset)), stringSize);
 			break;
 		}

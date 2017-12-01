@@ -1,4 +1,5 @@
 #include <ldare/ldare.h>
+#include <ldare/ldare_asset.h>
 #include "ldare_ttf.h"
 #include <windows.h>
 #include <tchar.h>
@@ -11,7 +12,6 @@ using namespace std;
 struct FontImportInput
 {
 	char* ttfFontFile;
-	char fontName[MAX_FONT_NAME_SIZE];
 	char* fontString;
 	uint32 fontStringLen;
 	uint32 maxLineWidth;
@@ -124,36 +124,19 @@ static HGDIOBJ loadFontFile(HDC dc, const char* fontFile,  const char* fontName,
 	return SelectObject(dc, hFont);
 }
 
-static RECT calcFontBitmapSize(HDC dc, const char* fontString, uint32 maxLineWidth, uint32 spacing)
+static RECT calcFontBitmapSize(HDC dc, const char* fontString, uint32 maxLineWidth, 
+		uint32 spacing)
 {
 	RECT rect = {};
 	SIZE fontStringSize;
 	uint32 fontStringLen = strlen(fontString);
 	GetTextExtentPoint32(dc, fontString, fontStringLen, &fontStringSize);
 	uint32 fullLineSize = fontStringSize.cx + fontStringLen * spacing;
+
 	uint32 numLines =  fullLineSize / maxLineWidth + 1;
 	rect.right = nextPow2(fullLineSize / numLines);
 	rect.bottom = nextPow2(spacing + numLines * fontStringSize.cy);
 	return rect;
-}
-
-static bool parseArgs(uint32 argc, _TCHAR** argv, FontImportInput* input)
-{
-	if (argc != 5)
-	{
-		printf("usage:\n makefont TTF-file font-size maxwidth fontstring\n");
-		return 0;
-	}
-
-	input->ttfFontFile = argv[1];
-	input->fontSize = atoi(argv[2]);
-	input->maxLineWidth = nextPow2(atoi(argv[3])-1);
-	input->fontString = argv[4];
-	input->fontStringLen = strlen(input->fontString);
-
-	// Load font name from the TTF file
-	getFontName(input->ttfFontFile, input->fontName, MAX_FONT_NAME_SIZE);
-	return true;
 }
 
 static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
@@ -203,20 +186,49 @@ static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 	DeleteObject(bitmap);
 }
 
+static void saveFontAsset(const char* fileName, uint16 firstChar, uint16 lastChar, uint16 defaultCharacter,
+		uint32 bitmapWidth, uint32 bitmapHeight, void* gliphData, uint32 gliphDataSize)
+{
+ 	ldare::FontAsset fontAsset;
+	fontAsset.numGliphs = lastChar - firstChar;
+	fontAsset.rasterWidth = bitmapWidth;
+	fontAsset.rasterHeight =	bitmapHeight;
+	fontAsset.gliphDataOffset = sizeof(ldare::FontAsset);
+	fontAsset.rasterDataOffset = fontAsset.gliphDataOffset + gliphDataSize;
+	fontAsset.firstCodePoint = firstChar;
+	fontAsset.lastCodePoint =  lastChar;
+	fontAsset.defaultCodePoint = defaultCharacter;
+	fontAsset.averageCharWidth = 0;
+	fontAsset.MaxCharWidth = 0;
+
+	//HANDLE hFile = CreateFile(ttfFile, GENERIC_READ, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+
+}
+
 int _tmain(int argc, _TCHAR** argv)
 {
 	FontImportInput input;
+	char fontName[MAX_FONT_NAME_SIZE];
 
-	if (!parseArgs(argc, argv, &input))
+	if (argc != 4)
 	{
-		return 1;
+		printf("usage:\n makefont TTF-file font-size maxwidth\n");
+		return 0;
 	}
+
+	input.ttfFontFile = argv[1];
+	input.fontSize = atoi(argv[2]);
+	input.maxLineWidth = nextPow2(atoi(argv[3])-1);
+
+	// Load font name from the TTF file
+	getFontName(input.ttfFontFile, fontName, MAX_FONT_NAME_SIZE);
 
 	uint32 fontWidth = 1024;
 	uint32 fontHeight = 1024;
 	uint32 dcBitmapSize = 1024 * 1024 * 4;
-	void* bmpMem;
 
+	// Create device context
+	void* bmpMem;
 	HDC dc = makeFontDC(&bmpMem, fontWidth, fontHeight);
 	memset(bmpMem, 0, dcBitmapSize);
 
@@ -226,13 +238,15 @@ int _tmain(int argc, _TCHAR** argv)
 		return 1; 
 	}
 
-	HFONT hFont = (HFONT)loadFontFile(dc, input.ttfFontFile, input.fontName, input.fontSize);
+	// Load the TTF font file
+	HFONT hFont = (HFONT)loadFontFile(dc, input.ttfFontFile, fontName, input.fontSize);
 	if (!hFont)
 	{
 		LogInfo("Could not load font file %s", input.ttfFontFile);
 		return 1;
 	}
 
+	// Get some font meterics
 	TEXTMETRIC fontMetrics;
 	if (!GetTextMetrics(dc, &fontMetrics))
 	{
@@ -240,12 +254,21 @@ int _tmain(int argc, _TCHAR** argv)
 		return 1; 
 	}
 
+	// Colplete filling the fontInput structure
 	const uint32 spacing = 2;
+	input.fontStringLen =  fontMetrics.tmLastChar - fontMetrics.tmFirstChar;
+	int8* fontBuffer = new int8[input.fontStringLen];
+	input.fontString = (char*)fontBuffer;
 
-	LogInfo("Loading font '%s'", input.fontName);
+	// Create the font string
+	for (uint32 i = 0; i < input.fontStringLen; i++ )
+	{
+		uint8 codePoint = MAX(1, fontMetrics.tmFirstChar + i);
+		fontBuffer[i] = codePoint;
+	}
 
-	RECT rect = calcFontBitmapSize(dc, input.fontString, input.maxLineWidth, spacing);
-	HBITMAP hDcBitmap = CreateCompatibleBitmap(dc, rect.right, rect.bottom);
+	RECT bitmapRect = calcFontBitmapSize(dc, input.fontString, input.maxLineWidth, spacing);
+	HBITMAP hDcBitmap = CreateCompatibleBitmap(dc, bitmapRect.right, bitmapRect.bottom);
 	SelectObject(dc, hDcBitmap);
 	SetBkMode(dc, TRANSPARENT);
 	SetTextColor(dc, RGB(255,255,255));
@@ -255,7 +278,12 @@ int _tmain(int argc, _TCHAR** argv)
 	char gliph;
 	char* fontStringPtr = input.fontString;
 
+	ldare::FontGliphRect* gliphRect = new ldare::FontGliphRect[input.fontStringLen];
+
+	SetBkMode(dc, TRANSPARENT);
 	uint32 nextLine = input.fontStringLen/2;
+
+	// Output gliphs to the Bitmap
 	for (int i=0; i < input.fontStringLen; i++)
 	{
 		// TODO: get proper gliph height
@@ -272,14 +300,21 @@ int _tmain(int argc, _TCHAR** argv)
 			gliphY += gliphSize.cy + spacing;
 		}
 
-		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
-		SetBkMode(dc, TRANSPARENT);
+		gliphRect[i] = {gliphX, gliphY, gliphSize.cx, gliphSize.cy};
+		//LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
 		TextOut(dc, gliphX, gliphY, &gliph, 1);
 		gliphX += gliphSize.cx + spacing;
 	}
 
 	char bmpFileName[128];
-	sprintf(bmpFileName, "%s.bmp", input.fontName);
-	saveBitmap(dc,rect, bmpFileName);
+	sprintf(bmpFileName, "%s.bmp", fontName);
+	saveBitmap(dc, bitmapRect, bmpFileName);
+
+	// Save the asset file
+	saveFontAsset("font.asset", fontMetrics.tmFirstChar, fontMetrics.tmLastChar, 
+			fontMetrics.tmDefaultChar, bitmapRect.right, bitmapRect.bottom, gliphRect, 
+			sizeof(ldare::FontGliphRect) * input.fontStringLen);
+
+	delete fontBuffer;
 	return 0;
 }
