@@ -108,6 +108,8 @@ struct GameData
 	float step;
 	Sprite tiles[50];
 	Sprite box;
+	Audio audio1;
+	Audio audio2;
 } *gameMemory = nullptr;
 
 void loadLevel(GameLevel& gameLevel, Sprite* sprites)
@@ -173,10 +175,14 @@ void gameStart(void* mem, GameApi& gameApi)
 				(const char*)"./assets/sprite.vert", 
 				(const char*) "./assets/sprite.frag", 
 				(const char*)"./assets/sokoban/tiles.bmp");
-		gameMemory->fontMaterial = gameApi.asset.loadMaterial(
+
+		gameMemory->fontMaterial = gameApi.asset.loadMaterial(				
 				(const char*)"./assets/font.vert", 
 				(const char*) "./assets/font.frag", 
 				(const char*) FONT_NAME);
+
+		gameApi.asset.loadAudio("./assets/audio1.wav", &gameMemory->audio1);
+		gameApi.asset.loadAudio("./assets/audio2.wav", &gameMemory->audio2);
 	}
 
 	// Set up walk animation
@@ -319,6 +325,15 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 
 		update = true;
 		horizontalMovement = true;
+	}
+
+	if ( input.getKeyDown(KBD_J))
+	{
+		gameApi.asset.playAudio(&gameMemory->audio1);
+	}
+	else if ( input.getKeyDown(KBD_K))
+	{
+		gameApi.asset.playAudio(&gameMemory->audio2);
 	}
 
 	// Movement RIGHT
