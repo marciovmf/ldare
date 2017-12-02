@@ -258,6 +258,9 @@ int _tmain(int argc, _TCHAR** argv)
 
 	// Colplete filling the fontInput structure
 	const uint32 spacing = 2;
+
+
+
 	input.fontStringLen =  fontMetrics.tmLastChar - fontMetrics.tmFirstChar;
 	int8* fontBuffer = new int8[input.fontStringLen];
 	input.fontString = (char*)fontBuffer;
@@ -266,6 +269,13 @@ int _tmain(int argc, _TCHAR** argv)
 	for (uint32 i = 0; i < input.fontStringLen; i++ )
 	{
 		uint8 codePoint = MAX(1, fontMetrics.tmFirstChar + i);
+
+	//TODO: Make sure it happens only for ocidental fonts
+	if (codePoint < 32)
+		codePoint = fontMetrics.tmDefaultChar;
+	else if (codePoint == 127)
+		codePoint = fontMetrics.tmDefaultChar;
+
 		fontBuffer[i] = codePoint;
 	}
 
@@ -279,7 +289,6 @@ int _tmain(int argc, _TCHAR** argv)
 	uint32 gliphY = 0;
 	char gliph;
 	char* fontStringPtr = input.fontString;
-
 
 	SetBkMode(dc, TRANSPARENT);
 	uint32 nextLine = input.fontStringLen/2;
@@ -302,6 +311,7 @@ int _tmain(int argc, _TCHAR** argv)
 			gliphX = 0;
 			gliphY += gliphSize.cy + spacing;
 		}
+
 
 		fontGliphData[i] = {gliphX, gliphY, gliphSize.cx, gliphSize.cy};
 		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
