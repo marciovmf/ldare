@@ -34,6 +34,8 @@ namespace ldare
 	{
 		ldare::SpriteBatchApi spriteBatch;
 		ldare::AssetApi asset;
+		ldare::AudioApi audio;
+		ldare::TextBatchApi text;
 	};
 }
 

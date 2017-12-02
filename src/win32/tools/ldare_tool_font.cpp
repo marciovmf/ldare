@@ -186,23 +186,25 @@ static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 	DeleteObject(bitmap);
 }
 
+//TODO: Make the font asset AND the bitmap a single file!
 static void saveFontAsset(const char* fileName, uint16 firstChar, uint16 lastChar, uint16 defaultCharacter,
 		uint32 bitmapWidth, uint32 bitmapHeight, void* gliphData, uint32 gliphDataSize)
 {
- 	ldare::FontAsset fontAsset;
-	fontAsset.numGliphs = lastChar - firstChar;
+	ldare::FontAsset fontAsset;
 	fontAsset.rasterWidth = bitmapWidth;
-	fontAsset.rasterHeight =	bitmapHeight;
-	fontAsset.gliphDataOffset = sizeof(ldare::FontAsset);
-	fontAsset.rasterDataOffset = fontAsset.gliphDataOffset + gliphDataSize;
+	fontAsset.rasterHeight = bitmapHeight;
 	fontAsset.firstCodePoint = firstChar;
-	fontAsset.lastCodePoint =  lastChar;
+	fontAsset.lastCodePoint = lastChar;
 	fontAsset.defaultCodePoint = defaultCharacter;
-	fontAsset.averageCharWidth = 0;
-	fontAsset.MaxCharWidth = 0;
+	fontAsset.gliphData = (ldare::FontGliphRect*)sizeof(ldare::FontAsset);
 
-	//HANDLE hFile = CreateFile(ttfFile, GENERIC_READ, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+	// create file
+	ofstream file(fileName, ios::binary);
+	if(!file) return;
 
+	file.write((char*) &fontAsset, sizeof(ldare::FontAsset)); // save font header
+	file.write((char*)gliphData, gliphDataSize); 							// save gliph data
+	file.close();
 }
 
 int _tmain(int argc, _TCHAR** argv)
@@ -278,10 +280,11 @@ int _tmain(int argc, _TCHAR** argv)
 	char gliph;
 	char* fontStringPtr = input.fontString;
 
-	ldare::FontGliphRect* gliphRect = new ldare::FontGliphRect[input.fontStringLen];
 
 	SetBkMode(dc, TRANSPARENT);
 	uint32 nextLine = input.fontStringLen/2;
+
+	ldare::FontGliphRect* fontGliphData = new ldare::FontGliphRect[input.fontStringLen];
 
 	// Output gliphs to the Bitmap
 	for (int i=0; i < input.fontStringLen; i++)
@@ -300,8 +303,8 @@ int _tmain(int argc, _TCHAR** argv)
 			gliphY += gliphSize.cy + spacing;
 		}
 
-		gliphRect[i] = {gliphX, gliphY, gliphSize.cx, gliphSize.cy};
-		//LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
+		fontGliphData[i] = {gliphX, gliphY, gliphSize.cx, gliphSize.cy};
+		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
 		TextOut(dc, gliphX, gliphY, &gliph, 1);
 		gliphX += gliphSize.cx + spacing;
 	}
@@ -311,10 +314,12 @@ int _tmain(int argc, _TCHAR** argv)
 	saveBitmap(dc, bitmapRect, bmpFileName);
 
 	// Save the asset file
-	saveFontAsset("font.asset", fontMetrics.tmFirstChar, fontMetrics.tmLastChar, 
-			fontMetrics.tmDefaultChar, bitmapRect.right, bitmapRect.bottom, gliphRect, 
-			sizeof(ldare::FontGliphRect) * input.fontStringLen);
+	sprintf(bmpFileName, "%s.font", fontName);
+	saveFontAsset(bmpFileName, fontMetrics.tmFirstChar, fontMetrics.tmLastChar, 
+			fontMetrics.tmDefaultChar, bitmapRect.right, bitmapRect.bottom, 
+			fontGliphData, sizeof(ldare::FontGliphRect) * input.fontStringLen);
 
+	delete fontGliphData;
 	delete fontBuffer;
 	return 0;
 }

@@ -53,6 +53,27 @@ namespace ldare
 		SpriteBatchLoadShaderFunc *loadShader;
 	};
 
+#define TEXT_BATCH_BEGIN_FUNC(name) void name(const ldare::FontAsset&, const ldare::Material& material)
+	typedef TEXT_BATCH_BEGIN_FUNC(TextBatchBeginFunc);
+
+#define TEXT_BATCH_END_FUNC(name) void name()
+	typedef TEXT_BATCH_END_FUNC(TextBatchEndFunc);
+
+#define TEXT_BATCH_DRAW_TEXT_FUNC(name) void name(Vec3& position, float scale, Vec4& color, const char* text)
+	typedef TEXT_BATCH_DRAW_TEXT_FUNC(TextBatchDrawTextFunc);
+
+#define TEXT_BATCH_FLUSH_FUNC(name) void name()
+	typedef TEXT_BATCH_FLUSH_FUNC(TextBatchFlushFunc);
+
+	//TODO: This is temporary solution just for LundumDare. Remove this when we hav draw call sorting.
+	struct TextBatchApi
+	{
+		TextBatchBeginFunc* begin;
+		TextBatchDrawTextFunc* drawText;
+		TextBatchEndFunc* end;
+		TextBatchFlushFunc* flush;
+	};
+
 	void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight);
 	void setViewport(uint32 x, uint32 y, uint32 width, uint32 height);
 	void updateRenderer(float deltaTime);

@@ -588,10 +588,19 @@ static void initGameApi(ldare::GameApi& gameApi)
 	gameApi.spriteBatch.flush = ldare::flush;
 	gameApi.spriteBatch.loadShader = ldare::loadShader;
 
+	// Text api
+	initSpriteBatch();
+	gameApi.text.begin = ldare::beginText;
+	gameApi.text.drawText = ldare::drawText;
+	gameApi.text.end = ldare::endText;
+	gameApi.text.flush = ldare::flushText;
+
 	// init asset api
 	gameApi.asset.loadMaterial = ldare::loadMaterial;
 	gameApi.asset.loadAudio = ldare::loadAudio;
-	gameApi.asset.playAudio = ldare::playAudio;
+	gameApi.asset.loadFont = ldare::loadFont;
+	gameApi.audio.playAudio = ldare::playAudio;
+
 }
 
 //---------------------------------------------------------------------------

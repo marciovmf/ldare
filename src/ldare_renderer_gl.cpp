@@ -21,6 +21,7 @@ namespace ldare
 {
 	static bool updateGlobalShaderData = false;
 	static GlobalShaderData globalShaderData = {};
+	static ldare::FontAsset fontAsset; // For text batching
 
 	static struct GL_SpriteBatchData
 	{
@@ -35,7 +36,7 @@ namespace ldare
 		uint32 spriteCount;
 	} spriteBatchData;
 
-		static int32 checkNoGlError()
+	static int32 checkNoGlError()
 	{
 		const char* error = "UNKNOWN ERROR CODE";
 		GLenum err (glGetError());
@@ -159,13 +160,13 @@ namespace ldare
 		glGenBuffers(1, &spriteBatchData.vbo);
 		glGenBuffers(1, &spriteBatchData.ibo);
 		glGenBuffers(1, &spriteBatchData.ubo);
-	
+
 		// ARRAY buffer
 		glBindVertexArray(spriteBatchData.vao);
 		glEnableVertexAttribArray(SPRITE_ATTRIB_VERTEX);
 		glEnableVertexAttribArray(SPRITE_ATTRIB_COLOR);
 		glEnableVertexAttribArray(SPRITE_ATTRIB_UV);
-		
+
 		// VERTEX buffer
 		glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
 		glBufferData(GL_ARRAY_BUFFER, SPRITE_BATCH_BUFFER_SIZE, 0, GL_DYNAMIC_DRAW);
@@ -202,7 +203,7 @@ namespace ldare
 				SPRITE_BATCH_VERTEX_DATA_SIZE, (const GLvoid*)(7 * sizeof(float))); 
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		
+
 		// UBO buffer
 		glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(GlobalShaderData), &globalShaderData, GL_DYNAMIC_DRAW);
@@ -361,7 +362,7 @@ namespace ldare
 				viewportWidth / (float)virtualWidth, 
 				viewportHeight / (float)virtualHeight, 1.0f);
 	}
- 
+
 	void setViewport(uint32 x, uint32 y, uint32 width, uint32 height)
 	{
 		globalShaderData.projectionMatrix.orthographic(0, width, 0, height, -1, 1);
@@ -375,4 +376,60 @@ namespace ldare
 		globalShaderData.time.y += deltaTime;
 		updateGlobalShaderData = true;
 	}
+
+	//
+	// Text Rendering functions. 
+	// I still don't know if this is the best place or way to do it.
+	//
+	void beginText(const ldare::FontAsset& font, const ldare::Material& material)
+	{
+		// copy font localy
+		fontAsset = font;
+		begin(material);
+	}
+
+	void endText()
+	{
+		end();
+	}
+
+	void drawText(Vec3& position, float scale, Vec4& color, const char* text)
+	{
+		char c;
+		const char* ptrChar = text;
+		Sprite sprite;
+		sprite.color = color;
+
+		ldare::FontGliphRect* gliphList = fontAsset.gliphData;
+		uint32 advance = 0;
+
+		//submit each character as an individual sprite
+		while ((c = *ptrChar) != 0)
+		{
+			FontGliphRect* gliph;
+
+			if (c < fontAsset.firstCodePoint || c > fontAsset.lastCodePoint)
+				gliph = &(gliphList[fontAsset.defaultCodePoint]);
+			else
+				gliph = &(gliphList[c]);
+
+			 //calculate advance
+			sprite.position = position;
+			sprite.position.x += advance;
+			advance += gliph->w * scale;
+			sprite.width = gliph->w * scale;
+			sprite.height = gliph->h * scale;
+			
+			sprite.srcRect = {gliph->x, gliph->y, gliph->w, gliph->h};
+			
+			submit(sprite);
+			++ptrChar;
+		}
+	}
+
+	void flushText()
+	{
+		flush();
+	}
+
 } // namespace ldare

@@ -96,6 +96,18 @@ struct BITMAP_FILE_HEADER
 		return true;
 	}
 
+	bool loadFont(const char* file, ldare::FontAsset** font)
+	{
+		size_t fontAssetSize;
+		ldare::FontAsset* fontAsset = (ldare::FontAsset*) ldare::platform::loadFileToBuffer(file, &fontAssetSize);
+		if (!fontAsset || fontAssetSize == 0) { return false; }
+
+		// fix gliph array pointer
+		fontAsset->gliphData = (FontGliphRect*)(((uint32)fontAsset) + (uint32)fontAsset->gliphData);
+		*font = fontAsset;
+		return true;
+	}
+
 	void freeAsset(void* memory, size_t size)
 	{
 		ldare::platform::memoryFree(memory, size);

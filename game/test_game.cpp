@@ -20,8 +20,8 @@ using namespace ldare;
 #define HERO_Z 0.2
 #define FONT_Z 0.3
 //#define FONT_NAME "./assets/Caviar Dreams.bmp"
-#define FONT_NAME "./assets/Capture it.bmp"
-//#define FONT_NAME "./assets/Roboto Thin.bmp"
+//#define FONT_NAME "./assets/Capture it.bmp"
+#define FONT_NAME "./assets/Roboto Thin.bmp"
 #define FONT_COLOR Vec4{0.3f, 0.6f, 0.8f, 1.0f}
 
 static ldare::GameContext gameContext;
@@ -110,6 +110,7 @@ struct GameData
 	Sprite box;
 	Audio audio1;
 	Audio audio2;
+	FontAsset* font;
 } *gameMemory = nullptr;
 
 void loadLevel(GameLevel& gameLevel, Sprite* sprites)
@@ -176,10 +177,12 @@ void gameStart(void* mem, GameApi& gameApi)
 				(const char*) "./assets/sprite.frag", 
 				(const char*)"./assets/sokoban/tiles.bmp");
 
-		gameMemory->fontMaterial = gameApi.asset.loadMaterial(				
-				(const char*)"./assets/font.vert", 
+		// load font asset and material
+		gameApi.asset.loadFont("./assets/Roboto Thin.font", &gameMemory->font);
+		gameMemory->fontMaterial = gameApi.asset.loadMaterial(
+				(const char*) "./assets/font.vert", 
 				(const char*) "./assets/font.frag", 
-				(const char*) FONT_NAME);
+			(const char*) FONT_NAME);
 
 		gameApi.asset.loadAudio("./assets/audio1.wav", &gameMemory->audio1);
 		gameApi.asset.loadAudio("./assets/audio2.wav", &gameMemory->audio2);
@@ -329,11 +332,11 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 
 	if ( input.getKeyDown(KBD_J))
 	{
-		gameApi.asset.playAudio(&gameMemory->audio1);
+		gameApi.audio.playAudio(&gameMemory->audio1);
 	}
 	else if ( input.getKeyDown(KBD_K))
 	{
-		gameApi.asset.playAudio(&gameMemory->audio2);
+		gameApi.audio.playAudio(&gameMemory->audio2);
 	}
 
 	// Movement RIGHT
@@ -415,7 +418,6 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	if (x > GAME_RESOLUTION_WIDTH) x = 0;
 	if (x < 0) x = GAME_RESOLUTION_WIDTH;
 
-
 	gameMemory->fontSprite.color = {
    2 *x / GAME_RESOLUTION_WIDTH,
 	2 * y / GAME_RESOLUTION_HEIGHT,
@@ -424,6 +426,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	};
 
 	gameApi.spriteBatch.flush();
+	//gameApi.text.flush();
 
 	// Opaque objects first
 	gameApi.spriteBatch.begin(gameMemory->material);
@@ -432,10 +435,10 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		gameApi.spriteBatch.submit(gameMemory->hero);
 	gameApi.spriteBatch.end();
 
-	gameApi.spriteBatch.begin(gameMemory->fontMaterial);
-		gameApi.spriteBatch.submit(gameMemory->fontSprite);
-	gameApi.spriteBatch.end();
-
+	Vec3 textPosition = {100, 100, FONT_Z};
+	gameApi.text.begin(*gameMemory->font , gameMemory->fontMaterial);
+		gameApi.text.drawText(textPosition, 3.0f, FONT_COLOR, "Hello world");
+	gameApi.text.end();
 }
 
 //---------------------------------------------------------------------------

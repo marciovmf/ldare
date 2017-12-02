@@ -62,21 +62,7 @@ namespace ldare
 		uint16 minor; 					// minor version
 		uint32 numAssets; 			// number of assets in this file
 	};
-
-	struct FontAsset
-	{
-		uint32 numGliphs; 			// number of font gliphs
-		uint32 rasterWidth; 	 	// width of font raster bitmap
-		uint32 rasterHeight; 		// height of font raster bitmap
-		uint32 gliphDataOffset; // offset to gliph list from this header
-		uint32 rasterDataOffset;// offset to font bitmap from this header
-		uint16 firstCodePoint;  // first character codepoint defined in the font
-		uint16 lastCodePoint;  	// last character codepoint defined in the font
-		uint16 defaultCodePoint;// default character to be substituted in the font
-  	uint32 averageCharWidth;// average character width
-  	uint32 MaxCharWidth; 		// max character width
-	};
-
+	
 	struct FontGliphRect
 	{
 		uint32 x;
@@ -85,11 +71,26 @@ namespace ldare
 		uint32 h;
 	};
 
+	struct FontAsset
+	{
+		uint32 rasterWidth; 	 	// width of font raster bitmap
+		uint32 rasterHeight; 		// height of font raster bitmap
+		uint16 firstCodePoint;  // first character codepoint defined in the font
+		uint16 lastCodePoint;  	// last character codepoint defined in the font
+		uint16 defaultCodePoint;// default character to be substituted in the font
+		FontGliphRect* gliphData;  // pointer to gliph data
+	};
+
 	//TODO: this is for testing only. materials will be defined on a custom asset file on something similar
 #define ASSET_API_LOAD_MATERIAL(name) \
 	ldare::Material name(const char* vertexShader, const char* fragmentShader, const char* textureFile)
 
 	typedef ASSET_API_LOAD_MATERIAL(loadMaterialFunc);
+
+#define ASSET_API_LOAD_FONT(name) \
+	bool name(const char* file, ldare::FontAsset** font)
+
+	typedef ASSET_API_LOAD_FONT(loadFontFunc);
 
 #define ASSET_API_LOAD_AUDIO(name) \
 	 bool name(const char* file, ldare::Audio* audio)
@@ -105,11 +106,17 @@ namespace ldare
 	{
 		loadMaterialFunc* loadMaterial;
 		loadAudioFunc* loadAudio;
+		loadFontFunc* loadFont;
+	};
+	
+	struct AudioApi
+	{
 		playAudioFunc* playAudio;
 	};
 
 	bool loadBitmap(const char* file, ldare::Bitmap* bitmap);
 	bool loadAudio(const char* file, ldare::Audio* audio);
+	bool loadFont(const char* file, ldare::FontAsset** fontAsset);
 	void playAudio(const ldare::Audio* audio);
 	void freeAsset(void* memory, size_t size);
 } // namespace ldare
