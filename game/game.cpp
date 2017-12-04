@@ -14,6 +14,7 @@
 #define HERO_Z 0.2
 #define TREE_Z 0.3
 
+#define WATER 0x00
 #define GROUND 0x1
 #define TREE 0x10
 
@@ -252,6 +253,14 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		float vMovementLimitMin = GAME_RESOLUTION_HEIGHT /4  - halfSprite;
 		float vMovementLimitMax = (GAME_RESOLUTION_HEIGHT /4  - halfSprite) * 4;
 
+		// Find the tile the character is on
+		gameMemory->heroTileIndex = getTileFromPixel(heroPosition, gameMemory->scroll, SPRITE_SIZE);
+		if (map[gameMemory->heroTileIndex] != GROUND)
+		{
+			LogInfo("COLLISION@ %d", gameMemory->heroTileIndex);
+			speed = speed/4;
+		}
+
 		// move the character OR the map
 		// HORIZONTAL
 		if ( heroPosition.x < hMovementLimitMin)
@@ -284,15 +293,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 			heroPosition.y += speed * heroDirection.y;
 		}
 
-		// Find the tile the character is on
-		gameMemory->heroTileIndex = getTileFromPixel(heroPosition, gameMemory->scroll, SPRITE_SIZE);
-
-
-		if (map[gameMemory->heroTileIndex] == TREE)
-		{
-			LogInfo("COLLISION@ %d", gameMemory->heroTileIndex);
 		}
-	}
 
 	// Opaque objects first
 	gameApi.spriteBatch.begin(gameMemory->material);
