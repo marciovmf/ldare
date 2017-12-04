@@ -1,7 +1,3 @@
-#include <ldare/ldare_game.h>
-using namespace ldare;
-#include "procedural_map.cpp"
-#include "animation.cpp"
 
 #define SCREEN_WIDTH 1024
 #define SCREEN_HEIGHT 576
@@ -9,16 +5,22 @@ using namespace ldare;
 #define GAME_RESOLUTION_HEIGHT 576
 #define FULLSCREEN 0
 #define SPRITE_SIZE 128
-#define MAP_WIDTH 10
-#define MAP_HEIGHT 10
+#define MAP_WIDTH 30
+#define MAP_HEIGHT 30
 #define MAP_ITERATIONS 3
 #define MAX_ZOOM 3
-#define LEVEL_Z 0.1
+
+#define GROUND_Z 0.1
 #define HERO_Z 0.2
 #define TREE_Z 0.3
 
-#define SAND 1
-#define TREE 3
+#define GROUND 0x1
+#define TREE 0x10
+
+#include <ldare/ldare_game.h>
+using namespace ldare;
+#include "procedural_map.cpp"
+#include "animation.cpp"
 
 #include "character.cpp"
 
@@ -42,15 +44,15 @@ static Rectangle srcHero = { 3 * spriteSize, 2 * spriteSize, spriteSize, spriteS
 
 struct GameData
 {
-	Vec2 resolution;
 	Character hero;
 	Audio soundChoppTree;
 	Material material;
-	float x;
-	float y;
+	Vec2 resolution;
+	Vec2 scroll;
+	Vec2 heroTileCoord;
+	uint32 heroTileIndex;
 	float zoom;
 	float step;
-	Sprite tiles[50];
 } *gameMemory = nullptr;
 
 // reserve 3 more lines for simulation routine
@@ -93,10 +95,6 @@ void map_simulate(MapSettings& settings, uint8* map, uint32 simulations, uint8 a
 			}
 		}
 	}
-	//HACK: for testing collision
-	uint32 hackTree = 1 * settings.width + 1;
-	LogInfo("hackTree at %d",hackTree);
-	map[hackTree] = 3;
 	delete snapshot;
 }
 
@@ -114,7 +112,6 @@ ldare::GameContext gameInit()
 	return gameContext; 											// let the engine know what we want
 }
 
-
 //---------------------------------------------------------------------------
 // Game start callback
 //---------------------------------------------------------------------------
@@ -129,7 +126,6 @@ void gameStart(void* mem, GameApi& gameApi)
 	if ( gameMemory == nullptr)
 	{
 		gameMemory = (GameData*) mem;
-		gameMemory->x = gameMemory->y = 0;
 		// load material
 		gameMemory->material = gameApi.asset.loadMaterial(
 				(const char*)"./assets/sprite.vert", 
@@ -141,9 +137,6 @@ void gameStart(void* mem, GameApi& gameApi)
 
 	float zoom = 1.0;
 	gameMemory->zoom = zoom;
-	gameMemory->x = gameMemory->y = 0;
-
-
 
 	// ground settings
 	_mapSettings.width = MAP_WIDTH;
@@ -159,7 +152,7 @@ void gameStart(void* mem, GameApi& gameApi)
 	_mapSettings.birthLimit = 5;
 	_mapSettings.cellInitialAliveChance = 40;
 	map_addLayer(_mapSettings, map, TREE);
-	map_simulate(_mapSettings, map, 3, TREE, SAND);
+	map_simulate(_mapSettings, map, 3, TREE, GROUND);
 
 	// Setup hero 
 	character_setup(gameMemory->hero,
@@ -178,62 +171,60 @@ void gameStart(void* mem, GameApi& gameApi)
 //---------------------------------------------------------------------------
 // draw level
 //---------------------------------------------------------------------------
-void drawMap(GameApi& gameApi, MapSettings& settings, uint8* map, float zoom, float scrollX, float scrollY)
+void drawMap(GameApi& gameApi, MapSettings& settings, uint8* map, Vec2& scroll, 
+		float zoom, uint32 tileType, float minZ, Rectangle& srcSprite, Vec2& scale = Vec2{1,1})
 {
 	float zoomedSize = spriteSize * zoom;
 	float stepX = zoomedSize;
 	float stepY = zoomedSize;
-	Sprite sprite;
-	sprite.width = stepX;
-	sprite.height = stepY;
-
-	for(uint32 x=0; x < settings.width; x++)
-	{
-		for(uint32 y=0; y < settings.height; y++)
-		{
-			uint32 pos = x * settings.width + y;
-			uint8 cellValue = map[pos];
-
-			if (cellValue == 0)
-				continue;
-
-			sprite.srcRect = srcGroundCenter;
-
-			float halfWidth = GAME_RESOLUTION_WIDTH/2;
-			float halfHeight = GAME_RESOLUTION_HEIGHT/2;
-
-			//sprite.position = { stepX * x,  GAME_RESOLUTION_HEIGHT - stepY - (stepY * y), LEVEL_Z};
-			sprite.position = { stepX * x, (stepY * y), LEVEL_Z};
 	
-			// center the map around screen origin and scroll
-			sprite.position.x += scrollX; 
-			sprite.position.y += scrollY;
+	Sprite sprite;
+	sprite.width = stepX * scale.x;
+	sprite.height = stepY * scale.y;
+	sprite.srcRect = srcSprite;
+	sprite.position.z = minZ;
 
-			// submit the ground sprite
-			gameApi.spriteBatch.submit(sprite);
-
-			// submit the tree sprite if applicable
-			if ( cellValue == TREE)
+		for(uint32 x=0; x < settings.width; x++)
+		{
+			for(uint32 y=0; y < settings.height; y++)
 			{
-				sprite.srcRect = srcTree;
-				sprite.position.z = TREE_Z + 0.0001f * y;
+				uint32 pos = x + settings.height * y;
+				uint8 cellValue = map[pos];
+
+				if (!(cellValue & tileType))
+					continue;
+
+				float halfWidth = GAME_RESOLUTION_WIDTH/2;
+				float halfHeight = GAME_RESOLUTION_HEIGHT/2;
+
+				sprite.position = { stepX * x, (stepY * y), sprite.position.z };// + 0.0001 * y};
+
+				// center the map around screen origin and scroll
+				sprite.position.x += scroll.x; 
+				sprite.position.y += scroll.y;
+				
+				// submit the ground sprite
 				gameApi.spriteBatch.submit(sprite);
 			}
 		}
-	}
+}
+
+static uint32 getTileFromPixel(Vec3& position, Vec2 scroll, uint32 spriteSize)
+{
+	const float halfSprite = spriteSize/2;
+
+		int32 tileX = (position.x + halfSprite - scroll.x) / spriteSize;
+		int32 tileY = (position.y + halfSprite - scroll.y) / spriteSize;
+		return (uint32) (tileX + _mapSettings.width * tileY);
 }
 
 //---------------------------------------------------------------------------
 // Game update
 //---------------------------------------------------------------------------
-Animation* currentAnimation = nullptr;
-bool isChopping;
-float remainingChoppTime;
 void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameApi)
 {
 	gameApi.spriteBatch.flush();
-	float& scrollX = gameMemory->x;
-	float& scrollY = gameMemory->y;
+	Vec2& scroll = gameMemory->scroll;
 	bool update = false;
 
 	if (input.getKeyDown(KBD_I))
@@ -266,12 +257,12 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		if ( heroPosition.x < hMovementLimitMin)
 		{
 			heroPosition.x = hMovementLimitMin;
-			scrollX -= (speed * gameMemory->hero.direction.x);
+			scroll.x -= (speed * gameMemory->hero.direction.x);
 		}
 		else if ( heroPosition.x > hMovementLimitMax)
 		{
 			heroPosition.x = hMovementLimitMax;
-			scrollX -= (speed * gameMemory->hero.direction.x);
+			scroll.x -= (speed * gameMemory->hero.direction.x);
 		}
 		else
 		{
@@ -281,12 +272,12 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		if ( heroPosition.y < vMovementLimitMin)
 		{
 			heroPosition.y = vMovementLimitMin;
-			scrollY += (speed * -gameMemory->hero.direction.y);
+			scroll.y += (speed * -gameMemory->hero.direction.y);
 		}
 		else if ( heroPosition.y > vMovementLimitMax)
 		{
 			heroPosition.y = vMovementLimitMax;
-			scrollY += (speed * -gameMemory->hero.direction.y);
+			scroll.y += (speed * -gameMemory->hero.direction.y);
 		}
 		else
 		{
@@ -294,24 +285,20 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		}
 
 		// Find the tile the character is on
-		int32 tileX = (heroPosition.x + halfSprite - scrollX) / SPRITE_SIZE;
-		int32 tileY = (heroPosition.y + halfSprite - scrollY) / SPRITE_SIZE;
-		uint32 hackTree = tileX + _mapSettings.width * tileY;
+		gameMemory->heroTileIndex = getTileFromPixel(heroPosition, gameMemory->scroll, SPRITE_SIZE);
 
-		if (map[tileX + _mapSettings.width * tileY] == TREE)
+
+		if (map[gameMemory->heroTileIndex] == TREE)
 		{
-			LogInfo("COLLISION@ %d:%dx%d", hackTree, tileX, tileY);
-		}
-		else
-		{
-			LogInfo("%dx%d",tileX, tileY);
+			LogInfo("COLLISION@ %d", gameMemory->heroTileIndex);
 		}
 	}
 
 	// Opaque objects first
 	gameApi.spriteBatch.begin(gameMemory->material);
-		drawMap(gameApi, _mapSettings, map, gameMemory->zoom ,scrollX, scrollY);
+		drawMap(gameApi, _mapSettings, map, gameMemory->scroll, gameMemory->zoom, GROUND | TREE, GROUND_Z, srcGroundCenter);
 		gameApi.spriteBatch.submit(gameMemory->hero.sprite);
+		drawMap(gameApi, _mapSettings, map, gameMemory->scroll, gameMemory->zoom, TREE, TREE_Z, srcTree);
 	gameApi.spriteBatch.end();
 }
 

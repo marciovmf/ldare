@@ -51,6 +51,7 @@ extern "C"
 	 PFNGLSCISSORPROC glScissor;
 	 PFNGLDEPTHFUNCPROC glDepthFunc;
 	 PFNGLBLENDFUNCPROC glBlendFunc;
+	 PFNGLDEPTHMASKPROC glDepthMask;
 
 }
 #endif // _LDARE_GL__
