@@ -28,7 +28,6 @@ namespace ldare
 		Vec2 uv;
 	};
 
-
 #define SPRITE_BATCH_BEGIN_FUNC(name) void name(const ldare::Material& material)
 	typedef SPRITE_BATCH_BEGIN_FUNC(SpriteBatchBeginFunc);
 

@@ -1,7 +1,7 @@
 # source paths
 LDARESDK=src\sdk
 LDARESRC=src\win32\win32_ldare.cpp
-GAMESRC=game\test_game.cpp
+GAMESRC=game\game.cpp
 
 #build targets
 TARGET=ldare.exe
@@ -26,7 +26,7 @@ all: engine game assets
 
 game: $(LDARE_GAME) assets
 
-$(LDARE_GAME): $(GAMESRC) 
+$(LDARE_GAME):
 	@echo Building game dll...
 	cl $(GAMESRC) /Fo$(OUTDIR)\ /Fe$(LDARE_GAME) /LD $(CFLAGS) /link /subsystem:windows /EXPORT:gameInit /EXPORT:gameStart /EXPORT:gameUpdate /EXPORT:gameStop /PDB:$(OUTDIR)\ldare_game_%random%.pdb
 	@echo copying game assets
@@ -37,13 +37,12 @@ assets:
 	@echo copying standard engine assets ...
 	xcopy assets $(OUTDIR)\assets /Y /I /E /F
 
-engine: $(LDARE_GAME) $(LDARE_CORE) assets
+engine:
 	@echo Building ldare engine...
 	cl $(LDARESRC) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) /link /subsystem:console $(LIBS)
 
 tool: src\win32\tools\ldare_tool_font.cpp
 	cl src\win32\tools\ldare_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\  $(CFLAGS) $(LINKFLAGS)
-
 
 clean:
 	del /S /Q .\$(OUTDIR)\*
