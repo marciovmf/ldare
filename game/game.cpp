@@ -57,47 +57,7 @@ struct GameData
 } *gameMemory = nullptr;
 
 // reserve 3 more lines for simulation routine
-uint8 map[(MAP_WIDTH * MAP_HEIGHT)] = {};
-
-//---------------------------------------------------------------------------
-// Count alive neighbours around a given cell
-//---------------------------------------------------------------------------
-void map_simulate(MapSettings& settings, uint8* map, uint32 simulations, uint8 alive=1, uint8 dead=0)
-{
-	uint8* snapshot = new uint8[settings.width * settings.height];
-	uint32 mapSize = settings.width * settings.height;
-	for (int32 i=0; i < simulations; i++)
-	{
-		// take a snapshot of the original map
-		memcpy(snapshot, map, mapSize);
-
-		for (int32 x=0; x < settings.width; x++)
-		{
-			for (int32 y=0; y < settings.height; y++)
-			{
-				uint32 neighbourCount = map_countNeighbours(settings, snapshot, x, y, alive);
-				uint32 cellIndex = x * settings.width + y;
-
-				// is it alive now ?
-				if (snapshot[cellIndex] == alive)
-				{
-					if (neighbourCount < settings.deathLimit)
-						map[cellIndex] = dead;
-					else
-						map[cellIndex] = alive;
-				}
-				else if (snapshot[cellIndex] == dead)
-				{
-					if ( neighbourCount >= settings.birthLimit)
-						map[cellIndex] = alive;
-					else
-						map[cellIndex] = dead;
-				}
-			}
-		}
-	}
-	delete snapshot;
-}
+MapNode map[(MAP_WIDTH * MAP_HEIGHT)] = {};
 
 //---------------------------------------------------------------------------
 // Game Engine Initialization
@@ -155,6 +115,10 @@ void gameStart(void* mem, GameApi& gameApi)
 	map_addLayer(_mapSettings, map, TREE);
 	map_simulate(_mapSettings, map, 3, TREE, GROUND);
 
+
+	// set map borders
+	map_setMapBorders(_mapSettings, map);
+
 	// Setup hero 
 	character_setup(gameMemory->hero,
  		SPRITE_SIZE * gameMemory->zoom, 			// width
@@ -172,7 +136,7 @@ void gameStart(void* mem, GameApi& gameApi)
 //---------------------------------------------------------------------------
 // draw level
 //---------------------------------------------------------------------------
-void drawMap(GameApi& gameApi, MapSettings& settings, uint8* map, Vec2& scroll, 
+void drawMap(GameApi& gameApi, MapSettings& settings, MapNode* map, Vec2& scroll, 
 		float zoom, uint32 tileType, float minZ, Rectangle& srcSprite, Vec2& scale = Vec2{1,1})
 {
 	float zoomedSize = spriteSize * zoom;
@@ -184,19 +148,44 @@ void drawMap(GameApi& gameApi, MapSettings& settings, uint8* map, Vec2& scroll,
 	sprite.height = stepY * scale.y;
 	sprite.srcRect = srcSprite;
 	sprite.position.z = minZ;
+	sprite.color = {0.0, 1.0, 1.0, 1.0};
 
 		for(uint32 x=0; x < settings.width; x++)
 		{
 			for(uint32 y=0; y < settings.height; y++)
 			{
 				uint32 pos = x + settings.height * y;
-				uint8 cellValue = map[pos];
+				MapNode cellValue = map[pos];
 
-				if (!(cellValue & tileType))
+				if (!(cellValue.type & tileType))
 					continue;
 
 				float halfWidth = GAME_RESOLUTION_WIDTH/2;
 				float halfHeight = GAME_RESOLUTION_HEIGHT/2;
+
+				//HACK: remove this. This is for testing map borders
+				if (tileType & GROUND == GROUND)
+				{
+					if (cellValue.border == BORDER_TOP)
+						sprite.srcRect = srcGroundTop;
+					else if (cellValue.border == BORDER_BOTTOM)
+						sprite.srcRect = srcGroundB;
+					else if (cellValue.border == BORDER_LEFT)
+						sprite.srcRect = srcGroundL;
+					else if (cellValue.border == BORDER_RIGHT)
+						sprite.srcRect = srcGroundR;
+					else if (cellValue.border == (uint16)(BORDER_TOP | BORDER_LEFT))
+						sprite.srcRect = srcGroundTL;
+					else if (cellValue.border == (uint16)(BORDER_TOP | BORDER_RIGHT))
+						sprite.srcRect = srcGroundTR;
+					else if (cellValue.border == (uint16)(BORDER_BOTTOM | BORDER_LEFT))
+						sprite.srcRect = srcGroundBL;
+					else if (cellValue.border == (uint16)(BORDER_BOTTOM | BORDER_RIGHT))
+						sprite.srcRect = srcGroundBR;
+					else
+						sprite.srcRect = srcSprite;
+				}
+
 
 				sprite.position = { stepX * x, (stepY * y), sprite.position.z };// + 0.0001 * y};
 
@@ -255,7 +244,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 
 		// Find the tile the character is on
 		gameMemory->heroTileIndex = getTileFromPixel(heroPosition, gameMemory->scroll, SPRITE_SIZE);
-		if (map[gameMemory->heroTileIndex] != GROUND)
+		if (map[gameMemory->heroTileIndex].type != GROUND)
 		{
 			LogInfo("COLLISION@ %d", gameMemory->heroTileIndex);
 			speed = speed/4;
