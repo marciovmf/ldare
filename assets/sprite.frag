@@ -10,11 +10,10 @@ layout (std140) uniform ldare_t
 } ldare;
 
 uniform sampler2D mainTexture;
-
 vec2 coord = vec2( texCoord.x, texCoord.y);
 
 void main() 
 {
-	color = texture(mainTexture, coord);
+	color = texture(mainTexture, coord) * fragColor;
 }
 

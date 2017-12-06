@@ -1,4 +1,3 @@
-
 #define SCREEN_WIDTH 1024
 #define SCREEN_HEIGHT 576
 #define GAME_RESOLUTION_WIDTH 1024
@@ -87,6 +86,7 @@ void gameStart(void* mem, GameApi& gameApi)
 	if ( gameMemory == nullptr)
 	{
 		gameMemory = (GameData*) mem;
+	}
 		// load material
 		gameMemory->material = gameApi.asset.loadMaterial(
 				(const char*)"./assets/sprite.vert", 
@@ -94,7 +94,6 @@ void gameStart(void* mem, GameApi& gameApi)
 				(const char*)"./assets/spritesheet.bmp");
 	
 	 gameApi.asset.loadAudio("./assets/chop_tree.wav", &gameMemory->soundChoppTree);
-	}
 
 	float zoom = 1.0;
 	gameMemory->zoom = zoom;
@@ -115,21 +114,16 @@ void gameStart(void* mem, GameApi& gameApi)
 	map_addLayer(_mapSettings, map, TREE);
 	map_simulate(_mapSettings, map, 3, TREE, GROUND);
 
-
 	// set map borders
 	map_setMapBorders(_mapSettings, map);
 
 	// Setup hero 
 	character_setup(gameMemory->hero,
- 		SPRITE_SIZE * gameMemory->zoom, 			// width
+ 		SPRITE_SIZE * gameMemory->zoom, 		// width
 		SPRITE_SIZE * gameMemory->zoom, 		// height
-		Vec3{
-		 //(GAME_RESOLUTION_WIDTH/2 - SPRITE_SIZE/2) * zoom,
-		 //(GAME_RESOLUTION_HEIGHT/2 - SPRITE_SIZE/2) * zoom, 
-		 0,0,
-		 HERO_Z}, 	// position
-		Vec4{1.0f, 0.0f, 0.0f, 1.0f}); 																		// color
-
+		Vec3{0,0,HERO_Z}, 									// position
+		Vec4{1.0, 1.0, 1.0, 1.0}); 					// color
+	
 	gameMemory->step =  GAME_RESOLUTION_WIDTH/_mapSettings.width;
 }
 
@@ -148,7 +142,7 @@ void drawMap(GameApi& gameApi, MapSettings& settings, MapNode* map, Vec2& scroll
 	sprite.height = stepY * scale.y;
 	sprite.srcRect = srcSprite;
 	sprite.position.z = minZ;
-	sprite.color = {0.0, 1.0, 1.0, 1.0};
+	sprite.color = Vec4{1.0, 1.0, 1.0, 1.0};
 
 		for(uint32 x=0; x < settings.width; x++)
 		{
@@ -163,7 +157,7 @@ void drawMap(GameApi& gameApi, MapSettings& settings, MapNode* map, Vec2& scroll
 				float halfWidth = GAME_RESOLUTION_WIDTH/2;
 				float halfHeight = GAME_RESOLUTION_HEIGHT/2;
 
-				//HACK: remove this. This is for testing map borders
+					//HACK: remove this. This is for testing map borders
 				if (tileType & GROUND == GROUND)
 				{
 					if (cellValue.border == BORDER_TOP)
@@ -246,8 +240,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		gameMemory->heroTileIndex = getTileFromPixel(heroPosition, gameMemory->scroll, SPRITE_SIZE);
 		if (map[gameMemory->heroTileIndex].type != GROUND)
 		{
-			LogInfo("COLLISION@ %d", gameMemory->heroTileIndex);
-			speed = speed/4;
+			speed = speed /2;
 		}
 
 		// move the character OR the map

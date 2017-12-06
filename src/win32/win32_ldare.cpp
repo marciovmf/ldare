@@ -78,6 +78,11 @@ static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 	const char* dllFileName = gameModuleInfo.moduleFileName;
 
 #if DEBUG
+
+	if (gameModuleInfo.hGameModule)
+	{
+		FreeLibrary(gameModuleInfo.hGameModule);
+	}
 	// load a copy of the dll, so the original can be recompiled
 	const char* dllCopyFileName = "ldare_game_copy.dll";
 	if (!CopyFileA(dllFileName, dllCopyFileName, false))
@@ -114,6 +119,7 @@ static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 // Returns: true if the module was loaded or reloaded
 // Globals: gameModuleInfo
 //---------------------------------------------------------------------------
+#ifdef DEBUG
 static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 {
 	bool reloaded = false;
@@ -125,7 +131,6 @@ static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 		// Is there a newer version ?
 		if (CompareFileTime(&writeTime, &gameModuleInfo.gameModuleWriteTime) > 0)
 		{
-			FreeLibrary(gameModuleInfo.hGameModule);
 			gameModuleInfo.gameModuleWriteTime = writeTime;
 			reloaded = true;
 			Win32_loadGameModule(gameModuleInfo);
@@ -139,6 +144,7 @@ static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 
 	return reloaded;
 }
+#endif
 
 LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -618,7 +624,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	GameApi gameApi = {};
 
 	// Load the game module
-	if(!Win32_reloadGameModule(gameModuleInfo))
+	//if(!Win32_reloadGameModule(gameModuleInfo))
+	if(!Win32_loadGameModule(gameModuleInfo))
 	{
 		return FALSE;
 	}

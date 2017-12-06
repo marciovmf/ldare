@@ -119,7 +119,7 @@ void character_setup(Character& character, float width, float height, Vec3& posi
 	_choppAnimationRight.once = true;
 
 	Sprite sprite;
-	sprite.color = Vec4{1.0f, 1.0f, 0.0f, 1.0f};
+	sprite.color = color;
 	sprite.width =  width;
 	sprite.height = height;
 	sprite.position = position;
@@ -129,6 +129,7 @@ void character_setup(Character& character, float width, float height, Vec3& posi
 	character.direction = Vec3{1,0,0};
 }
 
+static float colorSum = 0;
 static void updateIdleState(Character& character, float deltaTime)
 {
 	if (character.animation != &_idleAnimationLeft && character.animation != &_idleAnimationRight)
@@ -139,6 +140,9 @@ static void updateIdleState(Character& character, float deltaTime)
 			character.animation = &_idleAnimationLeft;
 		animation_start(*character.animation);
 	}
+
+	colorSum += deltaTime * 5;
+	//character.sprite.color.x = sin(colorSum);
 
 	character.isWalking = character.isChopping = false;
 	character.sprite.srcRect = animation_update(*character.animation, deltaTime);

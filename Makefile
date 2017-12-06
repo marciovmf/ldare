@@ -26,7 +26,7 @@ all: engine game assets
 
 game: $(LDARE_GAME) assets
 
-$(LDARE_GAME):
+game:
 	@echo Building game dll...
 	cl $(GAMESRC) /Fo$(OUTDIR)\ /Fe$(LDARE_GAME) /LD $(CFLAGS) /link /subsystem:windows /EXPORT:gameInit /EXPORT:gameStart /EXPORT:gameUpdate /EXPORT:gameStop /PDB:$(OUTDIR)\ldare_game_%random%.pdb
 	@echo copying game assets
