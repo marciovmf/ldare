@@ -103,7 +103,9 @@ struct BITMAP_FILE_HEADER
 		if (!fontAsset || fontAssetSize == 0) { return false; }
 
 		// fix gliph array pointer
-		fontAsset->gliphData = (FontGliphRect*)(((uint32)fontAsset) + (uint32)fontAsset->gliphData);
+		//fontAsset->gliphData = (FontGliphRect*)(((uint8*)fontAsset) + ((uint8*)fontAsset->gliphData));
+	
+		fontAsset->gliphData = (FontGliphRect*) (((uint8*)fontAsset) + (uint32) fontAsset->gliphData);
 		*font = fontAsset;
 		return true;
 	}

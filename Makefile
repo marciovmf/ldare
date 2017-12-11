@@ -24,7 +24,7 @@ LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
 all: engine game assets
 
-game: $(LDARE_GAME) assets
+game: assets
 
 game:
 	@echo Building game dll...

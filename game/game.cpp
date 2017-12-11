@@ -18,6 +18,8 @@
 #define TREE 0x10
 
 #include <ldare/ldare_game.h>
+#include <wchar.h>
+#include <stdio.h>
 using namespace ldare;
 #include "procedural_map.cpp"
 #include "animation.cpp"
@@ -47,6 +49,8 @@ struct GameData
 	Character hero;
 	Audio soundChoppTree;
 	Material material;
+	Material fontMaterial;
+	FontAsset* fontAsset;
 	Vec2 resolution;
 	Vec2 scroll;
 	Vec2 heroTileCoord;
@@ -87,13 +91,22 @@ void gameStart(void* mem, GameApi& gameApi)
 	{
 		gameMemory = (GameData*) mem;
 	}
-		// load material
-		gameMemory->material = gameApi.asset.loadMaterial(
-				(const char*)"./assets/sprite.vert", 
-				(const char*) "./assets/sprite.frag", 
-				(const char*)"./assets/spritesheet.bmp");
-	
-	 gameApi.asset.loadAudio("./assets/chop_tree.wav", &gameMemory->soundChoppTree);
+	// load material
+	gameMemory->material = gameApi.asset.loadMaterial(
+			(const char*)"./assets/sprite.vert", 
+			(const char*) "./assets/sprite.frag", 
+			(const char*)"./assets/spritesheet.bmp");
+
+	gameMemory->fontMaterial = gameApi.asset.loadMaterial(
+			(const char*)"./assets/font.vert", 
+			(const char*) "./assets/font.frag", 
+			(const char*)"./assets/Caviar Dreams.bmp");
+
+	gameApi.asset.loadFont(
+			(const char*)"./assets/Caviar Dreams.font", &gameMemory->fontAsset );
+
+
+	gameApi.asset.loadAudio("./assets/chop_tree.wav", &gameMemory->soundChoppTree);
 
 	float zoom = 1.0;
 	gameMemory->zoom = zoom;
@@ -119,11 +132,11 @@ void gameStart(void* mem, GameApi& gameApi)
 
 	// Setup hero 
 	character_setup(gameMemory->hero,
- 		SPRITE_SIZE * gameMemory->zoom, 		// width
-		SPRITE_SIZE * gameMemory->zoom, 		// height
-		Vec3{0,0,HERO_Z}, 									// position
-		Vec4{1.0, 1.0, 1.0, 1.0}); 					// color
-	
+			SPRITE_SIZE * gameMemory->zoom, 		// width
+			SPRITE_SIZE * gameMemory->zoom, 		// height
+			Vec3{0,0,HERO_Z}, 									// position
+			Vec4{1.0, 1.0, 1.0, 1.0}); 					// color
+
 	gameMemory->step =  GAME_RESOLUTION_WIDTH/_mapSettings.width;
 }
 
@@ -136,7 +149,7 @@ void drawMap(GameApi& gameApi, MapSettings& settings, MapNode* map, Vec2& scroll
 	float zoomedSize = spriteSize * zoom;
 	float stepX = zoomedSize;
 	float stepY = zoomedSize;
-	
+
 	Sprite sprite;
 	sprite.width = stepX * scale.x;
 	sprite.height = stepY * scale.y;
@@ -144,62 +157,62 @@ void drawMap(GameApi& gameApi, MapSettings& settings, MapNode* map, Vec2& scroll
 	sprite.position.z = minZ;
 	sprite.color = Vec4{1.0, 1.0, 1.0, 1.0};
 
-		for(uint32 x=0; x < settings.width; x++)
+	for(uint32 x=0; x < settings.width; x++)
+	{
+		for(uint32 y=0; y < settings.height; y++)
 		{
-			for(uint32 y=0; y < settings.height; y++)
+			uint32 pos = x + settings.height * y;
+			MapNode cellValue = map[pos];
+
+			if (!(cellValue.type & tileType))
+				continue;
+
+			float halfWidth = GAME_RESOLUTION_WIDTH/2;
+			float halfHeight = GAME_RESOLUTION_HEIGHT/2;
+
+			//HACK: remove this. This is for testing map borders
+			if (tileType & GROUND == GROUND)
 			{
-				uint32 pos = x + settings.height * y;
-				MapNode cellValue = map[pos];
-
-				if (!(cellValue.type & tileType))
-					continue;
-
-				float halfWidth = GAME_RESOLUTION_WIDTH/2;
-				float halfHeight = GAME_RESOLUTION_HEIGHT/2;
-
-					//HACK: remove this. This is for testing map borders
-				if (tileType & GROUND == GROUND)
-				{
-					if (cellValue.border == BORDER_TOP)
-						sprite.srcRect = srcGroundTop;
-					else if (cellValue.border == BORDER_BOTTOM)
-						sprite.srcRect = srcGroundB;
-					else if (cellValue.border == BORDER_LEFT)
-						sprite.srcRect = srcGroundL;
-					else if (cellValue.border == BORDER_RIGHT)
-						sprite.srcRect = srcGroundR;
-					else if (cellValue.border == (uint16)(BORDER_TOP | BORDER_LEFT))
-						sprite.srcRect = srcGroundTL;
-					else if (cellValue.border == (uint16)(BORDER_TOP | BORDER_RIGHT))
-						sprite.srcRect = srcGroundTR;
-					else if (cellValue.border == (uint16)(BORDER_BOTTOM | BORDER_LEFT))
-						sprite.srcRect = srcGroundBL;
-					else if (cellValue.border == (uint16)(BORDER_BOTTOM | BORDER_RIGHT))
-						sprite.srcRect = srcGroundBR;
-					else
-						sprite.srcRect = srcSprite;
-				}
-
-
-				sprite.position = { stepX * x, (stepY * y), sprite.position.z };// + 0.0001 * y};
-
-				// center the map around screen origin and scroll
-				sprite.position.x += scroll.x; 
-				sprite.position.y += scroll.y;
-				
-				// submit the ground sprite
-				gameApi.spriteBatch.submit(sprite);
+				if (cellValue.border == BORDER_TOP)
+					sprite.srcRect = srcGroundTop;
+				else if (cellValue.border == BORDER_BOTTOM)
+					sprite.srcRect = srcGroundB;
+				else if (cellValue.border == BORDER_LEFT)
+					sprite.srcRect = srcGroundL;
+				else if (cellValue.border == BORDER_RIGHT)
+					sprite.srcRect = srcGroundR;
+				else if (cellValue.border == (uint16)(BORDER_TOP | BORDER_LEFT))
+					sprite.srcRect = srcGroundTL;
+				else if (cellValue.border == (uint16)(BORDER_TOP | BORDER_RIGHT))
+					sprite.srcRect = srcGroundTR;
+				else if (cellValue.border == (uint16)(BORDER_BOTTOM | BORDER_LEFT))
+					sprite.srcRect = srcGroundBL;
+				else if (cellValue.border == (uint16)(BORDER_BOTTOM | BORDER_RIGHT))
+					sprite.srcRect = srcGroundBR;
+				else
+					sprite.srcRect = srcSprite;
 			}
-		}
+
+
+			sprite.position = { stepX * x, (stepY * y), sprite.position.z };// + 0.0001 * y};
+
+			// center the map around screen origin and scroll
+			sprite.position.x += scroll.x; 
+			sprite.position.y += scroll.y;
+
+			// submit the ground sprite
+			gameApi.spriteBatch.submit(sprite);
+	}
+}
 }
 
 static uint32 getTileFromPixel(Vec3& position, Vec2 scroll, uint32 spriteSize)
 {
 	const float halfSprite = spriteSize/2;
 
-		int32 tileX = (position.x + halfSprite - scroll.x) / spriteSize;
-		int32 tileY = (position.y + halfSprite - scroll.y) / spriteSize;
-		return (uint32) (tileX + _mapSettings.width * tileY);
+	int32 tileX = (position.x + halfSprite - scroll.x) / spriteSize;
+	int32 tileY = (position.y + halfSprite - scroll.y) / spriteSize;
+	return (uint32) (tileX + _mapSettings.width * tileY);
 }
 
 //---------------------------------------------------------------------------
@@ -208,6 +221,7 @@ static uint32 getTileFromPixel(Vec3& position, Vec2 scroll, uint32 spriteSize)
 void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameApi)
 {
 	gameApi.spriteBatch.flush();
+	gameApi.text.flush();
 	Vec2& scroll = gameMemory->scroll;
 	bool update = false;
 
@@ -221,7 +235,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	}
 
 	character_update(gameMemory->hero, input, gameApi, deltaTime);
-	
+
 	if (gameMemory->hero.isWalking)
 	{
 		float speed = SPRITE_SIZE * 3 * deltaTime;
@@ -274,15 +288,23 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		{
 			heroPosition.y += speed * heroDirection.y;
 		}
-
-		}
+	}
 
 	// Opaque objects first
 	gameApi.spriteBatch.begin(gameMemory->material);
-		drawMap(gameApi, _mapSettings, map, gameMemory->scroll, gameMemory->zoom, GROUND | TREE, GROUND_Z, srcGroundCenter);
-		gameApi.spriteBatch.submit(gameMemory->hero.sprite);
-		drawMap(gameApi, _mapSettings, map, gameMemory->scroll, gameMemory->zoom, TREE, TREE_Z, srcTree);
+	drawMap(gameApi, _mapSettings, map, gameMemory->scroll, gameMemory->zoom, GROUND | TREE, GROUND_Z, srcGroundCenter);
+	gameApi.spriteBatch.submit(gameMemory->hero.sprite);
+	drawMap(gameApi, _mapSettings, map, gameMemory->scroll, gameMemory->zoom, TREE, TREE_Z, srcTree);
 	gameApi.spriteBatch.end();
+
+	char buff[64];
+	Vec3 pos = gameMemory->hero.sprite.position;
+	pos.y += 140;
+	pos.z = 2;
+	sprintf(buff, "%d x %d", (uint32)pos.x, (uint32) pos.y);
+	gameApi.text.begin(*gameMemory->fontAsset, gameMemory->fontMaterial);
+	 gameApi.text.drawText(pos, 0.5f, Vec4{0.1f, 0.1f, 0.1f, 1.0f}, buff);
+	gameApi.text.end();
 }
 
 //---------------------------------------------------------------------------
