@@ -47,6 +47,8 @@ struct GameData
 	Character hero;
 	Audio soundChoppTree;
 	Material material;
+	Material fontMaterial;
+	FontAsset* fontAsset;
 	Vec2 resolution;
 	Vec2 scroll;
 	Vec2 heroTileCoord;
@@ -92,6 +94,15 @@ void gameStart(void* mem, GameApi& gameApi)
 				(const char*)"./assets/sprite.vert", 
 				(const char*) "./assets/sprite.frag", 
 				(const char*)"./assets/spritesheet.bmp");
+	
+		gameMemory->fontMaterial = gameApi.asset.loadMaterial(
+				(const char*)"./assets/font.vert", 
+				(const char*) "./assets/font.frag", 
+				(const char*)"./assets/Caviar Dreams.bmp");
+		
+		gameApi.asset.loadFont(
+				(const char*)"./assets/Caviar Dreams.font", &gameMemory->fontAsset );
+
 	
 	 gameApi.asset.loadAudio("./assets/chop_tree.wav", &gameMemory->soundChoppTree);
 
@@ -208,6 +219,7 @@ static uint32 getTileFromPixel(Vec3& position, Vec2 scroll, uint32 spriteSize)
 void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameApi)
 {
 	gameApi.spriteBatch.flush();
+	gameApi.text.flush();
 	Vec2& scroll = gameMemory->scroll;
 	bool update = false;
 
@@ -283,6 +295,10 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		gameApi.spriteBatch.submit(gameMemory->hero.sprite);
 		drawMap(gameApi, _mapSettings, map, gameMemory->scroll, gameMemory->zoom, TREE, TREE_Z, srcTree);
 	gameApi.spriteBatch.end();
+
+	gameApi.text.begin(*gameMemory->fontAsset, gameMemory->fontMaterial);
+		gameApi.text.drawText(Vec3{100,100,1}, 1.0f, Vec4{0.0f, 0.0f, 0.0f, 1.0f}, "Hello World!");
+	gameApi.text.end();
 }
 
 //---------------------------------------------------------------------------

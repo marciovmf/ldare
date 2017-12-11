@@ -82,7 +82,7 @@ static uint32 nextPow2(uint32 value)
 	return ++value;
 }
 
-static HGDIOBJ loadFontFile(HDC dc, const char* fontFile,  const char* fontName, uint32 fontSize)
+static HGDIOBJ installSystemFontFromTTF(HDC dc, const char* fontFile,  const char* fontName, uint32 fontSize)
 {
 	if (!AddFontResourceEx(fontFile, FR_PRIVATE, 0))
 	{
@@ -241,7 +241,7 @@ int _tmain(int argc, _TCHAR** argv)
 	}
 
 	// Load the TTF font file
-	HFONT hFont = (HFONT)loadFontFile(dc, input.ttfFontFile, fontName, input.fontSize);
+	HFONT hFont = (HFONT)installSystemFontFromTTF(dc, input.ttfFontFile, fontName, input.fontSize);
 	if (!hFont)
 	{
 		LogInfo("Could not load font file %s", input.ttfFontFile);
@@ -258,8 +258,6 @@ int _tmain(int argc, _TCHAR** argv)
 
 	// Colplete filling the fontInput structure
 	const uint32 spacing = 2;
-
-
 
 	input.fontStringLen =  fontMetrics.tmLastChar - fontMetrics.tmFirstChar;
 	int8* fontBuffer = new int8[input.fontStringLen];
@@ -295,6 +293,7 @@ int _tmain(int argc, _TCHAR** argv)
 
 	ldare::FontGliphRect* fontGliphData = new ldare::FontGliphRect[input.fontStringLen];
 
+	//gliphY = bitmapRect.bottom;
 	// Output gliphs to the Bitmap
 	for (int i=0; i < input.fontStringLen; i++)
 	{
@@ -312,9 +311,8 @@ int _tmain(int argc, _TCHAR** argv)
 			gliphY += gliphSize.cy + spacing;
 		}
 
-
-		fontGliphData[i] = {gliphX, gliphY, gliphSize.cx, gliphSize.cy};
-		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
+		fontGliphData[i] = {gliphX, bitmapRect.bottom - gliphY - gliphSize.cy, gliphSize.cx, gliphSize.cy};
+		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, bitmapRect.bottom - gliphY - gliphSize.cy, gliphSize.cx, gliphSize.cy, 0);
 		TextOut(dc, gliphX, gliphY, &gliph, 1);
 		gliphX += gliphSize.cx + spacing;
 	}

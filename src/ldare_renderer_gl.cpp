@@ -413,12 +413,14 @@ namespace ldare
 		ldare::FontGliphRect* gliphList = fontAsset.gliphData;
 		uint32 advance = 0;
 
-		scale = 1.0f;
+		if ( scale < 0 ) scale = 1.0f;
+
 		//submit each character as an individual sprite
 		while ((c = *ptrChar) != 0)
 		{
 			FontGliphRect* gliph;
-
+	
+			c -= fontAsset.firstCodePoint;
 			if (c < fontAsset.firstCodePoint || c > fontAsset.lastCodePoint)
 				gliph = &(gliphList[fontAsset.defaultCodePoint]);
 			else
@@ -431,8 +433,8 @@ namespace ldare
 			sprite.width = gliph->w * scale; 
 			sprite.height = gliph->h * scale;
 			
-			//sprite.srcRect = {gliph->x , gliph->y, gliph->w, gliph->h};
-			sprite.srcRect = {gliph->x, 512 - gliph->y, gliph->w, gliph->h};
+			//LogInfo("{%d, %d, %d, %d}", gliph->x, gliph->y, gliph->w, gliph->h);
+			sprite.srcRect = {gliph->x, gliph->y, gliph->w, gliph->h};
 			++ptrChar;
 			submit(sprite);
 		}
