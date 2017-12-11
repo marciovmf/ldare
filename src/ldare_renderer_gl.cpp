@@ -420,20 +420,24 @@ namespace ldare
 		{
 			FontGliphRect* gliph;
 	
-			c -= fontAsset.firstCodePoint;
+			// avoid indexing undefined characters
 			if (c < fontAsset.firstCodePoint || c > fontAsset.lastCodePoint)
+			{
 				gliph = &(gliphList[fontAsset.defaultCodePoint]);
+			}
 			else
+			{
+				c = c - fontAsset.firstCodePoint;
 				gliph = &(gliphList[c]);
+			}
 
-			 //calculate advance
+			//calculate advance
 			sprite.position = position;
 			sprite.position.x += advance;
 			advance += gliph->w * scale;
 			sprite.width = gliph->w * scale; 
 			sprite.height = gliph->h * scale;
 			
-			//LogInfo("{%d, %d, %d, %d}", gliph->x, gliph->y, gliph->w, gliph->h);
 			sprite.srcRect = {gliph->x, gliph->y, gliph->w, gliph->h};
 			++ptrChar;
 			submit(sprite);
