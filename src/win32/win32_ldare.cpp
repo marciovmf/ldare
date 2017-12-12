@@ -33,6 +33,13 @@ static struct Win32_GameWindow
 	bool isFullScreen;
 } _gameWindow;
 
+static struct EngineDebugService
+{
+	Material fontMaterial;
+  FontAsset* debugFont;
+	char fpsText[16];
+} _debugService;
+
 struct Win32_GameModuleInfo
 {
 	const char* moduleFileName;
@@ -674,6 +681,17 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	platform::Win32_initTimer();
 	Win32_GameTimer gameTimer = {};
 
+#ifdef DEBUG
+	_debugService.fontMaterial = gameApi.asset.loadMaterial(
+			(const char*)"./assets/font.vert", 
+			(const char*) "./assets/font.frag", 
+			(const char*)"./assets/Liberation Mono.bmp");
+
+		gameApi.asset.loadFont(
+			(const char*)"./assets/Liberation Mono.font", &_debugService.debugFont);
+
+#endif
+
 	while (!_gameWindow.shouldClose)
 	{
 		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
@@ -704,6 +722,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		//Update the game
 		updateRenderer(gameTimer.deltaTime);
 		gameModuleInfo.update(gameTimer.deltaTime, gameInput, gameApi);
+
+#if DEBUG
+		gameApi.text.begin(*_debugService.debugFont, _debugService.fontMaterial);
+			gameApi.text.drawText(Vec3{5, _gameContext.windowHeight - 30, 2}, 1.0f, Vec4{0.0f, 0.0f, 0.0f, 1.0f}, _debugService.fpsText);
+		gameApi.text.end();
+#endif
+
 		SwapBuffers(_gameWindow.dc);
 
 		// get deltaTime
@@ -712,14 +737,15 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		gameTimer.frameCount++;
 		gameTimer.elapsedFrameTime += gameTimer.deltaTime;
 
-#if 0
+#if DEBUG
 		// count frames per second
 		if (gameTimer.elapsedFrameTime>1)
 		{
 			gameTimer.elapsedFrameTime -=1;
-			LogInfo("%d FPS", gameTimer.frameCount);
+			sprintf(_debugService.fpsText, "FPS: %d", gameTimer.frameCount);
 			gameTimer.frameCount=0;
 		}
+
 #endif
 	}
 
