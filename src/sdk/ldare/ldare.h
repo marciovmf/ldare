@@ -46,6 +46,7 @@ typedef uint64_t uint64;
 #include "ldare_input.h"
 #include "ldare_asset.h"
 #include "ldare_render.h"
+#include "ldare_random.h"
 
 #endif //__LDARE_H__
 

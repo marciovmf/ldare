@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <cstring>
 #include <time.h>
 
@@ -55,12 +54,12 @@ inline uint32 map_countNeighbours(MapSettings& settings, MapNode* map, int32 cel
 void map_initialize(MapSettings& settings, MapNode* map)
 {
 	clock_t time = clock();
-	srand((int32) time);
+	ldare::seed((int32) time);
 	for(uint32 x=0; x < settings.width; x++)
 	{
 		for(uint32 y=0; y < settings.height; y++)
 		{
-			int8 isAlive = rand() % 100 < settings.cellInitialAliveChance;
+			int8 isAlive = ldare::random() % 100 < settings.cellInitialAliveChance;
 			map[x * settings.width + y].type = (uint16)isAlive;
 		}
 	}
@@ -69,7 +68,7 @@ void map_initialize(MapSettings& settings, MapNode* map)
 static void map_addLayer(MapSettings& settings, MapNode* map, uint32 layerType)
 {
 	clock_t time = clock();
-	srand((int32) time);
+ldare:seed((int32) time);
 	for(uint32 x=0; x < settings.width; x++)
 	{
 		for(uint32 y=0; y < settings.height; y++)
@@ -77,7 +76,7 @@ static void map_addLayer(MapSettings& settings, MapNode* map, uint32 layerType)
 			int32 index = x * settings.width + y;
 			if (map[index].type != 0)
 			{
-				if (rand() % 100 < settings.cellInitialAliveChance )
+				if (ldare::random() % 100 < settings.cellInitialAliveChance )
 					map[x * settings.width + y].type = layerType;
 			}
 		}
