@@ -1,10 +1,10 @@
 ![latest screenshot](logo.png)
 
-ldare is game engine being developed from scratch for learning and practcing essential game development skills.
+ldare is game engine being developed from scratch for learning and practicing essential game development skills.
 Each and every single feature is written from scratch with absolutely no third party code or libraries.
 
 The project started as a game engine for creating games for the Lundum Dare Game jam, hence the (provisory) name.
-That said, It is resonable to consider the 'next' Lundum Dare as a project milestone for testing and releasing features.
+That said, It is reasonable to consider the 'next' Lundum Dare as a project milestone for testing and releasing features.
 
 # What can I do with it so far ?
  As the first Lundum Dare approaches, we are in a state where it is already possible to write small 2D games.
