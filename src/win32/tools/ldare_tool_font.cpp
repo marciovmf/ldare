@@ -187,6 +187,7 @@ static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 }
 
 //TODO: Make the font asset AND the bitmap a single file!
+//TODO: Save a 8bit monochrome bitmap! 32bit is an OVERKILL!
 static void saveFontAsset(const char* fileName, uint16 firstChar, uint16 lastChar, uint16 defaultCharacter,
 		uint32 bitmapWidth, uint32 bitmapHeight, void* gliphData, uint32 gliphDataSize)
 {
