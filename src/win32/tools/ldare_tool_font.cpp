@@ -49,25 +49,19 @@ uint32 getFontName(const char* ttfFile, char* fontNameBuffer, uint32 fontNameBuf
 	return numCharacterCopied;
 }
 
-static void createBitmapInfo(BITMAPINFO* bmpInfo, uint32 width, uint32 height)
-{
-	BITMAPINFO bmp = {};
-	bmpInfo->bmiHeader.biSize = sizeof(bmp.bmiHeader);
-	bmpInfo->bmiHeader.biWidth = width;
-	bmpInfo->bmiHeader.biHeight = height;
-	bmpInfo->bmiHeader.biPlanes = 1;
-	bmpInfo->bmiHeader.biBitCount = 32;
-	bmpInfo->bmiHeader.biCompression = BI_RGB;
-}
-
 static HDC makeFontDC(void** bmpMem, uint32 width, uint32 height)
 {
 	HDC dc = CreateCompatibleDC(GetDC(0));
-	BITMAPINFO bmp;
-	createBitmapInfo(&bmp, width, height);
+	BITMAPINFO bmp = {};
+	bmp.bmiHeader.biSize = sizeof(bmp.bmiHeader);
+	bmp.bmiHeader.biWidth = width;
+	bmp.bmiHeader.biHeight = height;
+	bmp.bmiHeader.biPlanes = 1;
+	bmp.bmiHeader.biBitCount = 32;
+	bmp.bmiHeader.biCompression = BI_RGB;
+	
 	HBITMAP hBitmap = CreateDIBSection(dc, &bmp, DIB_RGB_COLORS, bmpMem, 0, 0);
 	SelectObject(dc, hBitmap);
-	//SetBkColor(dc, RGB(255, 0, 0));
 	return dc;
 }
 
@@ -142,13 +136,15 @@ static RECT calcFontBitmapSize(HDC dc, const char* fontString, uint32 maxLineWid
 static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 {
 	// bitmap dimensions
-	int bitmap_dx = bitmapRect.right -  bitmapRect.left;
-	int bitmap_dy = bitmapRect.bottom - bitmapRect.top;
+	uint32 bitmap_width = bitmapRect.right -  bitmapRect.left;
+	uint32 bitmap_height = bitmapRect.bottom - bitmapRect.top;
+	uint32 numPixels = bitmap_width * bitmap_height;
 
 	// create file
 	ofstream file(filename, ios::binary);
 	if(!file) return;
 
+	// Bitmal file header
 	BITMAPFILEHEADER fileHeader;
 	fileHeader.bfType      = 0x4d42;
 	fileHeader.bfSize      = 0;
@@ -156,25 +152,22 @@ static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 	fileHeader.bfReserved2 = 0;
 	fileHeader.bfOffBits   = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
 
-	BITMAPINFO bitmapInfo;
-	createBitmapInfo(&bitmapInfo, bitmap_dx, bitmap_dy);
+	// Final BITMAPINFO to be written to the file
+	BITMAPINFO bitmapInfo = {};
+	bitmapInfo.bmiHeader.biSize = sizeof(bitmapInfo.bmiHeader);
+	bitmapInfo.bmiHeader.biWidth = bitmap_width;
+	bitmapInfo.bmiHeader.biHeight = bitmap_height;
+	bitmapInfo.bmiHeader.biPlanes = 1;
+	bitmapInfo.bmiHeader.biBitCount = 16;
+	bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-	// dibsection information
-	BITMAPINFO info;
-	info.bmiHeader = bitmapInfo.bmiHeader;
-	int bitmapSize= bitmapInfo.bmiHeader.biBitCount/8 * (bitmap_dx * bitmap_dy);
+	int bitmapSize = bitmapInfo.bmiHeader.biBitCount/8 * numPixels;
 
 	BYTE* memory = 0;
 	HDC memDC =  CreateCompatibleDC(dc);
-	HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, (void**)&memory, 0, 0);
+	HBITMAP bitmap = CreateDIBSection(dc, &bitmapInfo, DIB_RGB_COLORS, (void**)&memory, 0, 0);
 	SelectObject(memDC, bitmap);
-
-	//BitBlt(memDC, 0, 0, bitmap_dx, bitmap_dy, dc, 0, 0, SRCERASE);
-	BLENDFUNCTION blend = {};
-	blend.BlendOp = AC_SRC_OVER;
-	blend.SourceConstantAlpha = 255;
-
-	AlphaBlend(memDC, 0, 0, bitmap_dx, bitmap_dy, dc, 0, 0, bitmap_dx, bitmap_dy, blend);
+	BitBlt(memDC, 0, 0, bitmap_width, bitmap_height, dc, 0, 0, SRCCOPY);
 
 	// save dibsection data
 	file.write((char*)&fileHeader, sizeof(BITMAPFILEHEADER));
@@ -186,8 +179,7 @@ static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 	DeleteObject(bitmap);
 }
 
-//TODO: Make the font asset AND the bitmap a single file!
-//TODO: Save a 8bit monochrome bitmap! 32bit is an OVERKILL!
+//TODO: Make the font asset AND the bitmap a single file?
 static void saveFontAsset(const char* fileName, uint16 firstChar, uint16 lastChar, uint16 defaultCharacter,
 		uint32 bitmapWidth, uint32 bitmapHeight, void* gliphData, uint32 gliphDataSize)
 {
@@ -281,7 +273,8 @@ int _tmain(int argc, _TCHAR** argv)
 	RECT bitmapRect = calcFontBitmapSize(dc, input.fontString, input.maxLineWidth, spacing);
 	HBITMAP hDcBitmap = CreateCompatibleBitmap(dc, bitmapRect.right, bitmapRect.bottom);
 	SelectObject(dc, hDcBitmap);
-	SetBkMode(dc, TRANSPARENT);
+	//SetBkMode(dc, TRANSPARENT);
+	SetBkColor(dc, RGB(0,0,0));
 	SetTextColor(dc, RGB(255,255,255));
 
 	uint32 gliphX = 0;
@@ -332,3 +325,4 @@ int _tmain(int argc, _TCHAR** argv)
 	delete fontBuffer;
 	return 0;
 }
+
