@@ -26,13 +26,13 @@ namespace ldare
 		uint32 id;
 		void*  audioFileMemoryToRelease_;
 		size_t audioMemorySize_;
-
 	};
 
 	struct Bitmap
 	{
 		uint32 width;
 		uint32 height;
+		uint32 bitsPerPixel;
 		uchar8 *pixels;
 		//TODO: Remove this when memory/asset manager is done
 		void*  bmpFileMemoryToRelease_;

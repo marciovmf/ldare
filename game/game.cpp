@@ -20,6 +20,7 @@
 #include <ldare/ldare_game.h>
 #include <wchar.h>
 #include <stdio.h>
+
 using namespace ldare;
 #include "procedural_map.cpp"
 #include "animation.cpp"
@@ -100,10 +101,10 @@ void gameStart(void* mem, GameApi& gameApi)
 	gameMemory->fontMaterial = gameApi.asset.loadMaterial(
 			(const char*)"./assets/font.vert", 
 			(const char*) "./assets/font.frag", 
-			(const char*)"./assets/Caviar Dreams.bmp");
+			(const char*)"./assets/Capture it.bmp");
 
 	gameApi.asset.loadFont(
-			(const char*)"./assets/Caviar Dreams.font", &gameMemory->fontAsset );
+			(const char*)"./assets/Capture it.font", &gameMemory->fontAsset );
 
 
 	gameApi.asset.loadAudio("./assets/chop_tree.wav", &gameMemory->soundChoppTree);
@@ -272,6 +273,10 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 		else
 		{
 			heroPosition.x += speed * heroDirection.x;
+			// avoid wiggling by just allowing the player to trespass a little bit any frame
+			if ( heroPosition.x > hMovementLimitMax ) heroPosition.x = hMovementLimitMax + 0.01f;
+			if ( heroPosition.x < hMovementLimitMin ) heroPosition.x = hMovementLimitMin - 0.01f;
+
 		}
 		// VERTICAL
 		if ( heroPosition.y < vMovementLimitMin)
@@ -303,7 +308,7 @@ void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameA
 	pos.z = 2;
 	sprintf(buff, "%d x %d", (uint32)pos.x, (uint32) pos.y);
 	gameApi.text.begin(*gameMemory->fontAsset, gameMemory->fontMaterial);
-	 gameApi.text.drawText(pos, 0.5f, Vec4{0.1f, 0.1f, 0.1f, 1.0f}, buff);
+	gameApi.text.drawText(pos, 0.8f, Vec4{1.0f, 0.0f, 0.0f, 1.0f}, buff);
 	gameApi.text.end();
 }
 

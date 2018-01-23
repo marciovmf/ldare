@@ -15,9 +15,6 @@ vec2 coord = vec2( texCoord.x, texCoord.y);
 void main() 
 {
 	 vec4 textureColor = texture(mainTexture, coord);
-	 //color = vec4(fragColor.rgb, textureColor.a);
-
 	 color = vec4(fragColor.rgb, fragColor.a * textureColor.a);
-	 //color = (fragColor.rgba) * textureColor.a;
 }
 

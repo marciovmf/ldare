@@ -51,6 +51,8 @@ struct BITMAP_FILE_HEADER
 #pragma pack(pop)
 #endif
 
+
+
 	//---------------------------------------------------------------------------
 	// Material functions
 	//---------------------------------------------------------------------------
@@ -65,34 +67,52 @@ struct BITMAP_FILE_HEADER
 
 	bool loadBitmap(const char* file, ldare::Bitmap* bitmap)
 	{	
+		LogInfo("Loading texture: %s", file);
 		bitmap->bmpFileMemoryToRelease_ = ldare::platform::loadFileToBuffer(file, &bitmap->bmpMemorySize_);
 		if (!bitmap->bmpFileMemoryToRelease_ || bitmap->bmpMemorySize_ == 0) { return false; }
 
 		BITMAP_FILE_HEADER *bitmapHeader = (BITMAP_FILE_HEADER*)bitmap->bmpFileMemoryToRelease_;
 
 		//NOTE: compression info at https://msdn.microsoft.com/en-us/library/cc250415.aspx
-		// it MUST be a valid 8bits per pixel, uncompressed bitmap
 		if (bitmapHeader->FileType != BITMAP_FILE_HEADER_SIGNATURE
 				|| (bitmapHeader->Compression != 0 && bitmapHeader->Compression != 3)
-				|| bitmapHeader->BitsPerPixel != 32)
-			return false;
+				|| bitmapHeader->BitsPerPixel != 16 && bitmapHeader->BitsPerPixel != 32)
+		{
 
-		bitmap->pixels = (uint8*)(bitmapHeader)+bitmapHeader->BitmapOffset;
+			ldare::freeAsset(bitmap->bmpFileMemoryToRelease_, bitmap->bmpMemorySize_);
+			LogError("Unsupported bitmap type.");
+			return false;
+		}
+		bitmap->bitsPerPixel = bitmapHeader->BitsPerPixel;
+		bitmap->pixels = (uint8*)(bitmapHeader) + bitmapHeader->BitmapOffset;
 		bitmap->width = bitmapHeader->Width;
 		bitmap->height = bitmapHeader->Height;
 
 		//NOTE: Pixel format in memory is ABGR. Must rearrange it as RGBA to make OpenGL happy 
 		//TODO: implement this with SIMD to make it faster
 		uint32 numPixels = bitmap->width * bitmap->height;
-		for (uint32 i = 0; i < numPixels; i++)
+
+		if (bitmapHeader->BitsPerPixel == 32)
 		{
-			uint32 argb = *(((uint32*)bitmap->pixels) + i);
-			uint32 r = (argb & 0xFF000000) >> 24;
-			uint32 g = (argb & 0x00FF0000) >> 8;
-			uint32 b = (argb & 0x0000FF00) << 8;
-			uint32 a = (argb & 0x000000FF) << 24;
-			*((uint32*)bitmap->pixels + i) = r | g | b | a;
+			for (uint32 i = 0; i < numPixels; i++)
+			{
+				uint32 argb = *(((uint32*)bitmap->pixels) + i);
+				uint32 r = (argb & 0xFF000000) >> 24;
+				uint32 g = (argb & 0x00FF0000) >> 8;
+				uint32 b = (argb & 0x0000FF00) << 8;
+				uint32 a = (argb & 0x000000FF) << 24;
+				*((uint32*)bitmap->pixels + i) = r | g | b | a;
+			}
 		}
+		else 
+		{
+			for (uint32 i = 0; i < numPixels; i++)
+			{
+				uint16 rgb = *(((uint16*)bitmap->pixels) + i);
+				*((uint16*)bitmap->pixels + i) = rgb;
+			}
+		}
+
 		return true;
 	}
 
@@ -112,6 +132,7 @@ struct BITMAP_FILE_HEADER
 
 	void freeAsset(void* memory, size_t size)
 	{
+		//TODO: This is a bit hacky. I do not whant to free knwo static memory
 		ldare::platform::memoryFree(memory, size);
 	}
 

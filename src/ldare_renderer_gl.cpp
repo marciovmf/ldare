@@ -16,13 +16,44 @@
 #define SPRITE_ATTRIB_COLOR 1
 #define SPRITE_ATTRIB_UV 2
 
+#define checkGlError() checkNoGlError(__FILE__,__LINE__)
+static int32 checkNoGlError(const char* file, uint32 line)
+{
+	const char* error = "UNKNOWN ERROR CODE";
+	GLenum err = glGetError();
+	int32 success = 1;
+	while(err!=GL_NO_ERROR)
+	{
+		switch(err)
+		{
+			case GL_INVALID_OPERATION:      error="INVALID_OPERATION";      break;
+			case GL_INVALID_ENUM:           error="INVALID_ENUM";           break;
+			case GL_INVALID_VALUE:          error="INVALID_VALUE";          break;
+			case GL_OUT_OF_MEMORY:          error="OUT_OF_MEMORY";          break;
+			case GL_INVALID_FRAMEBUFFER_OPERATION:  error="INVALID_FRAMEBUFFER_OPERATION";  break;
+		}
+		success=0;
+		LogError("GL ERROR %s at %s:%d",error, file, line);
+		err=glGetError();
+	}
+
+	return success;
+}
+
+static void clearGlError()
+{
+	GLenum err;
+	do
+	{
+		err = glGetError();
+	}while (err != GL_NO_ERROR);
+}
 
 namespace ldare 
 {
 	static bool updateGlobalShaderData = false;
 	static GlobalShaderData globalShaderData = {};
 	static ldare::FontAsset fontAsset; // For text batching
-
 	static struct GL_SpriteBatchData
 	{
 		ldare::Material material;
@@ -34,30 +65,11 @@ namespace ldare
 		GLvoid* gpuUniformBuffer;
 		GLuint numSprites;
 		uint32 spriteCount;
+		ldare::Bitmap fallbackBitmap;
+		uint32 fallbackBitmapData;
 	} spriteBatchData;
 
-	static int32 checkNoGlError()
-	{
-		const char* error = "UNKNOWN ERROR CODE";
-		GLenum err (glGetError());
-		int32 success = 1;
-		while(err!=GL_NO_ERROR)
-		{
-			switch(err)
-			{
-				case GL_INVALID_OPERATION:      error="INVALID_OPERATION";      break;
-				case GL_INVALID_ENUM:           error="INVALID_ENUM";           break;
-				case GL_INVALID_VALUE:          error="INVALID_VALUE";          break;
-				case GL_OUT_OF_MEMORY:          error="OUT_OF_MEMORY";          break;
-				case GL_INVALID_FRAMEBUFFER_OPERATION:  error="INVALID_FRAMEBUFFER_OPERATION";  break;
-			}
-			success=0;
-			LogError(error);
-			err=glGetError();
-		}
 
-		return success;
-	}
 
 	static GLboolean checkShaderProgramLink(GLuint program)
 	{
@@ -156,6 +168,18 @@ namespace ldare
 
 	int32 initSpriteBatch()
 	{
+		clearGlError();
+		// initialize fallback bitmap
+		ldare::Bitmap fallbackBitmap = {};
+		fallbackBitmap.bitsPerPixel = 32;
+		fallbackBitmap.width = fallbackBitmap.height = 1;
+		fallbackBitmap.bmpMemorySize_ = 4;
+		//TODO: is it possible that at some poit someone try to release this memory ?
+
+		spriteBatchData.fallbackBitmapData = 0xFFFF000FF; // ugly hell magenta! ABRG
+		spriteBatchData.fallbackBitmap = fallbackBitmap;
+		spriteBatchData.fallbackBitmap.pixels = (uchar8*) &spriteBatchData.fallbackBitmapData;
+
 		glGenVertexArrays(1, &spriteBatchData.vao);
 		glGenBuffers(1, &spriteBatchData.vbo);
 		glGenBuffers(1, &spriteBatchData.ibo);
@@ -170,7 +194,7 @@ namespace ldare
 		// VERTEX buffer
 		glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
 		glBufferData(GL_ARRAY_BUFFER, SPRITE_BATCH_BUFFER_SIZE, 0, GL_DYNAMIC_DRAW);
-		checkNoGlError();
+		checkGlError();
 
 		// Precompute indices for every sprite
 		GLushort indices[SPRITE_BATCH_INDICES_SIZE]={};
@@ -210,7 +234,7 @@ namespace ldare
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		glBindVertexArray(0);
-		checkNoGlError();
+		checkGlError();
 
 		//TODO: Marcio, this is a hack for testing stuff in 2D. Move this to material state
 		glClearColor(1, 1, 1, 1);
@@ -226,10 +250,11 @@ namespace ldare
 
 	void begin(const ldare::Material& material)
 	{
+		clearGlError();
 		spriteBatchData.material = material;
 		spriteBatchData.spriteCount = 0;
 
-		if ( updateGlobalShaderData)
+		if (updateGlobalShaderData)
 		{
 			// map UBO buffer
 			glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
@@ -246,6 +271,7 @@ namespace ldare
 
 	void submit(const Sprite& sprite)
 	{
+		clearGlError();
 		Material& material = spriteBatchData.material;
 		// sprite vertex order 0,1,2,2,3,0
 		// 1 -- 2
@@ -302,6 +328,7 @@ namespace ldare
 
 	void end()
 	{
+		clearGlError();
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 		glBindTexture(GL_TEXTURE_2D, spriteBatchData.material.texture.id);
 		glUseProgram(spriteBatchData.material.shader);
@@ -314,17 +341,34 @@ namespace ldare
 		//TODO: sort draw calls per material 
 	}
 
+	//TODO: make filtering paremetrizable when importing texture
+	//TODO: Pass texture import settings as an argument to loadTexture
 	ldare::Texture loadTexture(const char* bitmapFile)
 	{
+		clearGlError();
 		ldare::Bitmap bitmap;
-		ldare::loadBitmap(bitmapFile, &bitmap);
+		
+		if (!ldare::loadBitmap(bitmapFile, &bitmap))
+		{
+			LogWarning("Using fallback bitmap");
+			// we could not load the bitmap. Lets provide a dummy texture
+			bitmap = spriteBatchData.fallbackBitmap;
+		}
+
 		GLuint textureId;
 		glGenTextures(1, &textureId);
 		glBindTexture(GL_TEXTURE_2D, textureId);
+
+		// handle correct pixel data format
+		GLenum pixelDataType = (bitmap.bitsPerPixel == 32) ? GL_UNSIGNED_BYTE : 
+			GL_UNSIGNED_SHORT_4_4_4_4;
+
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.width, bitmap.height, 0, 
-				GL_RGBA, GL_UNSIGNED_BYTE, bitmap.pixels);
+				GL_RGBA, pixelDataType, bitmap.pixels);
+
+		checkGlError();
+
 		glGenerateMipmap(GL_TEXTURE_2D);
-		//TODO: make filtering paremetrizable when importing texture
 	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_CLAMP_TO_EDGE);
 	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_CLAMP_TO_EDGE);
 
