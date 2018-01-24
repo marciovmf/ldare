@@ -1,0 +1,42 @@
+
+
+struct BufferLayoutAttribute
+{
+	uint16 type; 		// FLOAT, INT, SHORT, ... ?
+	uint16 count; 	// ONE, TWO, THREE
+	uint16 offset; 	// is 16bits enough ?
+	uint16 stride; 	// is 16bits enough ?
+};
+
+// should be an opaque pointer
+BufferObject
+{
+	Gluint id;
+	uint32 type; // INDEX/VERTEX/UNIFORM | DYNAMIC
+	size_t size;
+};
+
+// Vertex buffer
+ // Creates a dynamic vertex buffer
+ BufferObject vertBuffer = createVertexBuffer(size_t size);
+ 
+ // Creates a static vertex buffer
+ Buffer object bertBuffer = createVertexBuffer(size_t size, BufferLayout layout);
+
+// Index buffer
+ createIndexBuffer(
+
+
+ // Set/Replace part of vertex buffer data
+ setBufferData(BufferObject* buffer, void* data, size_t dataSize, void* startOffset);
+
+ // Set/Replace vertex buffer data
+ vertexBuffer.SetData(BufferObject* buffer, void* data, size_t dataSize);
+
+ // Bind vertex buffer
+ bindBuffer(BufferObject* buffer)
+ // Unbind vertex buffer
+ unbindBuffer(BufferObject* buffer)
+
+ // Deletes the buffer and releases GPU memory
+	deleteBuffer(BufferObject* buffer)
