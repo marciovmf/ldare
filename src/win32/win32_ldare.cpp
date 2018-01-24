@@ -8,9 +8,11 @@
 #include "../ldare_platform.h"
 #include "../ldare_memory.h"
 #include "../ldare_gl.h"
+#include "../ldare_renderer_buffer.h"
 // implementations
 #include "win32_platform.cpp"
 #include "../ldare_renderer_gl.cpp"
+#include "../ldare_renderer_buffer_gl.cpp"
 #include "../ldare_asset.cpp"
 #include "../ldare_memory.cpp"
 // Win32 specifics
@@ -346,6 +348,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	FETCH_GL_FUNC(PFNGLDEPTHFUNCPROC, glDepthFunc);
 	FETCH_GL_FUNC(PFNGLBLENDFUNCPROC, glBlendFunc);
 	FETCH_GL_FUNC(PFNGLDEPTHMASKPROC, glDepthMask);
+	FETCH_GL_FUNC(PFNGLDELETEBUFFERSPROC, glDeleteBuffers);
 #undef FETCH_GL_FUNC
 
 	if (!success)
