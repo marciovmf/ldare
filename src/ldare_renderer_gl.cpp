@@ -60,6 +60,7 @@ namespace ldare
 		GLuint ubo;
 		GLuint vao;
 		renderer::Buffer vertexBuffer;
+		renderer::Buffer indexBuffer;
 		GLuint ibo;
 		GLvoid* gpuBuffer;
 		GLvoid* gpuUniformBuffer;
@@ -167,6 +168,7 @@ namespace ldare
 
 	int32 initSpriteBatch()
 	{
+		LogInfo("\033[1;31mbold red text\033[0m\n");
 		clearGlError();
 		// initialize fallback bitmap
 		ldare::Bitmap fallbackBitmap = {};
@@ -185,29 +187,26 @@ namespace ldare
 
 		// ARRAY buffer
 		glBindVertexArray(spriteBatchData.vao);
-		glEnableVertexAttribArray(SPRITE_ATTRIB_VERTEX);
-		glEnableVertexAttribArray(SPRITE_ATTRIB_COLOR);
-		glEnableVertexAttribArray(SPRITE_ATTRIB_UV);
 
 		// VERTEX buffer ---------------------------------------------
 		renderer::BufferLayout layout[] = {
-			{SPRITE_ATTRIB_VERTEX, 											// index
-				renderer::BufferLayout::Type::FLOAT32,	  // type
-				renderer::BufferLayout::Size::X3, 				// size
-				SPRITE_BATCH_VERTEX_DATA_SIZE, 						// stride
-				0}, 																			// start
+			{SPRITE_ATTRIB_VERTEX, 																					 // index
+				renderer::BufferLayout::Type::FLOAT32,												 // type
+				renderer::BufferLayout::Size::X3, 														 // size
+				SPRITE_BATCH_VERTEX_DATA_SIZE, 																 // stride
+				0}, 																													 // start
 
-			{SPRITE_ATTRIB_COLOR, 											// index
-				renderer::BufferLayout::Type::FLOAT32,    // type
-				renderer::BufferLayout::Size::X4,         // size
-				SPRITE_BATCH_VERTEX_DATA_SIZE,            // stride
-				(3 * sizeof(float))},                     // start
+			{SPRITE_ATTRIB_COLOR, 																					 // index
+				renderer::BufferLayout::Type::FLOAT32,  											 // type
+				renderer::BufferLayout::Size::X4,       											 // size
+				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+				(3 * sizeof(float))},                   											 // start
 
-			{SPRITE_ATTRIB_UV, 													// index
-				renderer::BufferLayout::Type::FLOAT32,    // type
-				renderer::BufferLayout::Size::X2,         // size
-				SPRITE_BATCH_VERTEX_DATA_SIZE,            // stride
-				(7 * sizeof(float))}};                    // start
+			{SPRITE_ATTRIB_UV, 																							 // index
+				renderer::BufferLayout::Type::FLOAT32,  											 // type
+				renderer::BufferLayout::Size::X2,       											 // size
+				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+				(7 * sizeof(float))}};                  											 // start
 
 
 		spriteBatchData.vertexBuffer = 
@@ -234,10 +233,12 @@ namespace ldare
 			offset+=4; // 4 offsets per sprite
 		}
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteBatchData.ibo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, SPRITE_BATCH_INDICES_SIZE * sizeof(uint16),
-				&indices[0], GL_STATIC_DRAW);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		spriteBatchData.indexBuffer = 
+			renderer::createBuffer(renderer::Buffer::Type::INDEX, 					 // buffer type
+					SPRITE_BATCH_INDICES_SIZE * sizeof(uint16), 								 // buffer size
+					nullptr, 																										 // buffer layout
+					0, 																													 // layout count
+					(void*)indices); 																						 // buffer data
 		checkGlError();
 
 		// UBO buffer
@@ -353,7 +354,8 @@ namespace ldare
 		glBindTexture(GL_TEXTURE_2D, spriteBatchData.material.texture.id);
 		glUseProgram(spriteBatchData.material.shader);
 		glBindVertexArray(spriteBatchData.vao);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteBatchData.ibo);
+		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteBatchData.ibo);
+		renderer::bindBuffer(spriteBatchData.indexBuffer);
 		//!! Draw
 		glDrawElements(GL_TRIANGLES, 6 * spriteBatchData.spriteCount, GL_UNSIGNED_SHORT, 0);
 

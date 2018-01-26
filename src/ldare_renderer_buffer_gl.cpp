@@ -107,12 +107,12 @@ namespace ldare
 			glBufferData(buffer.GL.target, dataSize, (const GLvoid*) data, buffer.GL.usage);
 		}
 
-		void bindBuffer(const renderer::Buffer& buffer)
+		inline void bindBuffer(const renderer::Buffer& buffer)
 		{
 			glBindBuffer(buffer.GL.target, buffer.GL.id);
 		}
 
-		void unbindBuffer(const renderer::Buffer& buffer)
+		inline void unbindBuffer(const renderer::Buffer& buffer)
 		{
 			glBindBuffer(buffer.GL.target, 0);
 		}
