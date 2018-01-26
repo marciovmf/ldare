@@ -20,8 +20,8 @@ namespace ldare{
 			uint32 index;  
 			Type type;
 			Size size;
-			uint32 start;
 			uint32 stride;
+			uint32 start;
 		};
 
 		//
@@ -42,7 +42,7 @@ namespace ldare{
 		// Creates a buffer with the given size and layout
 		// return a GPU buffer identifier
 		//
-		renderer::Buffer createBuffer(renderer::Buffer::Type, size_t size, const renderer::BufferLayout* layout, uint32 layoutCount);
+		renderer::Buffer createBuffer(renderer::Buffer::Type, size_t size, const renderer::BufferLayout* layout, uint32 layoutCount, bool bind = false);
 
 		//
 		// Copies data to a GPU buffer, partially overwitting its content

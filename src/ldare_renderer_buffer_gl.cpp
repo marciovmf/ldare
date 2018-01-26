@@ -65,13 +65,14 @@ namespace ldare
 		}
 
 		renderer::Buffer createBuffer(renderer::Buffer::Type type, 
-				size_t size, const renderer::BufferLayout* layout, uint32 layoutCount)
+				size_t size, const renderer::BufferLayout* layout, uint32 layoutCount, bool bind)
 		{
 			renderer::Buffer buffer;
 			buffer.GL.target = getGlEnum(type);
 			buffer.GL.usage = getGlBufferUsage(type);
 
 			glGenBuffers(1, &buffer.GL.id);
+			glBindBuffer(buffer.GL.target, buffer.GL.id);
 
 			// parse buffer layout
 			for (uint32 i = 0; i < layoutCount; i++)
@@ -86,10 +87,11 @@ namespace ldare
 				}
 
 				glVertexAttribPointer(attrib.index, attrib.size, type, GL_FALSE,
-						(GLsizei) attrib.start, 
-						(const GLvoid*) attrib.stride);
+						(GLsizei) attrib.stride,
+						(const GLvoid*) attrib.start);
 			}
 			
+			if (!bind) glBindBuffer(buffer.GL.target, 0);
 			return buffer;
 		}
 
@@ -118,8 +120,6 @@ namespace ldare
 			glDeleteBuffers(1, &buffer.GL.id);
 			buffer.GL.id = -1;
 		}
-
 	}
-
 }
 
