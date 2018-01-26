@@ -42,17 +42,26 @@ namespace ldare{
 		// Creates a buffer with the given size and layout
 		// return a GPU buffer identifier
 		//
-		renderer::Buffer createBuffer(renderer::Buffer::Type, size_t size, const renderer::BufferLayout* layout, uint32 layoutCount, bool bind = false);
+		renderer::Buffer createBuffer(renderer::Buffer::Type, 
+				size_t size, 
+				const renderer::BufferLayout* layout, 
+				uint32 layoutCount, 
+				void* data = nullptr);
 
 		//
 		// Copies data to a GPU buffer, partially overwitting its content
 		//
-		void setBufferData(const renderer::Buffer& buffer, void* data, size_t dataSize, uint32 offset);
+		void setBufferData(const renderer::Buffer& buffer, 
+				void* data, 
+				size_t dataSize, 
+				uint32 offset);
 
 		//
 		// Copies data to a GPU buffer, completely overwitting its content
 		//
-		void setBufferData(const renderer::Buffer& buffer, void* data, size_t dataSize);
+		void setBufferData(const renderer::Buffer& buffer, 
+				void* data, 
+				size_t dataSize);
 
 		//
 		// Binds the buffer to the GPU so it can be used

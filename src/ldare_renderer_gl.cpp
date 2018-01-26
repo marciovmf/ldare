@@ -59,7 +59,7 @@ namespace ldare
 		ldare::Material material;
 		GLuint ubo;
 		GLuint vao;
-		GLuint vbo;
+		renderer::Buffer vertexBuffer;
 		GLuint ibo;
 		GLvoid* gpuBuffer;
 		GLvoid* gpuUniformBuffer;
@@ -165,8 +165,6 @@ namespace ldare
 		return shader;
 	}
 
-	renderer::Buffer vertexBuffer;
-
 	int32 initSpriteBatch()
 	{
 		clearGlError();
@@ -182,7 +180,6 @@ namespace ldare
 		spriteBatchData.fallbackBitmap.pixels = (uchar8*) &spriteBatchData.fallbackBitmapData;
 
 		glGenVertexArrays(1, &spriteBatchData.vao);
-		//glGenBuffers(1, &spriteBatchData.vbo);
 		glGenBuffers(1, &spriteBatchData.ibo);
 		glGenBuffers(1, &spriteBatchData.ubo);
 
@@ -194,29 +191,31 @@ namespace ldare
 
 		// VERTEX buffer ---------------------------------------------
 		renderer::BufferLayout layout[] = {
-		{SPRITE_ATTRIB_VERTEX, 											// index
-			renderer::BufferLayout::Type::FLOAT32,	  // type
-			renderer::BufferLayout::Size::X3, 				// size
-			SPRITE_BATCH_VERTEX_DATA_SIZE, 						// stride
-			0}, 																			// start
+			{SPRITE_ATTRIB_VERTEX, 											// index
+				renderer::BufferLayout::Type::FLOAT32,	  // type
+				renderer::BufferLayout::Size::X3, 				// size
+				SPRITE_BATCH_VERTEX_DATA_SIZE, 						// stride
+				0}, 																			// start
 
-		{SPRITE_ATTRIB_COLOR, 											// index
-			renderer::BufferLayout::Type::FLOAT32,    // type
-			renderer::BufferLayout::Size::X4,         // size
-			SPRITE_BATCH_VERTEX_DATA_SIZE,            // stride
-			(3 * sizeof(float))},                     // start
+			{SPRITE_ATTRIB_COLOR, 											// index
+				renderer::BufferLayout::Type::FLOAT32,    // type
+				renderer::BufferLayout::Size::X4,         // size
+				SPRITE_BATCH_VERTEX_DATA_SIZE,            // stride
+				(3 * sizeof(float))},                     // start
 
-		{SPRITE_ATTRIB_UV, 													// index
-			renderer::BufferLayout::Type::FLOAT32,    // type
-			renderer::BufferLayout::Size::X2,         // size
-			SPRITE_BATCH_VERTEX_DATA_SIZE,            // stride
-			(7 * sizeof(float))}};                    // start
+			{SPRITE_ATTRIB_UV, 													// index
+				renderer::BufferLayout::Type::FLOAT32,    // type
+				renderer::BufferLayout::Size::X2,         // size
+				SPRITE_BATCH_VERTEX_DATA_SIZE,            // stride
+				(7 * sizeof(float))}};                    // start
 
-		vertexBuffer = renderer::createBuffer(renderer::Buffer::Type::VERTEX_DYNAMIC, 
-				0, layout, 3, true);
-		renderer::setBufferData(vertexBuffer, 0, SPRITE_BATCH_MAX_SPRITES * sizeof(SpriteVertexData));
+
+		spriteBatchData.vertexBuffer = 
+			renderer::createBuffer(renderer::Buffer::Type::VERTEX_DYNAMIC, 	 // buffer type
+					SPRITE_BATCH_MAX_SPRITES * sizeof(SpriteVertexData), 				 // buffer size
+					layout, 																										 // buffer layout
+					3); 																												 // layout count
 		checkGlError();
-		renderer::unbindBuffer(vertexBuffer);
 
 		// INDEX buffer ---------------------------------------------
 		// Precompute indices for every sprite
@@ -280,7 +279,7 @@ namespace ldare
 		checkGlError();
 		// map VERTEX buffer
 		//glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
-		renderer::bindBuffer(vertexBuffer);
+		renderer::bindBuffer(spriteBatchData.vertexBuffer);
 		//spriteBatchData.gpuBuffer = (GLvoid*) glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
 	}
 
@@ -292,7 +291,7 @@ namespace ldare
 		// 1 -- 2
 		// |    |
 		// 0 -- 3
-		
+
 		// bind uniform
 		unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldare");
 		const GLuint bindingPointIndex = 0;
@@ -333,7 +332,7 @@ namespace ldare
 			Vec3 {sprite.position.x + sprite.width, sprite.position.y + sprite.height,sprite.position.z};
 		vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
 
-		renderer::setBufferData(vertexBuffer,
+		renderer::setBufferData(spriteBatchData.vertexBuffer,
 				(void*)vertices, 
 				sizeof(vertices),
 				spriteBatchData.spriteCount * sizeof(vertices));
@@ -372,7 +371,7 @@ namespace ldare
 	{
 		clearGlError();
 		ldare::Bitmap bitmap;
-		
+
 		if (!ldare::loadBitmap(bitmapFile, &bitmap))
 		{
 			LogWarning("Using fallback bitmap");
@@ -394,8 +393,8 @@ namespace ldare
 		checkGlError();
 
 		glGenerateMipmap(GL_TEXTURE_2D);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_CLAMP_TO_EDGE);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_CLAMP_TO_EDGE);
+		//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_CLAMP_TO_EDGE);
+		//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_CLAMP_TO_EDGE);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -488,7 +487,7 @@ namespace ldare
 		while ((c = *ptrChar) != 0)
 		{
 			FontGliphRect* gliph;
-	
+
 			// avoid indexing undefined characters
 			if (c < fontAsset.firstCodePoint || c > fontAsset.lastCodePoint)
 			{
@@ -506,7 +505,7 @@ namespace ldare
 			advance += gliph->w * scale;
 			sprite.width = gliph->w * scale; 
 			sprite.height = gliph->h * scale;
-			
+
 			sprite.srcRect = {gliph->x, gliph->y, gliph->w, gliph->h};
 			++ptrChar;
 			submit(sprite);

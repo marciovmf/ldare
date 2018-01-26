@@ -65,16 +65,17 @@ namespace ldare
 		}
 
 		renderer::Buffer createBuffer(renderer::Buffer::Type type, 
-				size_t size, const renderer::BufferLayout* layout, uint32 layoutCount, bool bind)
+				size_t size, const renderer::BufferLayout* layout, uint32 layoutCount, void* data)
 		{
+			// find ideal buffer target and memory strategy for the given buffer type
 			renderer::Buffer buffer;
 			buffer.GL.target = getGlEnum(type);
 			buffer.GL.usage = getGlBufferUsage(type);
-
+			
 			glGenBuffers(1, &buffer.GL.id);
 			glBindBuffer(buffer.GL.target, buffer.GL.id);
 
-			// parse buffer layout
+			// set buffer layout
 			for (uint32 i = 0; i < layoutCount; i++)
 			{
 				const BufferLayout& attrib = layout[i];
@@ -91,7 +92,8 @@ namespace ldare
 						(const GLvoid*) attrib.start);
 			}
 			
-			if (!bind) glBindBuffer(buffer.GL.target, 0);
+			glBufferData(buffer.GL.target, size, (const GLvoid*) data, buffer.GL.usage);
+			glBindBuffer(buffer.GL.target, 0);
 			return buffer;
 		}
 
