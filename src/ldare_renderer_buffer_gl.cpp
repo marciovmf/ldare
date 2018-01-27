@@ -47,11 +47,11 @@ namespace ldare
 		{
 			switch(type)
 				{
-					case Buffer::Type::UNIFORM:
 					case Buffer::Type::INDEX:
 					case Buffer::Type::VERTEX:
 						return GL_STATIC_DRAW;
 					
+					case Buffer::Type::UNIFORM:
 					case Buffer::Type::VERTEX_DYNAMIC:
 						return GL_DYNAMIC_DRAW;
 					

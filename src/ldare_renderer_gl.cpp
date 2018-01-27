@@ -22,6 +22,7 @@ static int32 checkNoGlError(const char* file, uint32 line)
 	const char* error = "UNKNOWN ERROR CODE";
 	GLenum err = glGetError();
 	int32 success = 1;
+	uchar8 noerror = 1;
 	while(err!=GL_NO_ERROR)
 	{
 		switch(err)
@@ -34,9 +35,9 @@ static int32 checkNoGlError(const char* file, uint32 line)
 		}
 		success=0;
 		LogError("GL ERROR %s at %s:%d",error, file, line);
+		noerror=0;
 		err=glGetError();
 	}
-
 	return success;
 }
 
@@ -57,10 +58,10 @@ namespace ldare
 	static struct GL_SpriteBatchData
 	{
 		ldare::Material material;
-		GLuint ubo;
 		GLuint vao;
 		renderer::Buffer vertexBuffer;
 		renderer::Buffer indexBuffer;
+		renderer::Buffer uniformBuffer;
 		GLuint ibo;
 		GLvoid* gpuBuffer;
 		GLvoid* gpuUniformBuffer;
@@ -69,7 +70,6 @@ namespace ldare
 		ldare::Bitmap fallbackBitmap;
 		uint32 fallbackBitmapData;
 	} spriteBatchData;
-
 
 	static GLboolean checkShaderProgramLink(GLuint program)
 	{
@@ -168,7 +168,6 @@ namespace ldare
 
 	int32 initSpriteBatch()
 	{
-		LogInfo("\033[1;31mbold red text\033[0m\n");
 		clearGlError();
 		// initialize fallback bitmap
 		ldare::Bitmap fallbackBitmap = {};
@@ -182,8 +181,6 @@ namespace ldare
 		spriteBatchData.fallbackBitmap.pixels = (uchar8*) &spriteBatchData.fallbackBitmapData;
 
 		glGenVertexArrays(1, &spriteBatchData.vao);
-		glGenBuffers(1, &spriteBatchData.ibo);
-		glGenBuffers(1, &spriteBatchData.ubo);
 
 		// ARRAY buffer
 		glBindVertexArray(spriteBatchData.vao);
@@ -242,11 +239,18 @@ namespace ldare
 		checkGlError();
 
 		// UBO buffer
-		glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(GlobalShaderData), &globalShaderData, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		checkGlError();
+		//glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
+		//glBufferData(GL_UNIFORM_BUFFER, sizeof(GlobalShaderData), &globalShaderData, GL_DYNAMIC_DRAW);
+		//glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		//checkGlError();
 
+		spriteBatchData.uniformBuffer = 
+			renderer::createBuffer(renderer::Buffer::Type::UNIFORM,					 // buffer type
+					sizeof(globalShaderData), 																	 // buffer size
+					nullptr, 																										 // buffer layout
+					0, 																													 // layout count
+					(void*)indices); 																						 // buffer data
+		checkGlError();
 		glBindVertexArray(0);
 
 		//TODO: Marcio, this is a hack for testing stuff in 2D. Move this to material state
@@ -270,14 +274,19 @@ namespace ldare
 		if (updateGlobalShaderData)
 		{
 			// map UBO buffer
-			glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
-			spriteBatchData.gpuUniformBuffer = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
-			memcpy(spriteBatchData.gpuUniformBuffer, &globalShaderData, sizeof(GlobalShaderData));
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
+			// glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
+			renderer::bindBuffer(spriteBatchData.uniformBuffer);
+			ASSERT(checkGlError(), "GL ERROR!");
+			renderer::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
+			ASSERT(checkGlError(), "GL ERROR!");
+			renderer::unbindBuffer(spriteBatchData.uniformBuffer);
+			//spriteBatchData.gpuUniformBuffer = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+			//memcpy(spriteBatchData.gpuUniformBuffer, &globalShaderData, sizeof(GlobalShaderData));
+			//glUnmapBuffer(GL_UNIFORM_BUFFER);
 			updateGlobalShaderData = false;
 		}
-
-		checkGlError();
+		
+		ASSERT(checkGlError(), "GL ERROR!");
 		// map VERTEX buffer
 		//glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
 		renderer::bindBuffer(spriteBatchData.vertexBuffer);
@@ -293,10 +302,11 @@ namespace ldare
 		// |    |
 		// 0 -- 3
 
-		// bind uniform
-		unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldare");
-		const GLuint bindingPointIndex = 0;
-		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.ubo);
+		// bind uniform - 
+		//TODO: Marcio, What was i using this for ?
+		//unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldare");
+		//const GLuint bindingPointIndex = 0;
+		//glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.GL.id);
 
 		// map pixel coord to texture space
 		Rectangle uvRect = sprite.srcRect;
@@ -518,4 +528,5 @@ namespace ldare
 	{
 		flush();
 	}
+
 } // namespace ldare
