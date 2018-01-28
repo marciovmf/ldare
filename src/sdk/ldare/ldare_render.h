@@ -58,7 +58,7 @@ namespace ldare
 #define TEXT_BATCH_END_FUNC(name) void name()
 	typedef TEXT_BATCH_END_FUNC(TextBatchEndFunc);
 
-#define TEXT_BATCH_DRAW_TEXT_FUNC(name) void name(Vec3& position, float scale, Vec4& color, const char* text)
+#define TEXT_BATCH_DRAW_TEXT_FUNC(name) Vec2 name(Vec3& position, float scale, Vec4& color, const char* text)
 	typedef TEXT_BATCH_DRAW_TEXT_FUNC(TextBatchDrawTextFunc);
 
 #define TEXT_BATCH_FLUSH_FUNC(name) void name()
