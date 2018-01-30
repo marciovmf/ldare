@@ -1,17 +1,17 @@
 #---------------------------------------------------------------------------
 # Set these values
 #---------------------------------------------------------------------------
-GAME_NAME=
-GAME_PROJECT_DIR=
-LDARE_HOME=
+GAME_NAME=bounce_text
+GAME_PROJECT_DIR=c:\users\marcio.freitas\Desktop\template
+LDARE_HOME=c:\users\marcio.freitas\Desktop\stuff\ldare
 
 #---------------------------------------------------------------------------
 # GAME folders
 #---------------------------------------------------------------------------
-	GAME_SRC_DIR=$(GAME_PROJECT_DIR)\src
-	GAME_BUILD_DIR=$(GAME_PROJECT_DIR)\build
-	GAME_ASSET_DIR=$(GAME_PROJECT_DIR)\assets
-	GAME_SOURCES=$(GAME_SRC_DIR)\game.cpp
+GAME_SRC_DIR=$(GAME_PROJECT_DIR)\src
+GAME_BUILD_DIR=$(GAME_PROJECT_DIR)\build
+GAME_ASSET_DIR=$(GAME_PROJECT_DIR)\assets
+GAME_SOURCES=$(GAME_SRC_DIR)\game.cpp
 
 #---------------------------------------------------------------------------
 # LDARE folders
@@ -32,21 +32,23 @@ RELEASE_COMPILE_OPTIONS=/nologo /EHsc /MT /I$(LDARESDK) /D "WIN32"
 #CFLAGS=$(RELEASE_COMPILE_OPTIONS)
 CFLAGS=$(DEBUG_COMPILE_OPTIONS)
 
-.PHONY: game assets clean
+.PHONY: game assets clean stdassets
 
-all: game assets
+all: stdassets assets game 
 
-game: $(GAME_SOURCES)
+stdassets:
+	@echo copying standard engine assets ...
+	xcopy $(LDARE_HOME)\assets $(GAME_PROJECT_DIR)\assets /Y /I /E /F
+
+game: 
 	@echo Building game dll...
-	@del /q /s $(GAME_BUILD_DIR)\*.pdb 2>nul
+	rem @del /q /s $(GAME_BUILD_DIR)\*.pdb 2>nul
 	cl $(GAME_SOURCES) /Fo$(GAME_BUILD_DIR)\ /Fe$(GAME_DLL) /LD $(CFLAGS) /link /subsystem:windows /EXPORT:gameInit /EXPORT:gameStart /EXPORT:gameUpdate /EXPORT:gameStop /PDB:$(GAME_BUILD_DIR)\ldare_game_%random%.pdb
 	@copy $(LDARE_BIN) $(GAME_BUILD_DIR)\$(GAME_NAME).exe
 
 assets:
 	@echo copying game assets ...
 	@xcopy $(GAME_ASSET_DIR) $(GAME_BUILD_DIR)\assets /Y /I /E /F
-	@echo copying standard engine assets ...
-	@xcopy $(LDARE_HOME)\assets $(GAME_BUILD_DIR)\assets /Y /I /E /F
 
 clean:
 	@del /S /Q $(GAME_BUILD_DIR)\*

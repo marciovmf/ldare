@@ -311,9 +311,9 @@ namespace ldare
 		// map pixel coord to texture space
 		Rectangle uvRect = sprite.srcRect;
 		uvRect.x = uvRect.x / material.texture.width;
-		uvRect.y = (uvRect.y / material.texture.height);
+		uvRect.y = uvRect.y / material.texture.height;
 		uvRect.w = uvRect.w / material.texture.width;
-		uvRect.h =  (uvRect.h / material.texture.height);
+		uvRect.h = uvRect.h / material.texture.height;
 
 		SpriteVertexData vertices[4];
 		SpriteVertexData* vertexData = vertices;
@@ -483,7 +483,7 @@ namespace ldare
 		end();
 	}
 
-	void drawText(Vec3& position, float scale, Vec4& color, const char* text)
+	Vec2 drawText(Vec3& position, float scale, Vec4& color, const char* text)
 	{
 		char c;
 		const char* ptrChar = text;
@@ -495,6 +495,7 @@ namespace ldare
 
 		if ( scale < 0 ) scale = 1.0f;
 
+		Vec2 textSize = {};
 		//submit each character as an individual sprite
 		while ((c = *ptrChar) != 0)
 		{
@@ -517,11 +518,15 @@ namespace ldare
 			advance += gliph->w * scale;
 			sprite.width = gliph->w * scale; 
 			sprite.height = gliph->h * scale;
-
 			sprite.srcRect = {gliph->x, gliph->y, gliph->w, gliph->h};
 			++ptrChar;
 			submit(sprite);
+		
+			//TODO: account for multi line text
+			textSize.x += sprite.width;
+			textSize.y = MAX(textSize.y, sprite.height); 	
 		}
+			return textSize;
 	}
 
 	void flushText()
