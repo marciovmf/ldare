@@ -57,16 +57,12 @@ namespace ldare
 	static ldare::FontAsset fontAsset; // For text batching
 	static struct GL_SpriteBatchData
 	{
-		ldare::Material material;
+		ldare::Material material; 					// Current bound material
 		GLuint vao;
 		renderer::Buffer vertexBuffer;
 		renderer::Buffer indexBuffer;
 		renderer::Buffer uniformBuffer;
-		GLuint ibo;
-		GLvoid* gpuBuffer;
-		GLvoid* gpuUniformBuffer;
-		GLuint numSprites;
-		uint32 spriteCount;
+		uint32 spriteCount; 								// number of sprits pushed int the current batch
 		ldare::Bitmap fallbackBitmap;
 		uint32 fallbackBitmapData;
 	} spriteBatchData;
@@ -90,7 +86,7 @@ namespace ldare
 	static GLboolean checkShaderCompilation(GLuint shader)
 	{
 		GLint success = 0;
-		GLchar msgBuffer[1024] = {};
+		GLchar msgBuffer[512] = {};
 
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 		if (!success)
@@ -182,35 +178,35 @@ namespace ldare
 
 		glGenVertexArrays(1, &spriteBatchData.vao);
 
-		// ARRAY buffer
+		// ARRAY buffer ---------------------------------------------
 		glBindVertexArray(spriteBatchData.vao);
 
 		// VERTEX buffer ---------------------------------------------
-		renderer::BufferLayout layout[] = {
-			{SPRITE_ATTRIB_VERTEX, 																					 // index
-				renderer::BufferLayout::Type::FLOAT32,												 // type
-				renderer::BufferLayout::Size::X3, 														 // size
-				SPRITE_BATCH_VERTEX_DATA_SIZE, 																 // stride
-				0}, 																													 // start
+			renderer::BufferLayout layout[] = {
+				{SPRITE_ATTRIB_VERTEX, 																					 // index
+					renderer::BufferLayout::Type::FLOAT32,												 // type
+					renderer::BufferLayout::Size::X3, 														 // size
+					SPRITE_BATCH_VERTEX_DATA_SIZE, 																 // stride
+					0}, 																													 // start
 
-			{SPRITE_ATTRIB_COLOR, 																					 // index
-				renderer::BufferLayout::Type::FLOAT32,  											 // type
-				renderer::BufferLayout::Size::X4,       											 // size
-				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-				(3 * sizeof(float))},                   											 // start
+				{SPRITE_ATTRIB_COLOR, 																					 // index
+					renderer::BufferLayout::Type::FLOAT32,  											 // type
+					renderer::BufferLayout::Size::X4,       											 // size
+					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+					(3 * sizeof(float))},                   											 // start
 
-			{SPRITE_ATTRIB_UV, 																							 // index
-				renderer::BufferLayout::Type::FLOAT32,  											 // type
-				renderer::BufferLayout::Size::X2,       											 // size
-				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-				(7 * sizeof(float))}};                  											 // start
+				{SPRITE_ATTRIB_UV, 																							 // index
+					renderer::BufferLayout::Type::FLOAT32,  											 // type
+					renderer::BufferLayout::Size::X2,       											 // size
+					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+					(7 * sizeof(float))}};                  											 // start
 
 
-		spriteBatchData.vertexBuffer = 
-			renderer::createBuffer(renderer::Buffer::Type::VERTEX_DYNAMIC, 	 // buffer type
-					SPRITE_BATCH_MAX_SPRITES * sizeof(SpriteVertexData), 				 // buffer size
-					layout, 																										 // buffer layout
-					3); 																												 // layout count
+			spriteBatchData.vertexBuffer = 
+				renderer::createBuffer(renderer::Buffer::Type::VERTEX_DYNAMIC, 	 // buffer type
+						SPRITE_BATCH_MAX_SPRITES * sizeof(SpriteVertexData), 				 // buffer size
+						layout, 																										 // buffer layout
+						3); 																												 // layout count
 		checkGlError();
 
 		// INDEX buffer ---------------------------------------------
@@ -237,12 +233,6 @@ namespace ldare
 					0, 																													 // layout count
 					(void*)indices); 																						 // buffer data
 		checkGlError();
-
-		// UBO buffer
-		//glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
-		//glBufferData(GL_UNIFORM_BUFFER, sizeof(GlobalShaderData), &globalShaderData, GL_DYNAMIC_DRAW);
-		//glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		//checkGlError();
 
 		spriteBatchData.uniformBuffer = 
 			renderer::createBuffer(renderer::Buffer::Type::UNIFORM,					 // buffer type
@@ -273,24 +263,24 @@ namespace ldare
 
 		if (updateGlobalShaderData)
 		{
-			// map UBO buffer
-			// glBindBuffer(GL_UNIFORM_BUFFER, spriteBatchData.ubo);
-			renderer::bindBuffer(spriteBatchData.uniformBuffer);
-			ASSERT(checkGlError(), "GL ERROR!");
-			renderer::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
-			ASSERT(checkGlError(), "GL ERROR!");
-			renderer::unbindBuffer(spriteBatchData.uniformBuffer);
-			//spriteBatchData.gpuUniformBuffer = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
-			//memcpy(spriteBatchData.gpuUniformBuffer, &globalShaderData, sizeof(GlobalShaderData));
-			//glUnmapBuffer(GL_UNIFORM_BUFFER);
-			updateGlobalShaderData = false;
+			if (updateGlobalShaderData)
+			{
+				// Set global uniform data
+				renderer::bindBuffer(spriteBatchData.uniformBuffer);
+				renderer::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
+
+				// Bind the global uniform buffer to the 'ldare' global struct
+				unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldare");
+				const GLuint bindingPointIndex = 0;
+				glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.GL.id);
+
+				renderer::unbindBuffer(spriteBatchData.uniformBuffer);
+				updateGlobalShaderData = false;
+			}
 		}
 		
 		ASSERT(checkGlError(), "GL ERROR!");
-		// map VERTEX buffer
-		//glBindBuffer(GL_ARRAY_BUFFER, spriteBatchData.vbo);
 		renderer::bindBuffer(spriteBatchData.vertexBuffer);
-		//spriteBatchData.gpuBuffer = (GLvoid*) glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
 	}
 
 	void submit(const Sprite& sprite)
@@ -301,12 +291,6 @@ namespace ldare
 		// 1 -- 2
 		// |    |
 		// 0 -- 3
-
-		// bind uniform - 
-		//TODO: Marcio, What was i using this for ?
-		//unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldare");
-		//const GLuint bindingPointIndex = 0;
-		//glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.GL.id);
 
 		// map pixel coord to texture space
 		Rectangle uvRect = sprite.srcRect;
@@ -360,13 +344,11 @@ namespace ldare
 	void end()
 	{
 		clearGlError();
-		//glUnmapBuffer(GL_ARRAY_BUFFER);
 		glBindTexture(GL_TEXTURE_2D, spriteBatchData.material.texture.id);
 		glUseProgram(spriteBatchData.material.shader);
 		glBindVertexArray(spriteBatchData.vao);
-		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteBatchData.ibo);
 		renderer::bindBuffer(spriteBatchData.indexBuffer);
-		//!! Draw
+		// Draw
 		glDrawElements(GL_TRIANGLES, 6 * spriteBatchData.spriteCount, GL_UNSIGNED_SHORT, 0);
 
 		checkGlError();
