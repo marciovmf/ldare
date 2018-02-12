@@ -309,44 +309,54 @@ namespace ldare
 		uvRect.y = uvRect.y / material.texture.height;
 		uvRect.w = uvRect.w / material.texture.width;
 		uvRect.h = uvRect.h / material.texture.height;
-		float z = sprite.position.z;
 		float angle = sprite.angle;
 		float halfWidth = sprite.width/2;
 		float halfHeight = sprite.height/2;
-		float sinAng = sin(sprite.angle);
-		float cosAngle = cos(sprite.angle);
+		float s = sin(sprite.angle);
+		float c = cos(sprite.angle);
+		float z = sprite.position.z;
 
 		SpriteVertexData vertices[4];
 		SpriteVertexData* vertexData = vertices;
 
 		// top left
 		vertexData->color = sprite.color;
-		vertexData->position = Vec3{sprite.position.x - halfWidth, sprite.position.y + halfHeight, z};
 		vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
-		vertexData->zRotation = angle;
+		vertexData->zRotation = angle;	
+		float x = -halfWidth;
+		float y = halfHeight;
+		vertexData->position = 
+			Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y,	z};
 		vertexData++;
 
 		// bottom left
 		vertexData->color = sprite.color;
-		vertexData->position = Vec3{ sprite.position.x - halfWidth, sprite.position.y - halfHeight, z}; // sprite.position;
 		vertexData->uv = { uvRect.x, uvRect.y};
-		vertexData->zRotation = angle;
+		vertexData->zRotation = angle;	
+		x = -halfWidth;
+		y = -halfHeight;
+		vertexData->position = 
+			Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y, z};
 		vertexData++;
 
 		// bottom right
 		vertexData->color = sprite.color;
-		vertexData->position = 
-			Vec3 {sprite.position.x + halfWidth,	sprite.position.y - halfHeight, z};
 		vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
 		vertexData->zRotation = angle;
+		x = halfWidth;
+		y = -halfHeight;
+		vertexData->position = 	
+			Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y,	z};
 		vertexData++;
 
 		// top right
 		vertexData->color = sprite.color;
-		vertexData->position = 
-			Vec3 {sprite.position.x + halfWidth, sprite.position.y + halfHeight, z};
 		vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
 		vertexData->zRotation = angle;
+		x = halfWidth;
+		y = halfHeight;
+		vertexData->position = 
+			Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y,	z};
 
 		renderer::setBufferData(spriteBatchData.vertexBuffer,
 				(void*)vertices, 

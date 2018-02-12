@@ -78,17 +78,36 @@ void gameStart(void* mem, GameApi& gameApi)
 Vec3 textPosition = {1, 1, 1};
 Vec3 direction = {1, 1, 1};
 float deltaSum =0;
-
+const float speed = 150;
 void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameApi)
 {
 	gameApi.text.flush();
+	Sprite& heroSprite = gameMemory->character.sprite;
 
 	// Updata character animation
 	character_update(gameMemory->character, input, gameApi, deltaTime);
 
+
+	if (input.getKey(KBD_D))
+	{
+		heroSprite.position.x += speed * deltaTime;
+	}
+	else if (input.getKey(KBD_A))
+	{
+		heroSprite.position.x -= speed * deltaTime;
+	}
+	
+	if (input.getKey(KBD_W))
+	{
+		heroSprite.position.y += speed * deltaTime;
+	}
+	else if (input.getKey(KBD_S))
+	{
+		heroSprite.position.y -= speed * deltaTime;
+	}
 	gameMemory->character.sprite.angle += RADIAN(180) * deltaTime;
 	gameApi.spriteBatch.begin(gameMemory->material);
-	gameApi.spriteBatch.submit(gameMemory->character.sprite);
+	gameApi.spriteBatch.submit(heroSprite);
 	gameApi.spriteBatch.end();
 }
 
