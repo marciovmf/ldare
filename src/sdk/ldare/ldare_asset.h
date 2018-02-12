@@ -40,7 +40,7 @@ namespace ldare
 	};
 
 #define LDARE_ASSET_TYPE_FONT 0x1
-
+/*
 	struct AssetName
 	{
 		uint32 nameSize;
@@ -62,7 +62,7 @@ namespace ldare
 		uint16 minor; 					// minor version
 		uint32 numAssets; 			// number of assets in this file
 	};
-	
+*/
 	struct FontGliphRect
 	{
 		uint32 x;

@@ -79,6 +79,7 @@ namespace ldare
 			for (uint32 i = 0; i < layoutCount; i++)
 			{
 				const BufferLayout& attrib = layout[i];
+				LogInfo("Enabling attrib #%d" , attrib.index);
 				glEnableVertexAttribArray(attrib.index);
 
 				GLenum type = getGlEnum(attrib.type);

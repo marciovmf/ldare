@@ -2,7 +2,7 @@
 #define __LDARE_RENDERER_BUFFER__	
 
 //
-// The renderer namespace is for the rendere backend only. 
+// The renderer namespace is for the renderer backend only. 
 // It will not be exposed to the game layer.
 //
 namespace ldare{

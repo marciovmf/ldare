@@ -18,15 +18,23 @@ namespace ldare
 		Vec4 color;
 		float width;
 		float height;
+		float angle;
 		Rectangle srcRect;
 	};
 
+#ifdef _MSC_VER
+#pragma pack(push,1)
+#endif
 	struct SpriteVertexData
 	{
-		Vec3 position;
 		Vec4 color;
+		Vec3 position;
 		Vec2 uv;
+		float zRotation;
 	};
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 
 #define SPRITE_BATCH_BEGIN_FUNC(name) void name(const ldare::Material& material)
 	typedef SPRITE_BATCH_BEGIN_FUNC(SpriteBatchBeginFunc);

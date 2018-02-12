@@ -12,10 +12,9 @@
 #define SPRITE_BATCH_BUFFER_SIZE SPRITE_BATCH_MAX_SPRITES * SPRITE_BATCH_SPRITE_SIZE
 #define SPRITE_BATCH_INDICES_SIZE SPRITE_BATCH_MAX_SPRITES * 6		//6 indices per quad
 
-#define SPRITE_ATTRIB_COLOR 0
-#define SPRITE_ATTRIB_VERTEX 1
+#define SPRITE_ATTRIB_VERTEX 0
+#define SPRITE_ATTRIB_COLOR 1
 #define SPRITE_ATTRIB_UV 2
-#define SPRITE_ATTRIB_ZROTATION 3
 
 #define checkGlError() checkNoGlError(__FILE__,__LINE__)
 static int32 checkNoGlError(const char* file, uint32 line)
@@ -53,7 +52,6 @@ static void clearGlError()
 
 namespace ldare 
 {
-
 	static bool updateGlobalShaderData = false;
 	static GlobalShaderData globalShaderData = {};
 	static ldare::FontAsset fontAsset; // For text batching
@@ -64,7 +62,7 @@ namespace ldare
 		renderer::Buffer vertexBuffer;
 		renderer::Buffer indexBuffer;
 		renderer::Buffer uniformBuffer;
-		uint32 spriteCount; 								// number of sprites pushed int the current batch
+		uint32 spriteCount; 								// number of sprits pushed int the current batch
 		ldare::Bitmap fallbackBitmap;
 		uint32 fallbackBitmapData;
 	} spriteBatchData;
@@ -185,35 +183,30 @@ namespace ldare
 
 		// VERTEX buffer ---------------------------------------------
 			renderer::BufferLayout layout[] = {
-				{SPRITE_ATTRIB_COLOR, 																					 // index
-					renderer::BufferLayout::Type::FLOAT32,  											 // type
-					renderer::BufferLayout::Size::X4,       											 // size
-					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-					0},  										                 											 // start
-
 				{SPRITE_ATTRIB_VERTEX, 																					 // index
 					renderer::BufferLayout::Type::FLOAT32,												 // type
 					renderer::BufferLayout::Size::X3, 														 // size
 					SPRITE_BATCH_VERTEX_DATA_SIZE, 																 // stride
-					4 * sizeof(float)}, 																					 // start
+					0}, 																													 // start
+
+				{SPRITE_ATTRIB_COLOR, 																					 // index
+					renderer::BufferLayout::Type::FLOAT32,  											 // type
+					renderer::BufferLayout::Size::X4,       											 // size
+					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+					(3 * sizeof(float))},                   											 // start
 
 				{SPRITE_ATTRIB_UV, 																							 // index
 					renderer::BufferLayout::Type::FLOAT32,  											 // type
 					renderer::BufferLayout::Size::X2,       											 // size
 					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-					(7 * sizeof(float))}, 																				 // start
-		
-				{SPRITE_ATTRIB_ZROTATION, 																			 // index
-					renderer::BufferLayout::Type::FLOAT32,  											 // type
-					renderer::BufferLayout::Size::X1,       											 // size
-					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-					(9 * sizeof(float))}};                  											 // start
+					(7 * sizeof(float))}};                  											 // start
+
 
 			spriteBatchData.vertexBuffer = 
 				renderer::createBuffer(renderer::Buffer::Type::VERTEX_DYNAMIC, 	 // buffer type
 						SPRITE_BATCH_MAX_SPRITES * sizeof(SpriteVertexData), 				 // buffer size
 						layout, 																										 // buffer layout
-						sizeof(layout)/sizeof(renderer::BufferLayout));
+						3); 																												 // layout count
 		checkGlError();
 
 		// INDEX buffer ---------------------------------------------
@@ -259,9 +252,6 @@ namespace ldare
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_DEBUG_OUTPUT);
-	//	glLineWidth(1.0);
-	//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	//	glPolygonOffset(-1,-1);
 		return 1;
 	}
 
@@ -295,7 +285,6 @@ namespace ldare
 
 	void submit(const Sprite& sprite)
 	{
-		
 		clearGlError();
 		Material& material = spriteBatchData.material;
 		// sprite vertex order 0,1,2,2,3,0
@@ -309,44 +298,34 @@ namespace ldare
 		uvRect.y = uvRect.y / material.texture.height;
 		uvRect.w = uvRect.w / material.texture.width;
 		uvRect.h = uvRect.h / material.texture.height;
-		float z = sprite.position.z;
-		float angle = sprite.angle;
-		float halfWidth = sprite.width/2;
-		float halfHeight = sprite.height/2;
-		float sinAng = sin(sprite.angle);
-		float cosAngle = cos(sprite.angle);
 
 		SpriteVertexData vertices[4];
 		SpriteVertexData* vertexData = vertices;
 
 		// top left
 		vertexData->color = sprite.color;
-		vertexData->position = Vec3{sprite.position.x - halfWidth, sprite.position.y + halfHeight, z};
+		vertexData->position = Vec3{sprite.position.x, sprite.position.y + sprite.height, sprite.position.z};
 		vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
-		vertexData->zRotation = angle;
 		vertexData++;
 
 		// bottom left
 		vertexData->color = sprite.color;
-		vertexData->position = Vec3{ sprite.position.x - halfWidth, sprite.position.y - halfHeight, z}; // sprite.position;
+		vertexData->position = sprite.position;
 		vertexData->uv = { uvRect.x, uvRect.y};
-		vertexData->zRotation = angle;
 		vertexData++;
 
 		// bottom right
 		vertexData->color = sprite.color;
 		vertexData->position = 
-			Vec3 {sprite.position.x + halfWidth,	sprite.position.y - halfHeight, z};
+			Vec3 {sprite.position.x + sprite.width,	sprite.position.y, sprite.position.z};
 		vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
-		vertexData->zRotation = angle;
 		vertexData++;
 
 		// top right
 		vertexData->color = sprite.color;
 		vertexData->position = 
-			Vec3 {sprite.position.x + halfWidth, sprite.position.y + halfHeight, z};
+			Vec3 {sprite.position.x + sprite.width, sprite.position.y + sprite.height,sprite.position.z};
 		vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
-		vertexData->zRotation = angle;
 
 		renderer::setBufferData(spriteBatchData.vertexBuffer,
 				(void*)vertices, 
