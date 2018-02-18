@@ -4,6 +4,7 @@
  */
 // common ldare headers
 #include <ldare/ldare_game.h>
+#include <ldare/ldare_editor.h>
 // platform independent headers
 #include "../ldare_platform.h"
 #include "../ldare_memory.h"
@@ -24,6 +25,7 @@
 using namespace ldare;
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 #define GAME_MODULE_RELOAD_INTERVAL_SECONDS 3.0
+
 static struct Win32_GameWindow
 {
 	HDC dc;
@@ -73,13 +75,26 @@ static FILETIME Win32_getFileWriteTime(const char* fileName)
 }
 
 static ldare::GameContext _gameContext;
+static Win32_GameModuleInfo _gameModuleInfo;
 
-
+//---------------------------------------------------------------------------
+// Loads the Game dll.
+// Returns: true if game dll is unloaded
+//	AND fetches the Update and Start function pointers
+//---------------------------------------------------------------------------
+static inline bool Win32_unloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
+{
+	if (!gameModuleInfo.hGameModule)
+	{
+		return true;
+	}
+	
+	return FreeLibrary(gameModuleInfo.hGameModule);
+}
 //---------------------------------------------------------------------------
 // Loads the Game dll.
 // Returns: true if successfully loads the game dll 
 //	AND fetches the Update and Start function pointers
-// Globals: gameModuleInfo
 //---------------------------------------------------------------------------
 static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 {
@@ -88,11 +103,7 @@ static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 
 #if DEBUG
 
-	if (gameModuleInfo.hGameModule)
-	{
-		FreeLibrary(gameModuleInfo.hGameModule);
-	}
-	// load a copy of the dll, so the original can be recompiled
+		// load a copy of the dll, so the original can be recompiled
 	const char* dllCopyFileName = "ldare_game_copy.dll";
 	if (!CopyFileA(dllFileName, dllCopyFileName, false))
 	{
@@ -117,7 +128,7 @@ static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 		return false;
 	}
 
-	if (!(gameModuleInfo.init && gameModuleInfo.start && gameModuleInfo.update && gameModuleInfo.stop))
+	if (!(_gameModuleInfo.init && _gameModuleInfo.start && _gameModuleInfo.update && _gameModuleInfo.stop))
 		return false;
 
 	return true;
@@ -126,32 +137,30 @@ static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 //---------------------------------------------------------------------------
 // Checks if there is a newer game dll and loads it if it does.
 // Returns: true if the module was loaded or reloaded
-// Globals: gameModuleInfo
+// Globals: _gameModuleInfo
 //---------------------------------------------------------------------------
 #ifdef DEBUG
 static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
 {
-	bool reloaded = false;
 
-	// Is it already loaded ?
+	bool hasNewVersion = false;
 	if (gameModuleInfo.hGameModule != 0)
 	{
 		FILETIME writeTime = Win32_getFileWriteTime(gameModuleInfo.moduleFileName);
-		// Is there a newer version ?
+		// game dll has a recenb write time change ?
 		if (CompareFileTime(&writeTime, &gameModuleInfo.gameModuleWriteTime) > 0)
 		{
+			LogInfo("New game module found...");
+			Win32_unloadGameModule(_gameModuleInfo);
 			gameModuleInfo.gameModuleWriteTime = writeTime;
-			reloaded = true;
-			Win32_loadGameModule(gameModuleInfo);
+			hasNewVersion = true;
 		}
 	}
-	else
-	{
-		reloaded = true;
-		Win32_loadGameModule(gameModuleInfo);
-	}
 
-	return reloaded;
+	if (hasNewVersion)
+		return Win32_loadGameModule(gameModuleInfo);
+
+	return false;
 }
 #endif
 
@@ -159,6 +168,16 @@ LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 {
 	switch(uMsg)
 	{
+
+#if DEBUG
+//			case WM_ACTIVATE:
+//				if (wParam != WA_INACTIVE)
+//				{
+//					LogInfo("Checking for game changes");
+//					Win32_reloadGameModule(_gameModuleInfo);
+//				}
+//				break;
+#endif
 		case WM_CLOSE:
 			_gameWindow.shouldClose = true;	
 			break;
@@ -441,12 +460,24 @@ static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInp
 
 	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
 	{
-		// handle keyboard input messages directly
 		switch(msg.message)
 		{
-			case WM_ACTIVATE:
-				LogInfo("wparam is %d", LOWORD(msg.wParam));
-				break;
+			case WM_COMMAND:
+				if (LOWORD(msg.wParam) == EDITOR_COMMAND_PLAY)
+				{
+					LogInfo("Play menu selected");
+				}
+				else if (LOWORD(msg.wParam) == EDITOR_COMMAND_STOP)
+				{
+					LogInfo("Stop menu selected");
+				}
+				else if (LOWORD(msg.wParam) == EDITOR_COMMAND_RELOAD)
+				{
+					LogInfo("Reload menu selected");
+					Win32_reloadGameModule(_gameModuleInfo);
+				}
+
+		// handle keyboard input messages directly
 			case WM_KEYDOWN:
 			case WM_KEYUP:
 				{
@@ -624,6 +655,18 @@ static void initGameApi(ldare::GameApi& gameApi)
 
 }
 
+void addEditorMenu(Win32_GameWindow& window)
+{
+	HMENU menuBar = CreateMenu();
+	// Game menu
+	HMENU gameMenu = CreatePopupMenu();
+	AppendMenuA(menuBar, MF_ENABLED | MF_POPUP, (UINT_PTR)gameMenu, "&Game");
+	AppendMenu(gameMenu, MF_ENABLED | MF_STRING, EDITOR_COMMAND_RELOAD, "&Reload");
+	AppendMenu(gameMenu, MF_ENABLED | MF_STRING, EDITOR_COMMAND_PLAY, "&Play");
+	AppendMenu(gameMenu, MF_ENABLED | MF_STRING, EDITOR_COMMAND_STOP, "&Stop");
+
+	SetMenu(window.hwnd, menuBar);
+}
 //---------------------------------------------------------------------------
 // Main
 //---------------------------------------------------------------------------
@@ -633,19 +676,18 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	Win32_setCurrentDirectory();
 
 	ldare::Input gameInput = {};
-	Win32_GameModuleInfo gameModuleInfo = {};
-	gameModuleInfo.moduleFileName = "ldare_game.dll";
+	_gameModuleInfo = {};
+	_gameModuleInfo.moduleFileName = "ldare_game.dll";
 	GameApi gameApi = {};
 
 	// Load the game module
-	//if(!Win32_reloadGameModule(gameModuleInfo))
-	if(!Win32_loadGameModule(gameModuleInfo))
+	if(!Win32_loadGameModule(_gameModuleInfo))
 	{
 		return FALSE;
 	}
 
 	// Initialize the game settings
-	_gameContext = gameModuleInfo.init();
+	_gameContext = _gameModuleInfo.init();
 
 	// Reserve memory for the game
 	void* gameMemory = platform::memoryAlloc(_gameContext.gameMemorySize);
@@ -677,8 +719,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	platform::Win32_initXAudio();
 	initGameApi(gameApi);
 
+	addEditorMenu(_gameWindow);
+
 	// start the game
-	gameModuleInfo.start(gameMemory, gameApi);
+	_gameModuleInfo.start(gameMemory, gameApi);
 
 	if (_gameContext.Resolution.width ==0 ) _gameContext.Resolution.width = _gameContext.windowWidth;
 	if (_gameContext.Resolution.height ==0 ) _gameContext.Resolution.height = _gameContext.windowHeight;
@@ -707,19 +751,19 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 #if DEBUG
 		// Check for new game DLL every 180 frames
-		if (gameModuleInfo.timeSinceLastReload >= GAME_MODULE_RELOAD_INTERVAL_SECONDS)
+		if (_gameModuleInfo.timeSinceLastReload >= GAME_MODULE_RELOAD_INTERVAL_SECONDS)
 		{
 			// if game reloaded, run start again
-			if (Win32_reloadGameModule(gameModuleInfo))
+			if (Win32_reloadGameModule(_gameModuleInfo))
 			{
 				LogInfo("Game module reloaded");
-				gameModuleInfo.timeSinceLastReload = 0;
-				gameModuleInfo.start(gameMemory, gameApi);
+				_gameModuleInfo.timeSinceLastReload = 0;
+				_gameModuleInfo.start(gameMemory, gameApi);
 			}
 		}
 		else
 		{
-			gameModuleInfo.timeSinceLastReload += gameTimer.deltaTime;
+			_gameModuleInfo.timeSinceLastReload += gameTimer.deltaTime;
 		}
 #endif
 
@@ -728,7 +772,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 		//Update the game
 		updateRenderer(gameTimer.deltaTime);
-		gameModuleInfo.update(gameTimer.deltaTime, gameInput, gameApi);
+		_gameModuleInfo.update(gameTimer.deltaTime, gameInput, gameApi);
 
 #if DEBUG
 		gameApi.text.begin(*_debugService.debugFont, _debugService.fontMaterial);
@@ -756,7 +800,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 #endif
 	}
 
-	gameModuleInfo.stop();
+	_gameModuleInfo.stop();
 	LogInfo("Finished");
 	CoUninitialize();
 	return 0;

@@ -10,7 +10,7 @@ LDARE_GAME=$(OUTDIR)\ldare_game.dll
 
 #DEBUG OPTIONS
 LIBS=user32.lib gdi32.lib Opengl32.lib Msimg32.lib Ole32.lib
-DEBUG_COMPILE_OPTIONS=/nologo /EHsc /MT /I$(LDARESDK) /D "WIN32" /D "DEBUG" /Zi 
+DEBUG_COMPILE_OPTIONS=/nologo /EHsc /MT /I$(LDARESDK) /D "WIN32" /D "DEBUG" /D "LDARE_EDITOR" /Zi 
 DEBUG_LINK_OPTIONS=/link /subsystem:console $(LIBS)
 
 #RELEASE OPTIONS
