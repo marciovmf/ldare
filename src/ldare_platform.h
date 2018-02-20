@@ -9,6 +9,8 @@ namespace ldare
 {
 	namespace platform 
 	{
+		struct GameModule;
+
 		//---------------------------------------------------------------------------
 		// Loads an entire file to memory
 		//---------------------------------------------------------------------------
@@ -33,6 +35,20 @@ namespace ldare
 		// Get the time in seconds between 2 tick intervals
 		//---------------------------------------------------------------------------
 		float getTimeBetweenTicks(uint64 start, uint64 end); 
+
+		//---------------------------------------------------------------------------
+		// Loads the Game module.
+		// Returns: true if game module is successfuly loaded
+		//---------------------------------------------------------------------------
+		bool loadGameModule(GameModule& gameModule);
+
+		////---------------------------------------------------------------------------
+		// Unloads the Game module.
+		// Returns: true if game dll is successfuly unloaded
+		//---------------------------------------------------------------------------
+		bool unloadGameModule(GameModule& gameModule);
+
+		//TODO: Add low level audio functions here
 	}
 }
 

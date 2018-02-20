@@ -20,17 +20,75 @@
 #define XINPUT_GAMEPAD_X	0x4000
 #define XINPUT_GAMEPAD_Y	0x8000
 
-
-		//#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
+//#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
 #define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  9000
 #define XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE 8689
 #define XINPUT_GAMEPAD_TRIGGER_THRESHOLD    30
 #define XINPUT_MAX_AXIS_VALUE 32767
 #define XINPUT_MIN_AXIS_VALUE -32768
 #define XINPUT_MAX_TRIGGER_VALUE 255
-	
+
+namespace ldare
+{
+	namespace platform
+	{
+		struct GameModule
+		{	
+			const char* moduleFileName;
+			HMODULE hGameModule;
+			FILETIME gameModuleWriteTime;
+			gameInitFunc *init;
+			gameStartFunc *start;
+			gameUpdateFunc *update;
+			gameStopFunc *stop;
+			float timeSinceLastReload;
+		};
+	}
+}
+
+// Windows only utility functions
+
+//---------------------------------------------------------------------------
+// Get the write time of a file
+//---------------------------------------------------------------------------
+FILETIME Win32_getFileWriteTime(const char* fileName)
+{
+	FILETIME writeTime;
+	HANDLE handle = CreateFileA(fileName, GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	GetFileTime(handle, 0, 0, &writeTime);
+	CloseHandle(handle);
+	return writeTime;
+}
+
+//---------------------------------------------------------------------------
+// Checks if there is a newer game dll and loads it if it does.
+// Returns: true if the module was loaded or reloaded
+//---------------------------------------------------------------------------
+bool Win32_reloadGameModule(ldare::platform::GameModule& gameModule)
+{
+	bool hasNewVersion = false;
+	if (gameModule.hGameModule != 0)
+	{
+		FILETIME writeTime = Win32_getFileWriteTime(gameModule.moduleFileName);
+		// game dll has a recenb write time change ?
+		if (CompareFileTime(&writeTime, &gameModule.gameModuleWriteTime) > 0)
+		{
+			LogInfo("New game module found...");
+			ldare::platform::unloadGameModule(gameModule);
+			gameModule.gameModuleWriteTime = writeTime;
+			hasNewVersion = true;
+		}
+	}
+
+	if (hasNewVersion)
+		return ldare::platform::loadGameModule(gameModule);
+
+	return false;
+}
+
 namespace ldare 
 {
+	// Platform implementation
 	namespace platform 
 	{
 		//---------------------------------------------------------------------------
@@ -136,13 +194,12 @@ namespace ldare
 		{
 			VirtualFree(memory, size, MEM_DECOMMIT);	
 		}
-
+		
 		//---------------------------------------------------------------------------
 		//  
 		//  Timer structures and functions
 		//
 		//---------------------------------------------------------------------------
-
 		void Win32_initTimer()
 		{
 			QueryPerformanceFrequency(&_timerData.ticksPerSecond);
@@ -169,7 +226,55 @@ namespace ldare
 #endif
 			return deltaTime;
 		}
-	
+		
+		bool unloadGameModule(GameModule& gameModule)
+		{
+			if (!gameModule.hGameModule)
+			{
+				return true;
+			}
+
+			return FreeLibrary(gameModule.hGameModule);
+		}
+
+		bool loadGameModule(GameModule& gameModule)
+		{
+			//TODO: marcio, make sure executable directory is current directory.
+			const char* dllFileName = gameModule.moduleFileName;
+
+#if DEBUG
+
+			// load a copy of the dll, so the original can be recompiled
+			const char* dllCopyFileName = "ldare_game_copy.dll";
+			if (!CopyFileA(dllFileName, dllCopyFileName, false))
+			{
+				LogError("Error copying game dll\n");
+				return false;
+			}
+			dllFileName = dllCopyFileName;
+			FILETIME originalDllWriteTime = Win32_getFileWriteTime(gameModule.moduleFileName);
+#endif
+
+			if ((gameModule.hGameModule = LoadLibraryA(dllFileName)))
+			{
+				gameModule.gameModuleWriteTime = originalDllWriteTime;
+				gameModule.init = (gameInitFunc*)GetProcAddress(gameModule.hGameModule, "gameInit");
+				gameModule.start = (gameStartFunc*)GetProcAddress(gameModule.hGameModule, "gameStart");
+				gameModule.update = (gameUpdateFunc*)GetProcAddress(gameModule.hGameModule, "gameUpdate");
+				gameModule.stop = (gameStopFunc*)GetProcAddress(gameModule.hGameModule, "gameStop");
+			}
+			else
+			{
+				LogError("Error loading game module\n");
+				return false;
+			}
+
+			if (!(gameModule.init && gameModule.start && gameModule.update && gameModule.stop))
+				return false;
+
+			return true;
+		}
+
 		//---------------------------------------------------------------------------
 		//  
 		//  Audio structures and functions

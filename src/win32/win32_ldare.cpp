@@ -44,18 +44,6 @@ static struct EngineDebugService
 	char fpsText[16];
 } _debugService;
 
-struct Win32_GameModuleInfo
-{
-	const char* moduleFileName;
-	HMODULE hGameModule;
-	FILETIME gameModuleWriteTime;
-	gameInitFunc *init;
-	gameStartFunc *start;
-	gameUpdateFunc *update;
-	gameStopFunc *stop;
-	float timeSinceLastReload;
-};
-
 struct Win32_GameTimer
 {
 	uint64 lastFrameTime;
@@ -65,104 +53,8 @@ struct Win32_GameTimer
 	float deltaTime;
 };
 
-static FILETIME Win32_getFileWriteTime(const char* fileName)
-{
-	FILETIME writeTime;
-	HANDLE handle = CreateFileA(fileName, GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-	GetFileTime(handle, 0, 0, &writeTime);
-	CloseHandle(handle);
-	return writeTime;
-}
-
 static ldare::GameContext _gameContext;
-static Win32_GameModuleInfo _gameModuleInfo;
-
-//---------------------------------------------------------------------------
-// Loads the Game dll.
-// Returns: true if game dll is unloaded
-//	AND fetches the Update and Start function pointers
-//---------------------------------------------------------------------------
-static inline bool Win32_unloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
-{
-	if (!gameModuleInfo.hGameModule)
-	{
-		return true;
-	}
-	
-	return FreeLibrary(gameModuleInfo.hGameModule);
-}
-//---------------------------------------------------------------------------
-// Loads the Game dll.
-// Returns: true if successfully loads the game dll 
-//	AND fetches the Update and Start function pointers
-//---------------------------------------------------------------------------
-static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
-{
-	//TODO: marcio, make sure executable directory is current directory.
-	const char* dllFileName = gameModuleInfo.moduleFileName;
-
-#if DEBUG
-
-		// load a copy of the dll, so the original can be recompiled
-	const char* dllCopyFileName = "ldare_game_copy.dll";
-	if (!CopyFileA(dllFileName, dllCopyFileName, false))
-	{
-		LogError("Error copying game dll\n");
-		return false;
-	}
-	dllFileName = dllCopyFileName;
-	FILETIME originalDllWriteTime = Win32_getFileWriteTime(gameModuleInfo.moduleFileName);
-#endif
-
-	if ((gameModuleInfo.hGameModule = LoadLibraryA(dllFileName)))
-	{
-		gameModuleInfo.gameModuleWriteTime = originalDllWriteTime;
-		gameModuleInfo.init = (gameInitFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameInit");
-		gameModuleInfo.start = (gameStartFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameStart");
-		gameModuleInfo.update = (gameUpdateFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameUpdate");
-		gameModuleInfo.stop = (gameStopFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameStop");
-	}
-	else
-	{
-		LogError("Error loading game module\n");
-		return false;
-	}
-
-	if (!(_gameModuleInfo.init && _gameModuleInfo.start && _gameModuleInfo.update && _gameModuleInfo.stop))
-		return false;
-
-	return true;
-}
-
-//---------------------------------------------------------------------------
-// Checks if there is a newer game dll and loads it if it does.
-// Returns: true if the module was loaded or reloaded
-// Globals: _gameModuleInfo
-//---------------------------------------------------------------------------
-#ifdef DEBUG
-static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
-{
-
-	bool hasNewVersion = false;
-	if (gameModuleInfo.hGameModule != 0)
-	{
-		FILETIME writeTime = Win32_getFileWriteTime(gameModuleInfo.moduleFileName);
-		// game dll has a recenb write time change ?
-		if (CompareFileTime(&writeTime, &gameModuleInfo.gameModuleWriteTime) > 0)
-		{
-			LogInfo("New game module found...");
-			Win32_unloadGameModule(_gameModuleInfo);
-			gameModuleInfo.gameModuleWriteTime = writeTime;
-			hasNewVersion = true;
-		}
-	}
-
-	if (hasNewVersion)
-		return Win32_loadGameModule(gameModuleInfo);
-
-	return false;
-}
-#endif
+static ldare::platform::GameModule _gameModuleInfo;
 
 LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -170,13 +62,13 @@ LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
 	{
 
 #if DEBUG
-//			case WM_ACTIVATE:
-//				if (wParam != WA_INACTIVE)
-//				{
-//					LogInfo("Checking for game changes");
-//					Win32_reloadGameModule(_gameModuleInfo);
-//				}
-//				break;
+			case WM_ACTIVATE:
+				if (wParam != WA_INACTIVE)
+				{
+					LogInfo("Checking for game changes");
+					Win32_reloadGameModule(_gameModuleInfo);
+				}
+				break;
 #endif
 		case WM_CLOSE:
 			_gameWindow.shouldClose = true;	
@@ -652,7 +544,6 @@ static void initGameApi(ldare::GameApi& gameApi)
 	gameApi.asset.loadAudio = ldare::loadAudio;
 	gameApi.asset.loadFont = ldare::loadFont;
 	gameApi.audio.playAudio = ldare::playAudio;
-
 }
 
 void addEditorMenu(Win32_GameWindow& window)
@@ -667,6 +558,7 @@ void addEditorMenu(Win32_GameWindow& window)
 
 	SetMenu(window.hwnd, menuBar);
 }
+
 //---------------------------------------------------------------------------
 // Main
 //---------------------------------------------------------------------------
@@ -676,12 +568,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	Win32_setCurrentDirectory();
 
 	ldare::Input gameInput = {};
+	GameApi gameApi = {};
 	_gameModuleInfo = {};
 	_gameModuleInfo.moduleFileName = "ldare_game.dll";
-	GameApi gameApi = {};
 
 	// Load the game module
-	if(!Win32_loadGameModule(_gameModuleInfo))
+	if(!platform::loadGameModule(_gameModuleInfo))
 	{
 		return FALSE;
 	}
