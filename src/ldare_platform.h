@@ -9,8 +9,11 @@ namespace ldare
 {
 	namespace platform 
 	{
+		struct GameModule;
+
 		//---------------------------------------------------------------------------
-		// Loads an entire file to memory
+		// Reads an entire file to memory. The necessary memory will be allocated.
+		// Returns: pointer to file loaded in memory
 		//---------------------------------------------------------------------------
 		void* loadFileToBuffer(const char* filename, size_t* bufferSize);
 
@@ -33,6 +36,29 @@ namespace ldare
 		// Get the time in seconds between 2 tick intervals
 		//---------------------------------------------------------------------------
 		float getTimeBetweenTicks(uint64 start, uint64 end); 
+
+		//---------------------------------------------------------------------------
+		// Loads the Game module.
+		// Returns: true if game module is successfuly loaded
+		//---------------------------------------------------------------------------
+		bool loadGameModule(GameModule& gameModule);
+
+		//---------------------------------------------------------------------------
+		// Unloads the Game module.
+		// Returns: true if game dll is successfuly unloaded
+		//---------------------------------------------------------------------------
+		bool unloadGameModule(GameModule& gameModule);
+
+		//---------------------------------------------------------------------------
+		// Plays the audio buffer identified by the passed audioBufferId
+		//---------------------------------------------------------------------------
+		void playAudio(uint32 audioBufferId);
+
+		//---------------------------------------------------------------------------
+		// Creates an audio buffer for the given audio data
+		// Returns: id of the audio buffer
+		//---------------------------------------------------------------------------
+		uint32 createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize);
 	}
 }
 

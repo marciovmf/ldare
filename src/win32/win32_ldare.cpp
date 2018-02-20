@@ -10,6 +10,7 @@
 #include "../ldare_memory.h"
 #include "../ldare_gl.h"
 #include "../ldare_renderer_buffer.h"
+#include "../ldare_core.h"
 // implementations
 #include "win32_platform.cpp"
 #include "../ldare_renderer_gl.cpp"
@@ -26,16 +27,23 @@ using namespace ldare;
 #define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
 #define GAME_MODULE_RELOAD_INTERVAL_SECONDS 3.0
 
-static struct Win32_GameWindow
+namespace ldare
 {
-	HDC dc;
-	HGLRC rc;
-	HWND hwnd;
-	RECT windowModeRect;
-	LONG windowModeStyle;
-	bool shouldClose;
-	bool isFullScreen;
-} _gameWindow;
+	namespace app
+	{
+		struct Window
+		{
+			HDC dc;
+			HGLRC rc;
+			HWND hwnd;
+			RECT windowModeRect;
+			LONG windowModeStyle;
+			bool shouldClose;
+			bool isFullScreen;
+		};
+	}
+}
+static ldare::app::Window _gameWindow;
 
 static struct EngineDebugService
 {
@@ -44,19 +52,7 @@ static struct EngineDebugService
 	char fpsText[16];
 } _debugService;
 
-struct Win32_GameModuleInfo
-{
-	const char* moduleFileName;
-	HMODULE hGameModule;
-	FILETIME gameModuleWriteTime;
-	gameInitFunc *init;
-	gameStartFunc *start;
-	gameUpdateFunc *update;
-	gameStopFunc *stop;
-	float timeSinceLastReload;
-};
-
-struct Win32_GameTimer
+struct GameTimer
 {
 	uint64 lastFrameTime;
 	uint64 thisFrameTime;
@@ -65,118 +61,22 @@ struct Win32_GameTimer
 	float deltaTime;
 };
 
-static FILETIME Win32_getFileWriteTime(const char* fileName)
-{
-	FILETIME writeTime;
-	HANDLE handle = CreateFileA(fileName, GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-	GetFileTime(handle, 0, 0, &writeTime);
-	CloseHandle(handle);
-	return writeTime;
-}
-
 static ldare::GameContext _gameContext;
-static Win32_GameModuleInfo _gameModuleInfo;
+static ldare::platform::GameModule _gameModuleInfo;
 
-//---------------------------------------------------------------------------
-// Loads the Game dll.
-// Returns: true if game dll is unloaded
-//	AND fetches the Update and Start function pointers
-//---------------------------------------------------------------------------
-static inline bool Win32_unloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
-{
-	if (!gameModuleInfo.hGameModule)
-	{
-		return true;
-	}
-	
-	return FreeLibrary(gameModuleInfo.hGameModule);
-}
-//---------------------------------------------------------------------------
-// Loads the Game dll.
-// Returns: true if successfully loads the game dll 
-//	AND fetches the Update and Start function pointers
-//---------------------------------------------------------------------------
-static inline bool Win32_loadGameModule(Win32_GameModuleInfo& gameModuleInfo)
-{
-	//TODO: marcio, make sure executable directory is current directory.
-	const char* dllFileName = gameModuleInfo.moduleFileName;
-
-#if DEBUG
-
-		// load a copy of the dll, so the original can be recompiled
-	const char* dllCopyFileName = "ldare_game_copy.dll";
-	if (!CopyFileA(dllFileName, dllCopyFileName, false))
-	{
-		LogError("Error copying game dll\n");
-		return false;
-	}
-	dllFileName = dllCopyFileName;
-	FILETIME originalDllWriteTime = Win32_getFileWriteTime(gameModuleInfo.moduleFileName);
-#endif
-
-	if ((gameModuleInfo.hGameModule = LoadLibraryA(dllFileName)))
-	{
-		gameModuleInfo.gameModuleWriteTime = originalDllWriteTime;
-		gameModuleInfo.init = (gameInitFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameInit");
-		gameModuleInfo.start = (gameStartFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameStart");
-		gameModuleInfo.update = (gameUpdateFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameUpdate");
-		gameModuleInfo.stop = (gameStopFunc*)GetProcAddress(gameModuleInfo.hGameModule, "gameStop");
-	}
-	else
-	{
-		LogError("Error loading game module\n");
-		return false;
-	}
-
-	if (!(_gameModuleInfo.init && _gameModuleInfo.start && _gameModuleInfo.update && _gameModuleInfo.stop))
-		return false;
-
-	return true;
-}
-
-//---------------------------------------------------------------------------
-// Checks if there is a newer game dll and loads it if it does.
-// Returns: true if the module was loaded or reloaded
-// Globals: _gameModuleInfo
-//---------------------------------------------------------------------------
-#ifdef DEBUG
-static inline bool Win32_reloadGameModule(Win32_GameModuleInfo& gameModuleInfo)
-{
-
-	bool hasNewVersion = false;
-	if (gameModuleInfo.hGameModule != 0)
-	{
-		FILETIME writeTime = Win32_getFileWriteTime(gameModuleInfo.moduleFileName);
-		// game dll has a recenb write time change ?
-		if (CompareFileTime(&writeTime, &gameModuleInfo.gameModuleWriteTime) > 0)
-		{
-			LogInfo("New game module found...");
-			Win32_unloadGameModule(_gameModuleInfo);
-			gameModuleInfo.gameModuleWriteTime = writeTime;
-			hasNewVersion = true;
-		}
-	}
-
-	if (hasNewVersion)
-		return Win32_loadGameModule(gameModuleInfo);
-
-	return false;
-}
-#endif
-
-LRESULT CALLBACK Win32_GameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK LDAREWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(uMsg)
 	{
 
 #if DEBUG
-//			case WM_ACTIVATE:
-//				if (wParam != WA_INACTIVE)
-//				{
-//					LogInfo("Checking for game changes");
-//					Win32_reloadGameModule(_gameModuleInfo);
-//				}
-//				break;
+			case WM_ACTIVATE:
+				if (wParam != WA_INACTIVE)
+				{
+					LogInfo("Checking for game changes");
+					Win32_reloadGameModule(_gameModuleInfo);
+				}
+				break;
 #endif
 		case WM_CLOSE:
 			_gameWindow.shouldClose = true;	
@@ -217,14 +117,14 @@ static bool Win32_RegisterGameWindowClass(HINSTANCE hInstance, TCHAR* className)
 {
 	WNDCLASS windowClass = {};
 	windowClass.style = CS_OWNDC;
-	windowClass.lpfnWndProc = Win32_GameWindowProc;
+	windowClass.lpfnWndProc = LDAREWindowProc;
 	windowClass.hInstance = hInstance;
 	windowClass.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
 	windowClass.lpszClassName = className;
 	return RegisterClass(&windowClass) != 0;
 }
 
-static void Win32_toggleFullScreen(Win32_GameWindow& gameWindow)
+static void Win32_toggleFullScreen(ldare::app::Window& gameWindow)
 {
 	LONG currentStyle =  GetWindowLong(gameWindow.hwnd, GWL_STYLE);
 	LONG newStyle = 0;
@@ -249,7 +149,7 @@ static void Win32_toggleFullScreen(Win32_GameWindow& gameWindow)
 }
 
 static bool Win32_CreateGameWindow(
-		Win32_GameWindow& gameWindow, int width, int height, HINSTANCE hInstance, TCHAR* title)
+		ldare::app::Window& gameWindow, int width, int height, HINSTANCE hInstance, TCHAR* title)
 {
 	gameWindow.hwnd = CreateWindowEx(NULL, 
 			TEXT(GAME_WINDOW_CLASS),
@@ -274,9 +174,9 @@ static bool Win32_CreateGameWindow(
 	return gameWindow.dc != NULL;
 }
 
-static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, int major, int minor)
+static bool Win32_InitOpenGL(ldare::app::Window& gameWindow, HINSTANCE hInstance, int major, int minor)
 {
-	Win32_GameWindow dummyWindow = {};
+	ldare::app::Window dummyWindow = {};
 	if (! Win32_CreateGameWindow(dummyWindow,0,0,hInstance,TEXT("")) )
 	{
 		LogError("Could not create a dummy window for openGl initialization");
@@ -321,7 +221,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	bool success = true;
 
 #define FETCH_GL_FUNC(type, name) success = success &&\
-	(name = (type) platform::Win32_getGlFunctionPointer((const char*)#name))
+	(name = (type) ldare::platform::Win32_getGlFunctionPointer((const char*)#name))
 	FETCH_GL_FUNC(PFNGLENABLEPROC, glEnable);
 	FETCH_GL_FUNC(PFNGLDISABLEPROC, glDisable);
 	FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
@@ -398,7 +298,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 	pfd = {};
 	int numPixelFormats = 0;
 	wglChoosePixelFormatARB(
-			gameWindow->dc,
+			gameWindow.dc,
 			pixelFormatAttribList,
 			nullptr,
 			1,
@@ -411,7 +311,7 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 		return false;
 	}
 
-	if (! SetPixelFormat(gameWindow->dc, pfId, &pfd))
+	if (! SetPixelFormat(gameWindow.dc, pfId, &pfd))
 	{
 		LogError("Could not set pixel format for OpenGL context creation");
 		return false;
@@ -429,18 +329,18 @@ static bool Win32_InitOpenGL(Win32_GameWindow* gameWindow, HINSTANCE hInstance, 
 		0
 	};
 
-	gameWindow->rc = wglCreateContextAttribsARB(
-			gameWindow->dc,
+	gameWindow.rc = wglCreateContextAttribsARB(
+			gameWindow.dc,
 			0,
 			contextAttribs);
 
-	if (!gameWindow->rc)
+	if (!gameWindow.rc)
 	{
 		LogError("Could not create a core profile OpenGL context");
 		return false;
 	}
 
-	if(!wglMakeCurrent(gameWindow->dc, gameWindow->rc))
+	if(!wglMakeCurrent(gameWindow.dc, gameWindow.rc))
 	{
 		LogError("Could not make core profile OpenGL context current");
 		return false;
@@ -616,20 +516,6 @@ static inline void Win32_processGamepadInput(ldare::Input& gameInput)
 	}
 }
 
-void Win32_setCurrentDirectory()
-{
-	char path[256];
-	uint32 len = GetModuleFileName(NULL, path, 255);
-	char* p=path+len;
-	while( *p!= '\\')
-	{
-		*p=0;
-		p--;
-	}
-	SetCurrentDirectory(path);
-	LogInfo("Running from %s", path);
-}
-
 static void initGameApi(ldare::GameApi& gameApi)
 {
 	// Initialize the API exposed to the game
@@ -652,10 +538,9 @@ static void initGameApi(ldare::GameApi& gameApi)
 	gameApi.asset.loadAudio = ldare::loadAudio;
 	gameApi.asset.loadFont = ldare::loadFont;
 	gameApi.audio.playAudio = ldare::playAudio;
-
 }
 
-void addEditorMenu(Win32_GameWindow& window)
+void addEditorMenu(ldare::app::Window& window)
 {
 	HMENU menuBar = CreateMenu();
 	// Game menu
@@ -667,21 +552,23 @@ void addEditorMenu(Win32_GameWindow& window)
 
 	SetMenu(window.hwnd, menuBar);
 }
+
 //---------------------------------------------------------------------------
 // Main
 //---------------------------------------------------------------------------
+#if 0
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	LogInfo("Initializing");
-	Win32_setCurrentDirectory();
+	platform::Win32_setCurrentDirectory();
 
 	ldare::Input gameInput = {};
+	GameApi gameApi = {};
 	_gameModuleInfo = {};
 	_gameModuleInfo.moduleFileName = "ldare_game.dll";
-	GameApi gameApi = {};
 
 	// Load the game module
-	if(!Win32_loadGameModule(_gameModuleInfo))
+	if(!platform::loadGameModule(_gameModuleInfo))
 	{
 		return FALSE;
 	}
@@ -703,7 +590,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		LogError("Could not create window");
 	}
 
-	if (! Win32_InitOpenGL(&_gameWindow, hInstance, 3, 3))
+	if (! Win32_InitOpenGL(_gameWindow, hInstance, 3, 3))
 	{
 		LogError("Could not initialize OpenGL for game window" );
 	}
@@ -730,7 +617,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	ShowWindow(_gameWindow.hwnd, SW_SHOW);
 
 	platform::Win32_initTimer();
-	Win32_GameTimer gameTimer = {};
+	GameTimer gameTimer = {};
 
 #ifdef DEBUG
 	_debugService.fontMaterial = gameApi.asset.loadMaterial(
@@ -805,11 +692,201 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	CoUninitialize();
 	return 0;
 }
+#endif
+
+namespace ldare
+{
+	namespace app
+	{
+		static struct Application
+		{
+			HINSTANCE hInstance;
+			Window window;
+		} _app;
+
+		bool init(uint32 renderApi)
+		{
+			if (renderApi != OPENGL_3_2)
+			{
+				LogError("Unsupported render api");
+				return false;
+			}
+
+			platform::Win32_setCurrentDirectory();
+			_app.hInstance = GetModuleHandleA(NULL);
+			_app.window = {};
+
+			CoInitialize(NULL);
+
+			// Initialize windows specific dependencies
+			platform::Win32_initXInput();
+			platform::Win32_initXAudio();
+			platform::Win32_initTimer();
+
+			return true;
+		}
+
+		Window* createWindow(uint32 width, uint32 height, const char* title)
+		{
+			if ( !Win32_RegisterGameWindowClass(_app.hInstance,TEXT(GAME_WINDOW_CLASS)) )
+			{
+				LogError("Could not register game window class");
+				return nullptr;
+			}
+
+			if (!Win32_CreateGameWindow(_app.window, width, height, _app.hInstance, (TCHAR*)title))
+			{
+				LogError("Could not create window");
+				return nullptr;
+			}
+			
+			Win32_InitOpenGL(_app.window, _app.hInstance, 3, 2);
+			ShowWindow(_app.window.hwnd, SW_SHOW);
+			return &_app.window;
+		}
+
+		inline void swapBuffer(Window& window)
+		{
+			SwapBuffers(window.dc);
+		}
+
+		inline bool shouldClose(Window& window)
+		{
+			return window.shouldClose;
+		}
+
+		void pollEvents(Window& window, ldare::Input& gameInput)
+		{
+			Win32_processPendingMessages(_gameWindow.hwnd, gameInput);
+			Win32_processGamepadInput(gameInput);
+		}
+
+		void terminate(Application& context)
+		{
+			//TODO: do window and application cleanup here
+		}
+	}
+}
 
 #ifdef DEBUG
+using namespace ldare::app;
+
 int _tmain(int argc, _TCHAR** argv)
 {
-	return WinMain(GetModuleHandle(NULL), NULL, NULL,SW_SHOW);
+	//return WinMain(GetModuleHandle(NULL), NULL, NULL,SW_SHOW);
+
+	Window* window;
+	ldare::Input gameInput = {};
+	GameTimer gameTimer = {};
+	GameApi gameApi = {};
+	_gameModuleInfo = {};
+	_gameModuleInfo.moduleFileName = "ldare_game.dll";
+
+	// initialize
+	if (!init(OPENGL_3_2))
+	{
+		LogError("Error initializing LDARE engine");
+		return -1;
+	}
+
+	// Load the game module
+	if(!platform::loadGameModule(_gameModuleInfo))
+	{
+		return FALSE;
+	}
+
+	// Create game window
+	if( !(window = createWindow(800, 600, "ldare engine")))
+	{
+		return -1;
+	}
+
+	// Initialize the game settings
+	_gameContext = _gameModuleInfo.init();
+
+	// Reserve memory for the game
+	void* gameMemory = platform::memoryAlloc(_gameContext.gameMemorySize);
+
+	initGameApi(gameApi);
+	addEditorMenu(_gameWindow);
+
+	// start the game
+	_gameModuleInfo.start(gameMemory, gameApi);
+
+	if (_gameContext.Resolution.width ==0 ) _gameContext.Resolution.width = _gameContext.windowWidth;
+	if (_gameContext.Resolution.height ==0 ) _gameContext.Resolution.height = _gameContext.windowHeight;
+
+#ifdef DEBUG
+	_debugService.fontMaterial = gameApi.asset.loadMaterial(
+			(const char*)"./assets/font.vert", 
+			(const char*) "./assets/font.frag", 
+			(const char*)"./assets/Liberation Mono.bmp");
+
+		gameApi.asset.loadFont(
+			(const char*)"./assets/Liberation Mono.font", &_debugService.debugFont);
+
+#endif
+
+	while (!shouldClose(*window))
+	{
+		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
+		gameTimer.thisFrameTime = platform::getTicks();
+
+#if DEBUG
+		// Check for new game DLL every 180 frames
+		if (_gameModuleInfo.timeSinceLastReload >= GAME_MODULE_RELOAD_INTERVAL_SECONDS)
+		{
+			// if game reloaded, run start again
+			if (Win32_reloadGameModule(_gameModuleInfo)) //TODO: make this platform independent
+			{
+				LogInfo("Game module reloaded");
+				_gameModuleInfo.timeSinceLastReload = 0;
+				_gameModuleInfo.start(gameMemory, gameApi);
+			}
+		}
+		else
+		{
+			_gameModuleInfo.timeSinceLastReload += gameTimer.deltaTime;
+		}
+#endif
+
+		pollEvents(*window, gameInput);
+
+		//Update the game
+		updateRenderer(gameTimer.deltaTime);
+		_gameModuleInfo.update(gameTimer.deltaTime, gameInput, gameApi);
+
+#if DEBUG
+		gameApi.text.begin(*_debugService.debugFont, _debugService.fontMaterial);
+			gameApi.text.drawText(Vec3{5, _gameContext.windowHeight - 30, 2}, 1.0f, Vec4{0.0f, 0.0f, 0.0f, 1.0f}, _debugService.fpsText);
+		gameApi.text.end();
+#endif
+
+		SwapBuffers(_gameWindow.dc);
+
+		// get deltaTime
+		gameTimer.deltaTime = platform::getTimeBetweenTicks(gameTimer.lastFrameTime, gameTimer.thisFrameTime);
+
+		gameTimer.frameCount++;
+		gameTimer.elapsedFrameTime += gameTimer.deltaTime;
+
+#if DEBUG
+		// count frames per second
+		if (gameTimer.elapsedFrameTime>1)
+		{
+			gameTimer.elapsedFrameTime -=1;
+			sprintf(_debugService.fpsText, "FPS: %d", gameTimer.frameCount);
+			gameTimer.frameCount=0;
+		}
+
+#endif
+	}
+
+	_gameModuleInfo.stop();
+	LogInfo("Finished");
+	CoUninitialize();
+	return 0;
+
 }
 #endif //DEBUG
 
