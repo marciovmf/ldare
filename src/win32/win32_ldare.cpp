@@ -40,10 +40,19 @@ namespace ldare
 			LONG windowModeStyle;
 			bool shouldClose;
 			bool isFullScreen;
+		};	
+		
+		struct Application
+		{
+			HINSTANCE hInstance;
+			Window window;
+			ldare::GameContext gameContext;
+			ldare::platform::GameModule gameModule;
 		};
 	}
 }
-static ldare::app::Window _gameWindow;
+
+static ldare::app::Application _app;
 
 static struct EngineDebugService
 {
@@ -61,9 +70,6 @@ struct GameTimer
 	float deltaTime;
 };
 
-static ldare::GameContext _gameContext;
-static ldare::platform::GameModule _gameModuleInfo;
-
 LRESULT CALLBACK LDAREWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(uMsg)
@@ -74,20 +80,20 @@ LRESULT CALLBACK LDAREWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 				if (wParam != WA_INACTIVE)
 				{
 					LogInfo("Checking for game changes");
-					Win32_reloadGameModule(_gameModuleInfo);
+					Win32_reloadGameModule(_app.gameModule);
 				}
 				break;
 #endif
 		case WM_CLOSE:
-			_gameWindow.shouldClose = true;	
+			_app.window.shouldClose = true;	
 			break;
 
 		case WM_MOVE:
 			{			
 				// update window mode rect
-				if ( !_gameWindow.isFullScreen)
+				if ( !_app.window.isFullScreen)
 				{
-					GetWindowRect(hwnd, &_gameWindow.windowModeRect);
+					GetWindowRect(hwnd, &_app.window.windowModeRect);
 				}
 			}
 			break;
@@ -95,13 +101,13 @@ LRESULT CALLBACK LDAREWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 			{
 				RECT rect;
 				GetClientRect(hwnd, &rect);
-				setViewportAspectRatio(rect.right, rect.bottom, _gameContext.Resolution.width, _gameContext.Resolution.height);
+				setViewportAspectRatio(rect.right, rect.bottom, _app.gameContext.Resolution.width, _app.gameContext.Resolution.height);
 				// update window mode rect
-				if (wParam == SIZE_RESTORED && !_gameWindow.isFullScreen)
+				if (wParam == SIZE_RESTORED && !_app.window.isFullScreen)
 				{
 					GetWindowRect(hwnd, &rect);
-					_gameWindow.windowModeRect.right = (uint32)LOWORD(lParam);
-					_gameWindow.windowModeRect.bottom = (uint32)HIWORD(lParam);
+					_app.window.windowModeRect.right = (uint32)LOWORD(lParam);
+					_app.window.windowModeRect.bottom = (uint32)HIWORD(lParam);
 				}
 				break;
 			}
@@ -360,6 +366,7 @@ static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInp
 
 	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
 	{
+		LogInfo("updating...");
 		switch(msg.message)
 		{
 			case WM_COMMAND:
@@ -374,7 +381,7 @@ static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInp
 				else if (LOWORD(msg.wParam) == EDITOR_COMMAND_RELOAD)
 				{
 					LogInfo("Reload menu selected");
-					Win32_reloadGameModule(_gameModuleInfo);
+					Win32_reloadGameModule(_app.gameModule);
 				}
 
 		// handle keyboard input messages directly
@@ -390,12 +397,12 @@ static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInp
 #if DEBUG
 				if (vkCode == KBD_F12 && isDown)
 				{
-					Win32_toggleFullScreen(_gameWindow);
+					Win32_toggleFullScreen(_app.window);
 					continue;
 				}
 
 				if (vkCode == KBD_ESCAPE)
-						_gameWindow.shouldClose = true;
+						_app.window.shouldClose = true;
 #endif
 					gameInput.keyboard[vkCode] = ((isDown != wasDown) << 1) | isDown;
 					continue;
@@ -553,156 +560,10 @@ void addEditorMenu(ldare::app::Window& window)
 	SetMenu(window.hwnd, menuBar);
 }
 
-//---------------------------------------------------------------------------
-// Main
-//---------------------------------------------------------------------------
-#if 0
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-{
-	LogInfo("Initializing");
-	platform::Win32_setCurrentDirectory();
-
-	ldare::Input gameInput = {};
-	GameApi gameApi = {};
-	_gameModuleInfo = {};
-	_gameModuleInfo.moduleFileName = "ldare_game.dll";
-
-	// Load the game module
-	if(!platform::loadGameModule(_gameModuleInfo))
-	{
-		return FALSE;
-	}
-
-	// Initialize the game settings
-	_gameContext = _gameModuleInfo.init();
-
-	// Reserve memory for the game
-	void* gameMemory = platform::memoryAlloc(_gameContext.gameMemorySize);
-
-	if ( !Win32_RegisterGameWindowClass(hInstance,TEXT(GAME_WINDOW_CLASS)) )
-	{
-		LogError("Could not register window class");
-	}
-
-	if (!Win32_CreateGameWindow(_gameWindow, _gameContext.windowWidth,
-				_gameContext.windowHeight, hInstance, TEXT("lDare Engine") ))
-	{
-		LogError("Could not create window");
-	}
-
-	if (! Win32_InitOpenGL(_gameWindow, hInstance, 3, 3))
-	{
-		LogError("Could not initialize OpenGL for game window" );
-	}
-
-	// fullscreen
-	if (_gameContext.fullScreen)
-	{
-		Win32_toggleFullScreen(_gameWindow);
-	}
-
-	CoInitialize(NULL);
-	platform::Win32_initXInput();
-	platform::Win32_initXAudio();
-	initGameApi(gameApi);
-
-	addEditorMenu(_gameWindow);
-
-	// start the game
-	_gameModuleInfo.start(gameMemory, gameApi);
-
-	if (_gameContext.Resolution.width ==0 ) _gameContext.Resolution.width = _gameContext.windowWidth;
-	if (_gameContext.Resolution.height ==0 ) _gameContext.Resolution.height = _gameContext.windowHeight;
-
-	ShowWindow(_gameWindow.hwnd, SW_SHOW);
-
-	platform::Win32_initTimer();
-	GameTimer gameTimer = {};
-
-#ifdef DEBUG
-	_debugService.fontMaterial = gameApi.asset.loadMaterial(
-			(const char*)"./assets/font.vert", 
-			(const char*) "./assets/font.frag", 
-			(const char*)"./assets/Liberation Mono.bmp");
-
-		gameApi.asset.loadFont(
-			(const char*)"./assets/Liberation Mono.font", &_debugService.debugFont);
-
-#endif
-
-	while (!_gameWindow.shouldClose)
-	{
-		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
-		gameTimer.thisFrameTime = platform::getTicks();
-
-
-#if DEBUG
-		// Check for new game DLL every 180 frames
-		if (_gameModuleInfo.timeSinceLastReload >= GAME_MODULE_RELOAD_INTERVAL_SECONDS)
-		{
-			// if game reloaded, run start again
-			if (Win32_reloadGameModule(_gameModuleInfo))
-			{
-				LogInfo("Game module reloaded");
-				_gameModuleInfo.timeSinceLastReload = 0;
-				_gameModuleInfo.start(gameMemory, gameApi);
-			}
-		}
-		else
-		{
-			_gameModuleInfo.timeSinceLastReload += gameTimer.deltaTime;
-		}
-#endif
-
-		Win32_processPendingMessages(_gameWindow.hwnd, gameInput);
-		Win32_processGamepadInput(gameInput);
-
-		//Update the game
-		updateRenderer(gameTimer.deltaTime);
-		_gameModuleInfo.update(gameTimer.deltaTime, gameInput, gameApi);
-
-#if DEBUG
-		gameApi.text.begin(*_debugService.debugFont, _debugService.fontMaterial);
-			gameApi.text.drawText(Vec3{5, _gameContext.windowHeight - 30, 2}, 1.0f, Vec4{0.0f, 0.0f, 0.0f, 1.0f}, _debugService.fpsText);
-		gameApi.text.end();
-#endif
-
-		SwapBuffers(_gameWindow.dc);
-
-		// get deltaTime
-		gameTimer.deltaTime = platform::getTimeBetweenTicks(gameTimer.lastFrameTime, gameTimer.thisFrameTime);
-
-		gameTimer.frameCount++;
-		gameTimer.elapsedFrameTime += gameTimer.deltaTime;
-
-#if DEBUG
-		// count frames per second
-		if (gameTimer.elapsedFrameTime>1)
-		{
-			gameTimer.elapsedFrameTime -=1;
-			sprintf(_debugService.fpsText, "FPS: %d", gameTimer.frameCount);
-			gameTimer.frameCount=0;
-		}
-
-#endif
-	}
-
-	_gameModuleInfo.stop();
-	LogInfo("Finished");
-	CoUninitialize();
-	return 0;
-}
-#endif
-
 namespace ldare
 {
 	namespace app
 	{
-		static struct Application
-		{
-			HINSTANCE hInstance;
-			Window window;
-		} _app;
 
 		bool init(uint32 renderApi)
 		{
@@ -757,7 +618,7 @@ namespace ldare
 
 		void pollEvents(Window& window, ldare::Input& gameInput)
 		{
-			Win32_processPendingMessages(_gameWindow.hwnd, gameInput);
+			Win32_processPendingMessages(_app.window.hwnd, gameInput);
 			Win32_processGamepadInput(gameInput);
 		}
 
@@ -769,6 +630,9 @@ namespace ldare
 }
 
 #ifdef DEBUG
+//---------------------------------------------------------------------------
+// Main
+//---------------------------------------------------------------------------
 using namespace ldare::app;
 
 int _tmain(int argc, _TCHAR** argv)
@@ -779,8 +643,8 @@ int _tmain(int argc, _TCHAR** argv)
 	ldare::Input gameInput = {};
 	GameTimer gameTimer = {};
 	GameApi gameApi = {};
-	_gameModuleInfo = {};
-	_gameModuleInfo.moduleFileName = "ldare_game.dll";
+	_app.gameModule = {};
+	_app.gameModule.moduleFileName = "ldare_game.dll";
 
 	// initialize
 	if (!init(OPENGL_3_2))
@@ -790,7 +654,7 @@ int _tmain(int argc, _TCHAR** argv)
 	}
 
 	// Load the game module
-	if(!platform::loadGameModule(_gameModuleInfo))
+	if(!platform::loadGameModule(_app.gameModule))
 	{
 		return FALSE;
 	}
@@ -802,19 +666,19 @@ int _tmain(int argc, _TCHAR** argv)
 	}
 
 	// Initialize the game settings
-	_gameContext = _gameModuleInfo.init();
+	_app.gameContext = _app.gameModule.init();
 
 	// Reserve memory for the game
-	void* gameMemory = platform::memoryAlloc(_gameContext.gameMemorySize);
+	void* gameMemory = platform::memoryAlloc(_app.gameContext.gameMemorySize);
 
 	initGameApi(gameApi);
-	addEditorMenu(_gameWindow);
+	addEditorMenu(_app.window);
 
 	// start the game
-	_gameModuleInfo.start(gameMemory, gameApi);
+	_app.gameModule.start(gameMemory, gameApi);
 
-	if (_gameContext.Resolution.width ==0 ) _gameContext.Resolution.width = _gameContext.windowWidth;
-	if (_gameContext.Resolution.height ==0 ) _gameContext.Resolution.height = _gameContext.windowHeight;
+	if (_app.gameContext.Resolution.width ==0 )  _app.gameContext.Resolution.width =  _app.gameContext.windowWidth;
+	if (_app.gameContext.Resolution.height ==0 ) _app.gameContext.Resolution.height = _app.gameContext.windowHeight;
 
 #ifdef DEBUG
 	_debugService.fontMaterial = gameApi.asset.loadMaterial(
@@ -834,19 +698,19 @@ int _tmain(int argc, _TCHAR** argv)
 
 #if DEBUG
 		// Check for new game DLL every 180 frames
-		if (_gameModuleInfo.timeSinceLastReload >= GAME_MODULE_RELOAD_INTERVAL_SECONDS)
+		if (_app.gameModule.timeSinceLastReload >= GAME_MODULE_RELOAD_INTERVAL_SECONDS)
 		{
 			// if game reloaded, run start again
-			if (Win32_reloadGameModule(_gameModuleInfo)) //TODO: make this platform independent
+			if (Win32_reloadGameModule(_app.gameModule)) //TODO: make this platform independent
 			{
 				LogInfo("Game module reloaded");
-				_gameModuleInfo.timeSinceLastReload = 0;
-				_gameModuleInfo.start(gameMemory, gameApi);
+				_app.gameModule.timeSinceLastReload = 0;
+				_app.gameModule.start(gameMemory, gameApi);
 			}
 		}
 		else
 		{
-			_gameModuleInfo.timeSinceLastReload += gameTimer.deltaTime;
+			_app.gameModule.timeSinceLastReload += gameTimer.deltaTime;
 		}
 #endif
 
@@ -854,15 +718,15 @@ int _tmain(int argc, _TCHAR** argv)
 
 		//Update the game
 		updateRenderer(gameTimer.deltaTime);
-		_gameModuleInfo.update(gameTimer.deltaTime, gameInput, gameApi);
+		_app.gameModule.update(gameTimer.deltaTime, gameInput, gameApi);
 
 #if DEBUG
 		gameApi.text.begin(*_debugService.debugFont, _debugService.fontMaterial);
-			gameApi.text.drawText(Vec3{5, _gameContext.windowHeight - 30, 2}, 1.0f, Vec4{0.0f, 0.0f, 0.0f, 1.0f}, _debugService.fpsText);
+			gameApi.text.drawText(Vec3{5, _app.gameContext.windowHeight - 30, 2}, 1.0f, Vec4{0.0f, 0.0f, 0.0f, 1.0f}, _debugService.fpsText);
 		gameApi.text.end();
 #endif
 
-		SwapBuffers(_gameWindow.dc);
+		SwapBuffers(_app.window.dc);
 
 		// get deltaTime
 		gameTimer.deltaTime = platform::getTimeBetweenTicks(gameTimer.lastFrameTime, gameTimer.thisFrameTime);
@@ -882,7 +746,7 @@ int _tmain(int argc, _TCHAR** argv)
 #endif
 	}
 
-	_gameModuleInfo.stop();
+	_app.gameModule.stop();
 	LogInfo("Finished");
 	CoUninitialize();
 	return 0;
