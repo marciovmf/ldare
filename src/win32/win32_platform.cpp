@@ -228,11 +228,11 @@ namespace ldare
 			start -= _timerData.ticksSinceEngineStartup.QuadPart;
 
 			float deltaTime = (( end - start))/ (float)_timerData.ticksPerSecond.QuadPart;
-#if DEBUG
+#if _LDK_DEBUG_
 			// if we stopped on a breakpoint, make things behave mor natural
 			if ( deltaTime > 0.05f)
 				deltaTime = 0.016f;
-#endif
+#endif //_LDK_DEBUG_
 			return deltaTime;
 		}
 		
@@ -251,8 +251,7 @@ namespace ldare
 			//TODO: marcio, make sure executable directory is current directory.
 			const char* dllFileName = gameModule.moduleFileName;
 
-#if DEBUG
-
+#if _LDK_DEBUG_
 			// load a copy of the dll, so the original can be recompiled
 			const char* dllCopyFileName = "ldare_game_copy.dll";
 			if (!CopyFileA(dllFileName, dllCopyFileName, false))
@@ -262,7 +261,7 @@ namespace ldare
 			}
 			dllFileName = dllCopyFileName;
 			FILETIME originalDllWriteTime = Win32_getFileWriteTime(gameModule.moduleFileName);
-#endif
+#endif //_LDK_DEBUG_
 
 			if ((gameModule.hGameModule = LoadLibraryA(dllFileName)))
 			{
@@ -381,14 +380,14 @@ namespace ldare
 					return;
 				}
 				pXAudio2_7->StartEngine();
-#ifdef DEBUG
+#ifdef _LDK_DEBUG_
 				XAUDIO2_DEBUG_CONFIGURATION debug = {};
 				debug.TraceMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS;
 				debug.BreakMask = XAUDIO2_LOG_ERRORS;
 				pXAudio2_7->SetDebugConfiguration( &debug, 0 );
 
 				pXAudio2 = (IXAudio2*) pXAudio2_7;
-#endif //DEBUG
+#endif //_LDK_DEBUG_
 				hr = pXAudio2_7->CreateMasteringVoice( &pMasterVoice);
 			}
 			else

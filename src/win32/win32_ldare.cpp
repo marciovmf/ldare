@@ -1,22 +1,24 @@
-/**
- * win32_ldare.cpp
- * win32 implementation of ldare engine entrypoint and platform layer
- */
 // common ldare headers
-#include <ldare/ldare_game.h>
-#include <ldare/ldare_editor.h>
+#include <ldk/ldk_game.h>
+#include <ldk/ldk_editor.h>
 // platform independent headers
-#include "../ldare_platform.h"
-#include "../ldare_memory.h"
-#include "../ldare_gl.h"
-#include "../ldare_renderer_buffer.h"
-#include "../ldare_core.h"
+#include "../ldk_platform.h"
+#include "../ldk_memory.h"
+#include "../ldk_gl.h"
+#include "../ldk_renderer_buffer.h"
+#include "../ldk_core.h"
+
+#ifdef _LDK_WINDOWS_
+#define WIN32
+#endif // _LDK_WINDOWS_
+
 // implementations
 #include "win32_platform.cpp"
-#include "../ldare_renderer_gl.cpp"
-#include "../ldare_renderer_buffer_gl.cpp"
-#include "../ldare_asset.cpp"
-#include "../ldare_memory.cpp"
+#include "../ldk_renderer_gl.cpp"
+#include "../ldk_renderer_buffer_gl.cpp"
+#include "../ldk_asset.cpp"
+#include "../ldk_memory.cpp"
+
 // Win32 specifics
 #include <windowsx.h>
 #include <windows.h>
@@ -24,7 +26,7 @@
 #include <tchar.h>
 #include <objbase.h>
 using namespace ldare;
-#define GAME_WINDOW_CLASS "LDARE_WINDOW_CLASS"
+#define GAME_WINDOW_CLASS "LDK_WINDOW_CLASS"
 #define GAME_MODULE_RELOAD_INTERVAL_SECONDS 3.0
 
 namespace ldare
@@ -70,12 +72,12 @@ struct GameTimer
 	float deltaTime;
 };
 
-LRESULT CALLBACK LDAREWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK LDKWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(uMsg)
 	{
 
-#if DEBUG
+#if _LDK_DEBUG_
 			case WM_ACTIVATE:
 				if (wParam != WA_INACTIVE)
 				{
@@ -83,7 +85,7 @@ LRESULT CALLBACK LDAREWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 					Win32_reloadGameModule(_app.gameModule);
 				}
 				break;
-#endif
+#endif // _LDK_DEBUG_
 		case WM_CLOSE:
 			_app.window.shouldClose = true;	
 			break;
@@ -123,7 +125,7 @@ static bool Win32_RegisterGameWindowClass(HINSTANCE hInstance, TCHAR* className)
 {
 	WNDCLASS windowClass = {};
 	windowClass.style = CS_OWNDC;
-	windowClass.lpfnWndProc = LDAREWindowProc;
+	windowClass.lpfnWndProc = LDKWindowProc;
 	windowClass.hInstance = hInstance;
 	windowClass.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);
 	windowClass.lpszClassName = className;
@@ -328,9 +330,9 @@ static bool Win32_InitOpenGL(ldare::app::Window& gameWindow, HINSTANCE hInstance
 		WGL_CONTEXT_MAJOR_VERSION_ARB, major,
 		WGL_CONTEXT_MINOR_VERSION_ARB, minor,
 		WGL_CONTEXT_FLAGS_ARB,
-#ifdef DEBUG
+#ifdef _LDK_DEBUG_
 		WGL_CONTEXT_DEBUG_BIT_ARB |
-#endif
+#endif // _LDK_DEBUG_
 			WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 		0
 	};
@@ -366,7 +368,6 @@ static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInp
 
 	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
 	{
-		LogInfo("updating...");
 		switch(msg.message)
 		{
 			case WM_COMMAND:
@@ -394,7 +395,7 @@ static inline void Win32_processPendingMessages(HWND hwnd, ldare::Input& gameInp
 					int8 isDown = (msg.lParam & (1 << 31)) == 0;
 					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
 					int16 vkCode = msg.wParam;
-#if DEBUG
+#if _LDK_DEBBUG_
 				if (vkCode == KBD_F12 && isDown)
 				{
 					Win32_toggleFullScreen(_app.window);
@@ -564,7 +565,6 @@ namespace ldare
 {
 	namespace app
 	{
-
 		bool init(uint32 renderApi)
 		{
 			if (renderApi != OPENGL_3_2)
@@ -629,7 +629,7 @@ namespace ldare
 	}
 }
 
-#ifdef DEBUG
+#ifdef _LDK_DEBUG_
 //---------------------------------------------------------------------------
 // Main
 //---------------------------------------------------------------------------
@@ -644,12 +644,12 @@ int _tmain(int argc, _TCHAR** argv)
 	GameTimer gameTimer = {};
 	GameApi gameApi = {};
 	_app.gameModule = {};
-	_app.gameModule.moduleFileName = "ldare_game.dll";
+	_app.gameModule.moduleFileName = "ldk_game.dll";
 
 	// initialize
 	if (!init(OPENGL_3_2))
 	{
-		LogError("Error initializing LDARE engine");
+		LogError("Error initializing LDK engine");
 		return -1;
 	}
 
@@ -660,7 +660,7 @@ int _tmain(int argc, _TCHAR** argv)
 	}
 
 	// Create game window
-	if( !(window = createWindow(800, 600, "ldare engine")))
+	if( !(window = createWindow(800, 600, "LDK engine")))
 	{
 		return -1;
 	}
@@ -680,7 +680,7 @@ int _tmain(int argc, _TCHAR** argv)
 	if (_app.gameContext.Resolution.width ==0 )  _app.gameContext.Resolution.width =  _app.gameContext.windowWidth;
 	if (_app.gameContext.Resolution.height ==0 ) _app.gameContext.Resolution.height = _app.gameContext.windowHeight;
 
-#ifdef DEBUG
+#ifdef _LDK_DEBUG_
 	_debugService.fontMaterial = gameApi.asset.loadMaterial(
 			(const char*)"./assets/font.vert", 
 			(const char*) "./assets/font.frag", 
@@ -689,14 +689,14 @@ int _tmain(int argc, _TCHAR** argv)
 		gameApi.asset.loadFont(
 			(const char*)"./assets/Liberation Mono.font", &_debugService.debugFont);
 
-#endif
+#endif // _LDK_DEBUG_
 
 	while (!shouldClose(*window))
 	{
 		gameTimer.lastFrameTime = gameTimer.thisFrameTime;
 		gameTimer.thisFrameTime = platform::getTicks();
 
-#if DEBUG
+#if _LDK_DEBUG_
 		// Check for new game DLL every 180 frames
 		if (_app.gameModule.timeSinceLastReload >= GAME_MODULE_RELOAD_INTERVAL_SECONDS)
 		{
@@ -712,7 +712,7 @@ int _tmain(int argc, _TCHAR** argv)
 		{
 			_app.gameModule.timeSinceLastReload += gameTimer.deltaTime;
 		}
-#endif
+#endif // _LDK_DEBUG_
 
 		pollEvents(*window, gameInput);
 
@@ -720,11 +720,11 @@ int _tmain(int argc, _TCHAR** argv)
 		updateRenderer(gameTimer.deltaTime);
 		_app.gameModule.update(gameTimer.deltaTime, gameInput, gameApi);
 
-#if DEBUG
+#if _LDK_DEBUG_
 		gameApi.text.begin(*_debugService.debugFont, _debugService.fontMaterial);
 			gameApi.text.drawText(Vec3{5, _app.gameContext.windowHeight - 30, 2}, 1.0f, Vec4{0.0f, 0.0f, 0.0f, 1.0f}, _debugService.fpsText);
 		gameApi.text.end();
-#endif
+#endif // _LDK_DEBUG_
 
 		SwapBuffers(_app.window.dc);
 
@@ -734,7 +734,7 @@ int _tmain(int argc, _TCHAR** argv)
 		gameTimer.frameCount++;
 		gameTimer.elapsedFrameTime += gameTimer.deltaTime;
 
-#if DEBUG
+#if _LDK_DEBUG_
 		// count frames per second
 		if (gameTimer.elapsedFrameTime>1)
 		{
@@ -752,5 +752,5 @@ int _tmain(int argc, _TCHAR** argv)
 	return 0;
 
 }
-#endif //DEBUG
+#endif // _LDK_DEBUG_
 

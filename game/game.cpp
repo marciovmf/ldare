@@ -3,31 +3,96 @@
 #define GAME_RESOLUTION_WIDTH 1024
 #define GAME_RESOLUTION_HEIGHT 576
 #define FULLSCREEN 0
-#define SPRITE_SIZE 128
-#define WATER 0x00
-#define GROUND 0x1
-#define TREE 0x10
 
-#include <ldare/ldare_game.h>
+#define MAX_SHIP_SPEED 10
+#define SHIP_SPEED_ACCELERATION 2
+#define MAX_PROJECTILES 32
+#define MAX_ASTEROIDS 32
+#define WHITE {1.0, 1.0, 1.0, 1.0}
+#include <ldk/ldk_game.h>
 #include <wchar.h>
 #include <stdio.h>
 
 using namespace ldare;
+#include "sprites.h"
 #include "animation.cpp"
-#include "character.cpp"
 
+struct Entity
+{	
+	float dx, dy;		// entity delta x and y positions
+	Sprite sprite;  // Current entity
+	float timeout;  // entity gets deactivated if timeout is 0
+	bool active;    // entity is ignored if not active
+};
+
+static Entity initEntity(float x, float y, Rectangle rect)
+{
+	Entity entity;
+	entity.dx = entity.dy = 0;
+	Sprite& sprite = entity.sprite;
+	sprite.position = {x, y, 1};
+	sprite.angle = 0;
+	sprite.color = WHITE;
+	sprite.width = rect.w/2;
+	sprite.height = rect.h/2;
+	sprite.srcRect = rect;
+	return entity;
+}
+
+static void updateEntityPosition(Entity& entity)
+{
+	Sprite& sprite = entity.sprite;
+	if (sprite.position.x > GAME_RESOLUTION_WIDTH)
+		sprite.position.x = 0;	
+	if (sprite.position.x < 0)
+		sprite.position.x = GAME_RESOLUTION_WIDTH;
+
+	if (sprite.position.y > GAME_RESOLUTION_HEIGHT)
+		sprite.position.y = 0;	
+	if (sprite.position.y < 0)
+		sprite.position.y = GAME_RESOLUTION_HEIGHT;
+}
+
+static void updateShipPosition(Entity& entity, bool thrusting, float deltaTime)
+{	
+	Sprite& sprite = entity.sprite;
+	
+	float adjust = RADIAN(90);
+
+	if ( thrusting)
+	{
+		entity.dx += cos(adjust + sprite.angle) * SHIP_SPEED_ACCELERATION * deltaTime ;
+		entity.dy += sin(adjust + sprite.angle)  * SHIP_SPEED_ACCELERATION * deltaTime ;
+	}
+	else
+	{
+		// reduces the speed a little each frame
+		entity.dx *= 0.995; 
+		entity.dy *= 0.995;
+	}
+
+	if ( entity.dx > MAX_SHIP_SPEED )
+		entity.dx = MAX_SHIP_SPEED;
+
+	if ( entity.dy > MAX_SHIP_SPEED )
+		entity.dy = MAX_SHIP_SPEED;
+
+	sprite.position.x += entity.dx;
+	sprite.position.y += entity.dy;
+
+	updateEntityPosition(entity);
+}
 
 static ldare::GameContext gameContext;
 // sprite rects
-static float spriteSize = SPRITE_SIZE;
-static Rectangle srcGroundBL = { 0 * spriteSize, 0 * spriteSize, spriteSize, spriteSize};
 struct GameData
 {
-	Audio soundFx;
+	Entity ship;
+	Entity projectiles[MAX_PROJECTILES];
+	Entity asteroids[MAX_ASTEROIDS];
+	uint32 activeAsteroids;
 	Material material;
-	FontAsset* fontAsset;
 	Vec2 resolution;
-	Character character;
 } *gameMemory = nullptr;
 
 //---------------------------------------------------------------------------
@@ -63,51 +128,44 @@ void gameStart(void* mem, GameApi& gameApi)
 	gameMemory->material = gameApi.asset.loadMaterial(
 			(const char*)"./assets/sprite.vert",
 			(const char*) "./assets/sprite.frag", 
-			(const char*)"./assets/spritesheet.bmp");
+			(const char*)"./assets/sprites.bmp");
 
 	Vec3 pos = {GAME_RESOLUTION_WIDTH/2, GAME_RESOLUTION_HEIGHT/2, 1};
 	Vec4 color = {1.0, 1.0, 1.0, 1.0};
-	character_setup(gameMemory->character, 
-			SPRITE_SIZE, SPRITE_SIZE, 
-			pos, color);
+
+	gameMemory->ship = initEntity(pos.x, pos.y, playerShip1_red);
 }
 
 //---------------------------------------------------------------------------
 // Game update
 //---------------------------------------------------------------------------
-Vec3 textPosition = {1, 1, 1};
-Vec3 direction = {1, 1, 1};
-float deltaSum =0;
-const float speed = 150;
+float a =0;
 void gameUpdate(const float deltaTime, const Input& input, ldare::GameApi& gameApi)
 {
+	bool thrusting = false;
 	gameApi.text.flush();
-	Sprite& heroSprite = gameMemory->character.sprite;
+	Entity& ship = gameMemory->ship;
 
-	// Updata character animation
-	character_update(gameMemory->character, input, gameApi, deltaTime);
-
-
-	if (input.getKey(KBD_D))
-	{
-		heroSprite.position.x += speed * deltaTime;
-	}
-	else if (input.getKey(KBD_A))
-	{
-		heroSprite.position.x -= speed * deltaTime;
-	}
-	
+	// thrust
 	if (input.getKey(KBD_W))
 	{
-		heroSprite.position.y += speed * deltaTime;
+		thrusting = true;
 	}
-	else if (input.getKey(KBD_S))
+
+	// steering
+	if (input.getKey(KBD_A))
 	{
-		heroSprite.position.y -= speed * deltaTime;
+		ship.sprite.angle += RADIAN(180) * deltaTime;
 	}
-	gameMemory->character.sprite.angle += RADIAN(180) * deltaTime;
+	else if (input.getKey(KBD_D))
+	{
+		ship.sprite.angle -= RADIAN(180) * deltaTime;
+	}
+	
+	updateShipPosition(ship, thrusting, deltaTime);
+
 	gameApi.spriteBatch.begin(gameMemory->material);
-	gameApi.spriteBatch.submit(heroSprite);
+	gameApi.spriteBatch.submit(ship.sprite);
 	gameApi.spriteBatch.end();
 }
 
