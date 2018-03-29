@@ -28,7 +28,7 @@
 #define XINPUT_MIN_AXIS_VALUE -32768
 #define XINPUT_MAX_TRIGGER_VALUE 255
 
-namespace ldare 
+namespace ldk 
 {
 	// Platform implementation
 	namespace platform 

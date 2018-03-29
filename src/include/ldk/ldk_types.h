@@ -21,7 +21,15 @@ typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
 
-typedef char* ldkString;
-typedef void* ldkHandle;
+typedef char* ldkSTRING;
+typedef void* ldkHANDLE;
+
+typedef uint32 ldkSTATUS;
+#define LDK_SUCCESS 1
+#define LDK_FAIL 0
+
+// Program return constants
+#define LDK_EXIT_SUCCESS 0
+#define LDK_EXIT_FAIL 1
 
 #endif // _LDK_TYPES_H_

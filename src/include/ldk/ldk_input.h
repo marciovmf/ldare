@@ -1,7 +1,7 @@
-#ifndef __LDARE_KEYBOARD__
-#define __LDARE_KEYBOARD__
+#ifndef __LDK_KEYBOARD__
+#define __LDK_KEYBOARD__
 
-namespace ldare
+namespace ldk
 {
 
 #define KEYSTATE_PRESSED  0x01	
@@ -239,4 +239,4 @@ namespace ldare
 
 
 }
-#endif // __LDARE_KEYBOARD__
+#endif // __LDK_KEYBOARD__
