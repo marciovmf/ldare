@@ -9,7 +9,7 @@
 #define LDK_KEY_MOD_SHIFT			0x0001
 #define LDK_KEY_MOD_CONTROL   0x0002
 #define LDK_KEY_MOD_ALT   		0x0004
-#define LDK_KEY_MOD_SUPER   	0x0008
+//#define LDK_KEY_MOD_SUPER   	0x0008
 
 // Key action
 #define LDK_KEY_PRESS					0x0001
@@ -46,7 +46,10 @@ namespace ldk
 		typedef void(* LDKPlatformMouseButtonFunc) (LDKWindow*, uint32 button, uint32 action, uint32 modifier);
 
 		/* Mouse cursor callback function */
-		typedef void(* LDKPlatformMouseCursorFunc) (LDKWindow*, double xPos, double yPos);
+		typedef void(* LDKPlatformMouseCursorFunc) (LDKWindow*, uint32 xPos, uint32 yPos);
+		
+		/* Window close callback function */
+		typedef void(* LDKPlatformWindowCloseFunc) (LDKWindow*);
 
 		// Initialize the platform layer
 		uint32 initialize();
@@ -58,10 +61,17 @@ namespace ldk
 		void setErrorCallback(LDKPlatformErrorFunc errorCallback);
 
 		// Set the key callback for the given window
-		void setKeyCallback(LDKWindow* window, uint32 keyCallback);
+		void setKeyCallback(LDKWindow* window, LDKPlatformKeyFunc keyCallback);
 
 		// set the mouse button callback for the given window
-		void setMouseButtonCallback(LDKWindow* window, uint32 mouseButtonCallback);
+		void setMouseButtonCallback(LDKWindow* window, LDKPlatformMouseButtonFunc mouseButtonCallback);
+		
+		// set the mouse cursor callback for the given window
+		void setMouseCursorCallback(LDKWindow* window, LDKPlatformMouseCursorFunc mouseCursorCallback);
+
+		// sets the close callback for teh giver window
+		// the close flag is set befor this callback, but it is possible to override it with setWindowCloseFlag
+		void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback);
 
 		// Creates a window
 		LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share);
@@ -74,6 +84,10 @@ namespace ldk
 
 		// returns the value of the close flag of the specified window
 		bool windowShouldClose(LDKWindow* window);
+
+		// Sets the close flag for a window
+		// It is usefull for overrinding a closing window and keep it open
+		void setWindowCloseFlag(LDKWindow* window, bool flag);
 
 		// Displays a window created with LDKWwindowHing::VISIBLE = 0
 		void showWindow(LDKWindow* window);

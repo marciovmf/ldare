@@ -1,5 +1,3 @@
-
-
 #ifdef _LDK_WINDOWS_
 #define WIN32
 #endif // _LDK_WINDOWS_
@@ -19,6 +17,8 @@
 
 #define LDK_WINDOW_CLASS "LDK_WINDOW_CLASS"
 
+//TODO: User a custom container with custom memory allocation
+#include <map>
 
 namespace ldk 
 {
@@ -27,15 +27,21 @@ namespace ldk
 		static struct LDKWin32
 		{
 			LDKPlatformErrorFunc 				errorCallback;
-			LDKPlatformKeyFunc 					keyCallback;
-			LDKPlatformMouseButtonFunc 	mouseButtonCallback;
-			LDKPlatformMouseCursorFunc 	mouseCursorCallback;
-
+			//TODO: add window data to the win32 window instance so there is no need for this map
+			std::map<HWND, LDKWindow*> 	windowList;
+			uint8 shiftKeyState;
+			uint8 controlKeyState;
+			uint8 altKeyState;
+			uint8 superKeyState;
 		} _platform;
 
 		/* platform specific window */
 		struct LDKWindow
 		{
+			LDKPlatformKeyFunc 					keyCallback;
+			LDKPlatformMouseButtonFunc 	mouseButtonCallback;
+			LDKPlatformMouseCursorFunc 	mouseCursorCallback;
+			LDKPlatformWindowCloseFunc	windowCloseCallback;
 			HINSTANCE hInstance;
 			HWND hwnd;
 			HDC dc;
@@ -46,11 +52,31 @@ namespace ldk
 
 		static HINSTANCE _appInstance;
 
+#define findWindowByHandle(hwnd) (_platform.windowList[hwnd])
 		LRESULT CALLBACK ldk_win32_windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			switch(uMsg)
 			{
-				//TODO: call callbacks here
+				case WM_ACTIVATE:
+					{
+						// reset modifier key state if the window get inactive
+						if (LOWORD(wParam) == WA_INACTIVE)
+						{
+							_platform.shiftKeyState =
+								_platform.controlKeyState =
+								_platform.altKeyState =
+								_platform.superKeyState = 0;
+						}
+					}
+					break;
+
+				case WM_CLOSE:
+					{
+						LDKWindow* window = findWindowByHandle(hwnd);
+						ldk::platform::setWindowCloseFlag(window, true);
+					}
+					break;
+
 				default:
 					return DefWindowProc(hwnd, uMsg, wParam, lParam);	
 					break;
@@ -85,8 +111,6 @@ namespace ldk
 					hInstance,
 					NULL);
 
-			//GetWindowRect(gameWindow.hwnd, &gameWindow.windowModeRect);
-			//gameWindow.windowModeStyle = GetWindowLong(gameWindow.hwnd, GWL_STYLE);
 			if (!window->hwnd)
 				return false;
 
@@ -290,7 +314,6 @@ namespace ldk
 			return true;
 		}
 
-
 		/* Error callback function */
 		typedef void (* LDKPlatformErrorFunc)(uint32 errorCode, const char* errorMsg);
 
@@ -301,13 +324,13 @@ namespace ldk
 		typedef void(* LDKMouseButtonFunc) (LDKWindow* window, uint32 button, uint32 action, uint32 modifier);
 
 		/* Mouse cursor callback function */
-		typedef void(* LDKPlatformMouseCursorFunc) (LDKWindow*, double xPos, double yPos);
+		typedef void(* LDKPlatformMouseCursorFunc) (LDKWindow*, uint32 xPos, uint32 yPos);
 
 		// Initialize the platform layer
 		uint32 initialize()
 		{
 			_appInstance = GetModuleHandle(NULL);
-				return ldk_win32_registerWindowClass(_appInstance);
+			return ldk_win32_registerWindowClass(_appInstance);
 		}
 
 		// terminates the platform layer
@@ -324,13 +347,24 @@ namespace ldk
 		// Set the key callback for the given window
 		void setKeyCallback(LDKWindow* window, LDKPlatformKeyFunc keyCallback)
 		{
-			_platform.keyCallback	= keyCallback;
+			window->keyCallback	= keyCallback;
 		}
 
 		// set the mouse button callback for the given window
 		void setMouseButtonCallback(LDKWindow* window, LDKMouseButtonFunc mouseButtonCallback)
 		{
-			_platform.mouseButtonCallback	= mouseButtonCallback;
+			window->mouseButtonCallback	= mouseButtonCallback;
+		}
+
+		// set the mouse cursor callback for the given window
+		void setMouseCursorCallback(LDKWindow* window, LDKPlatformMouseCursorFunc mouseCursorCallback)
+		{
+			window->mouseCursorCallback	= mouseCursorCallback;
+		}
+
+		void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback)
+		{
+			window->windowCloseCallback = windowCloseCallback;
 		}
 
 		// Creates a window
@@ -349,7 +383,6 @@ namespace ldk
 			while ( pAttribute != 0 && *pAttribute != 0 )
 			{
 				ldk::platform::LDKWindowHint windowHint = (ldk::platform::LDKWindowHint) *pAttribute;
-
 
 				switch (windowHint)
 				{
@@ -383,6 +416,7 @@ namespace ldk
 
 			//TODO Use a custom allocator
 			ldk::platform::LDKWindow* window = new LDKWindow();
+			*window = {};
 
 			if (!ldk_win32_createWindow(window, width, height, _appInstance, (TCHAR*) title))
 			{
@@ -414,6 +448,7 @@ namespace ldk
 				return nullptr;
 			}
 
+			_platform.windowList.insert(std::make_pair(window->hwnd, window));
 			return window;
 		}
 
@@ -426,6 +461,8 @@ namespace ldk
 		// Destroys a window
 		void destroyWindow(LDKWindow* window)
 		{
+			auto it = _platform.windowList.find(window->hwnd);
+			_platform.windowList.erase(it);
 			DestroyWindow(window->hwnd);
 		}
 
@@ -433,6 +470,13 @@ namespace ldk
 		bool windowShouldClose(LDKWindow* window)
 		{
 			return window->closeFlag;
+		}
+
+		void setWindowCloseFlag(LDKWindow* window, bool flag)
+		{
+			window->closeFlag = flag;	
+			if (window->windowCloseCallback)
+				window->windowCloseCallback(window);
 		}
 
 		// Update the window framebuffer
@@ -450,70 +494,73 @@ namespace ldk
 		void pollEvents()
 		{
 			MSG msg;
-			// clear 'changed' bit from input key state
-//			for(int i=0; i < MAX_KBD_KEYS ; i++)
-//			{
-//				gameInput.keyboard[i] &= ~KEYSTATE_CHANGED;
-//			}
 
 			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 			{
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 
-//				switch(msg.message)
-//				{
-//					case WM_COMMAND:
-//						if (LOWORD(msg.wParam) == EDITOR_COMMAND_PLAY)
-//						{
-//							LogInfo("Play menu selected");
-//						}
-//						else if (LOWORD(msg.wParam) == EDITOR_COMMAND_STOP)
-//						{
-//							LogInfo("Stop menu selected");
-//						}
-//						else if (LOWORD(msg.wParam) == EDITOR_COMMAND_RELOAD)
-//						{
-//							LogInfo("Reload menu selected");
-//							Win32_reloadGameModule(_app.gameModule);
-//						}
-//
-//						// handle keyboard input messages directly
-//					case WM_KEYDOWN:
-//					case WM_KEYUP:
-//						{
-//							// bit 30 has previous key state
-//							// bit 31 has current key state
-//							// shitty fact: 0 means pressed, 1 means released
-//							int8 isDown = (msg.lParam & (1 << 31)) == 0;
-//							int8 wasDown = (msg.lParam & (1 << 30)) != 0;
-//							int16 vkCode = msg.wParam;
-//#if _LDK_DEBBUG_
-//							if (vkCode == KBD_F12 && isDown)
-//							{
-//								Win32_toggleFullScreen(_app.window);
-//								continue;
-//							}
-//
-//							if (vkCode == KBD_ESCAPE)
-//								_app.window.shouldClose = true;
-//#endif
-//							gameInput.keyboard[vkCode] = ((isDown != wasDown) << 1) | isDown;
-//							continue;
-//						}
-//						break;
-//
-//						// Cursor position
-//					case WM_MOUSEMOVE:
-//						{
-//							gameInput.cursor.x = GET_X_LPARAM(msg.lParam);
-//							gameInput.cursor.y = GET_Y_LPARAM(msg.lParam);
-//							continue;
-//						}
-//						break;
-//				}
+				LDKWindow* window = findWindowByHandle(msg.hwnd);
+				switch(msg.message)
+				{
+					//LDK_ASSERT(window != nullptr, "Could not found a matching window for the current event hwnd");
 
+					case WM_KEYDOWN:
+					case WM_KEYUP:
+						{
+							// bit 30 has previous key state
+							// bit 31 has current key state
+							// shitty fact: 0 means pressed, 1 means released. Very intuitive, Microsoft!
+							int8 isDown = (msg.lParam & (1 << 31)) == 0;
+							int8 wasDown = (msg.lParam & (1 << 30)) != 0;
+							int16 vkCode = msg.wParam;
+
+							if (vkCode == VK_SHIFT)
+								_platform.shiftKeyState = isDown ? LDK_KEY_MOD_SHIFT : 0;
+							else if (vkCode == VK_CONTROL)
+								_platform.controlKeyState = isDown ? LDK_KEY_MOD_CONTROL : 0;
+							else if (vkCode == VK_MENU)
+								_platform.altKeyState = isDown ? LDK_KEY_MOD_ALT : 0;
+
+							uint32 action;
+
+							if (isDown)
+							{
+								if (wasDown)
+									action = LDK_KEY_REPEAT;
+								else
+									action = LDK_KEY_PRESS;
+							}
+							else
+							{
+								action = LDK_KEY_RELEASE;
+							}
+
+
+							//TODO: check how slow this is
+							uint32 modifierKeys = 
+								_platform.shiftKeyState | _platform.controlKeyState | _platform.altKeyState;
+
+
+							if (window->keyCallback)
+							{
+								window->keyCallback(window, vkCode, action, modifierKeys);
+							}
+						}
+						break;
+
+						// Cursor position
+					case WM_MOUSEMOVE:
+						{
+							if (window->mouseCursorCallback)
+							{
+								window->mouseCursorCallback(window, GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam));
+							}
+						}
+						break;
+				}
 			}
+
 		}
 
 	}

@@ -2,6 +2,22 @@
 #include <ldk/ldk.h>
 #include "ldk_platform.h"
 
+void keyboardCallback(ldk::platform::LDKWindow* window, uint32 key, uint32 action, uint32 modifier)
+{
+	if (key == LDK_KEY_ESCAPE)
+	{
+		if (action == LDK_KEY_PRESS)
+		{
+			ldk::platform::setWindowCloseFlag(window, true);
+		}
+	}
+}
+
+void windowCloseCallback(ldk::platform::LDKWindow* window)
+{
+	ldk::platform::destroyWindow(window);
+}
+
 uint32 ldkMain(uint32 argc, char** argv)
 {
 	if (! ldk::platform::initialize())
@@ -10,19 +26,30 @@ uint32 ldkMain(uint32 argc, char** argv)
 		return LDK_EXIT_FAIL;
 	}
 
-	ldk::platform::LDKWindow* window = ldk::platform::createWindow(nullptr, "LDK", nullptr);
+	ldk::platform::LDKWindow* window = ldk::platform::createWindow(nullptr, "LDK1", nullptr);
+	ldk::platform::LDKWindow* window2 = ldk::platform::createWindow(nullptr, "LDK2", window);
 
-	if (!window)
+	if (!window || !window2)
 	{
 
 		LogError("Error creating main window");
 		return LDK_EXIT_FAIL;
 	}
 
+	/* Set callbacks for window 1*/
+	ldk::platform::setKeyCallback(window, keyboardCallback);
+	ldk::platform::setWindowCloseCallback(window, windowCloseCallback);
+
+	/* Set callbacks for window 2*/
+	ldk::platform::setKeyCallback(window2, keyboardCallback);
+	ldk::platform::setWindowCloseCallback(window2, windowCloseCallback);
+
 	while (!ldk::platform::windowShouldClose(window))
 	{
 		ldk::platform::pollEvents();
 	}
+
+	ldk::platform::terminate();
 
 	return LDK_EXIT_SUCCESS;
 }
