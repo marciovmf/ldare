@@ -91,7 +91,7 @@ namespace ldk
 			wglMakeCurrent(wglGetCurrentDC(), NULL);
 			if (!wglMakeCurrent(window->dc, window->rc))
 			{
-				LogError("Could not mmake render context current for window");
+				//LogError("Could not mmake render context current for window");
 				return false;
 			}
 
@@ -501,10 +501,10 @@ namespace ldk
 		{
 			ldk_win32_makeContextCurrent(window);
 			bool result = SwapBuffers(window->dc);
-			if (!result)
-			{
-				LogInfo("SwapBuffer error %x", GetLastError());
-			}
+//			if (!result)
+//			{
+//				LogInfo("SwapBuffer error %x", GetLastError());
+//			}
 
 			glClearColor(0, 0, 1.0, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT);
@@ -516,7 +516,7 @@ namespace ldk
 		}
 
 		// Get the state of a gamepad.
-		bool getGamepadState(uint32 gamepadId, ldk::Gamepad* gamepadState)
+		bool getGamepadState(uint32 gamepadId, ldk::Gamepad* gamepad)
 		{
 			// clear 'changed' bit from input key state
 			for(int i=0; i < GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
