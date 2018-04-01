@@ -3,9 +3,10 @@
 #endif // _LDK_WINDOWS_
 
 #include <ldk/ldk.h>
-//#include "ldk_win32.cpp"
 #include "../ldk_platform.h"
 #include "../ldk_gl.h"
+#include "ldk_xinput_win32.h"
+#include "ldk_xaudio2_win32.h"
 
 // Win32 specifics
 #include "tchar.h"
@@ -53,6 +54,7 @@ namespace ldk
 		static HINSTANCE _appInstance;
 
 #define findWindowByHandle(hwnd) (_platform.windowList[hwnd])
+
 		LRESULT CALLBACK ldk_win32_windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			switch(uMsg)
@@ -82,6 +84,18 @@ namespace ldk
 					break;
 			}
 			return TRUE;
+		}
+
+		static bool ldk_win32_makeContextCurrent(ldk::platform::LDKWindow* window)
+		{
+			wglMakeCurrent(wglGetCurrentDC(), NULL);
+			if (!wglMakeCurrent(window->dc, window->rc))
+			{
+				LogError("Could not mmake render context current for window");
+				return false;
+			}
+
+			return true;
 		}
 
 		static bool ldk_win32_registerWindowClass(HINSTANCE hInstance)
@@ -305,11 +319,8 @@ namespace ldk
 				return false;
 			}
 
-			if(!wglMakeCurrent(gameWindow.dc, gameWindow.rc))
-			{
-				LogError("Could not make core profile OpenGL context current");
+			if (!ldk_win32_makeContextCurrent(&gameWindow))
 				return false;
-			}
 
 			return true;
 		}
@@ -329,7 +340,11 @@ namespace ldk
 		// Initialize the platform layer
 		uint32 initialize()
 		{
+			CoInitialize(NULL);
 			_appInstance = GetModuleHandle(NULL);
+
+			ldk_win32_initXInput();
+			ldk_win32_initXAudio();
 			return ldk_win32_registerWindowClass(_appInstance);
 		}
 
@@ -427,7 +442,9 @@ namespace ldk
 			/* create a new context or share an existing one ? */
 			if (share)
 			{
+				//FIXME: Context sharing is not working!
 				window->rc = share->rc;
+				wglMakeCurrent(window->dc, window->rc);
 			}
 			else
 			{
@@ -482,7 +499,15 @@ namespace ldk
 		// Update the window framebuffer
 		void swapWindowBuffer(LDKWindow* window)
 		{
-			SwapBuffers(window->dc);
+			ldk_win32_makeContextCurrent(window);
+			bool result = SwapBuffers(window->dc);
+			if (!result)
+			{
+				LogInfo("SwapBuffer error %x", GetLastError());
+			}
+
+			glClearColor(0, 0, 1.0, 1.0);
+			glClear(GL_COLOR_BUFFER_BIT);
 		}
 
 		void showWindow(LDKWindow* window)
@@ -490,21 +515,113 @@ namespace ldk
 			ShowWindow(window->hwnd, SW_SHOW);
 		}
 
+		// Get the state of a gamepad.
+		bool getGamepadState(uint32 gamepadId, ldk::Gamepad* gamepadState)
+		{
+			// clear 'changed' bit from input key state
+			for(int i=0; i < GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
+			{
+				gamepad->button[i] &= ~KEYSTATE_CHANGED;
+			}
+
+			// get gamepad input
+			ldk::platform::XINPUT_STATE gamepadState;
+			//Gamepad& gamepad = gameInput.gamepad[gamepadIndex];
+
+			// ignore unconnected controllers
+			if ( platform::XInputGetState(gamepadId, &gamepadState) == ERROR_DEVICE_NOT_CONNECTED )
+			{
+				if ( gamepad->connected)
+				{
+					gamepad = {};					
+				}
+				gamepad->connected = 0;
+				return false;
+			}
+
+			// digital buttons
+			WORD buttons = gamepadState.Gamepad.wButtons;
+			uint8 isDown=0;
+			uint8 wasDown=0;
+
+#define GET_GAMEPAD_BUTTON(btn) do {\
+	isDown = (buttons & XINPUT_##btn) > 0;\
+	wasDown = gamepad->button[btn] & KEYSTATE_PRESSED;\
+	gamepad->button[btn] = ((isDown != wasDown) << 0x01) | isDown;\
+} while(0)
+			GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_UP);			
+			GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_DOWN);
+			GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_LEFT);
+			GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_RIGHT);
+			GET_GAMEPAD_BUTTON(GAMEPAD_START);
+			GET_GAMEPAD_BUTTON(GAMEPAD_BACK);
+			GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_THUMB);
+			GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_THUMB);
+			GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_SHOULDER);
+			GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_SHOULDER);
+			GET_GAMEPAD_BUTTON(GAMEPAD_A);
+			GET_GAMEPAD_BUTTON(GAMEPAD_B);
+			GET_GAMEPAD_BUTTON(GAMEPAD_X);
+			GET_GAMEPAD_BUTTON(GAMEPAD_Y);
+#undef SET_GAMEPAD_BUTTON
+
+			//TODO: Make these calculations directly in assembly to make it faster
+#define GAMEPAD_AXIS_VALUE(value) (value/(float)(value < 0 ? XINPUT_MIN_AXIS_VALUE * -1: XINPUT_MAX_AXIS_VALUE))
+#define GAMEPAD_AXIS_IS_DEADZONE(value, deadzone) ( value > -deadzone && value < deadzone)
+
+			// Left thumb axis
+			int32 axisX = gamepadState.Gamepad.sThumbLX;
+			int32 axisY = gamepadState.Gamepad.sThumbLY;
+			int32 deadZone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
+
+			gamepad->axis[GAMEPAD_AXIS_LX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+			GAMEPAD_AXIS_VALUE(axisX);
+
+			gamepad->axis[GAMEPAD_AXIS_LY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+			GAMEPAD_AXIS_VALUE(axisY);
+
+			// Right thumb axis
+			axisX = gamepadState.Gamepad.sThumbRX;
+			axisY = gamepadState.Gamepad.sThumbRY;
+			deadZone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
+
+			gamepad->axis[GAMEPAD_AXIS_RX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+			GAMEPAD_AXIS_VALUE(axisX);
+
+			gamepad->axis[GAMEPAD_AXIS_RY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+			GAMEPAD_AXIS_VALUE(axisY);
+
+			// Left trigger
+			axisX = gamepadState.Gamepad.bLeftTrigger;
+			axisY = gamepadState.Gamepad.bRightTrigger;
+			deadZone = XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+
+			gamepad->axis[GAMEPAD_AXIS_LTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :	
+			axisX/(float) XINPUT_MAX_TRIGGER_VALUE;
+
+			gamepad->axis[GAMEPAD_AXIS_RTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+			axisY/(float) XINPUT_MAX_TRIGGER_VALUE;
+
+#undef GAMEPAD_AXIS_IS_DEADZONE
+#undef GAMEPAD_AXIS_VALUE
+
+			gamepad->connected = 1;
+			return true;
+			}
+
 		// Updates all windows and OS dependent events
 		void pollEvents()
 		{
 			MSG msg;
-
 			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 			{
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
-
+		
 				LDKWindow* window = findWindowByHandle(msg.hwnd);
 				switch(msg.message)
 				{
 					//LDK_ASSERT(window != nullptr, "Could not found a matching window for the current event hwnd");
-
 					case WM_KEYDOWN:
 					case WM_KEYUP:
 						{
@@ -514,16 +631,16 @@ namespace ldk
 							int8 isDown = (msg.lParam & (1 << 31)) == 0;
 							int8 wasDown = (msg.lParam & (1 << 30)) != 0;
 							int16 vkCode = msg.wParam;
-
+		
 							if (vkCode == VK_SHIFT)
 								_platform.shiftKeyState = isDown ? LDK_KEY_MOD_SHIFT : 0;
 							else if (vkCode == VK_CONTROL)
 								_platform.controlKeyState = isDown ? LDK_KEY_MOD_CONTROL : 0;
 							else if (vkCode == VK_MENU)
 								_platform.altKeyState = isDown ? LDK_KEY_MOD_ALT : 0;
-
+		
 							uint32 action;
-
+		
 							if (isDown)
 							{
 								if (wasDown)
@@ -535,20 +652,20 @@ namespace ldk
 							{
 								action = LDK_KEY_RELEASE;
 							}
-
-
+		
+		
 							//TODO: check how slow this is
 							uint32 modifierKeys = 
 								_platform.shiftKeyState | _platform.controlKeyState | _platform.altKeyState;
-
-
+		
+		
 							if (window->keyCallback)
 							{
 								window->keyCallback(window, vkCode, action, modifierKeys);
 							}
 						}
 						break;
-
+		
 						// Cursor position
 					case WM_MOUSEMOVE:
 						{
@@ -560,7 +677,7 @@ namespace ldk
 						break;
 				}
 			}
-
+		
 		}
 
 	}

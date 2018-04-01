@@ -9,6 +9,12 @@ namespace ldk
 
 	typedef int8 KeyState;
 
+// Gamepad ids
+#define LDK_GAMEPAD_1 0
+#define LDK_GAMEPAD_2 1
+#define LDK_GAMEPAD_3 2
+#define LDK_GAMEPAD_4 3
+
 #define GAMEPAD_MAX_DIGITAL_BUTTONS 14
 #define GAMEPAD_MAX_AXIS 6
 #define MAX_GAMEPADS 4

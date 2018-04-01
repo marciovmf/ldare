@@ -95,10 +95,11 @@ namespace ldk
 		// Update the window framebuffer
 		void swapWindowBuffer(LDKWindow* window);
 
+		// Get the state of a gamepad.
+		bool getGamepadState(uint32 gamepadId, ldk::Gamepad* gamepadState);
+
 		// Updates all windows and OS dependent events
 		void pollEvents();
-
-
 
 		//---------------------------------------------------------------------------
 		// Loads an entire file to memory

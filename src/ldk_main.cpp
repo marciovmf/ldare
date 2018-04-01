@@ -47,6 +47,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 	while (!ldk::platform::windowShouldClose(window))
 	{
 		ldk::platform::pollEvents();
+		ldk::platform::swapWindowBuffer(window);
+		ldk::platform::swapWindowBuffer(window2);
 	}
 
 	ldk::platform::terminate();
