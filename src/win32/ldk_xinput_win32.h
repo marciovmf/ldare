@@ -26,64 +26,64 @@ namespace ldk
 {
 	namespace platform 
 	{
-	//---------------------------------------------------------------------------
-	// Input specific structures and
-	//---------------------------------------------------------------------------
-	typedef struct _XINPUT_GAMEPAD 
-	{
-		WORD  wButtons;
-		BYTE  bLeftTrigger;
-		BYTE  bRightTrigger;
-		SHORT sThumbLX;
-		SHORT sThumbLY;
-		SHORT sThumbRX;
-		SHORT sThumbRY;
-	} XINPUT_GAMEPAD, *PXINPUT_GAMEPAD;
+		//---------------------------------------------------------------------------
+		// Input specific structures and
+		//---------------------------------------------------------------------------
+		typedef struct _XINPUT_GAMEPAD 
+		{
+			WORD  wButtons;
+			BYTE  bLeftTrigger;
+			BYTE  bRightTrigger;
+			SHORT sThumbLX;
+			SHORT sThumbLY;
+			SHORT sThumbRX;
+			SHORT sThumbRY;
+		} XINPUT_GAMEPAD, *PXINPUT_GAMEPAD;
 
-	typedef struct _XINPUT_STATE 
-	{
-		DWORD dwPacketNumber;
-		XINPUT_GAMEPAD Gamepad;
-	} XINPUT_STATE, *PXINPUT_STATE;
+		typedef struct _XINPUT_STATE 
+		{
+			DWORD dwPacketNumber;
+			XINPUT_GAMEPAD Gamepad;
+		} XINPUT_STATE, *PXINPUT_STATE;
 
 #define XINPUT_GET_STATE_FUNC(name) DWORD name(DWORD dwUserIndex, XINPUT_STATE *pState)
-	typedef XINPUT_GET_STATE_FUNC(XInputGetStateFunc);
-	XInputGetStateFunc* XInputGetState = nullptr;
-	XINPUT_GET_STATE_FUNC(XInputGetStateStub)
-	{
-		return ERROR_DEVICE_NOT_CONNECTED;
-	}
-
-	//---------------------------------------------------------------------------
-	// Initialize XInput
-	//---------------------------------------------------------------------------
-	static void ldk_win32_initXInput()
-	{
-		char* xInputDllName = "xinput1_3.dll";
-		HMODULE hXInput = LoadLibraryA(xInputDllName);
-		if (!hXInput)
-		{				
-			xInputDllName = "xinput9_1_0.dll";
-			hXInput = LoadLibraryA(xInputDllName);
-		}
-
-		if (!hXInput)
+		typedef XINPUT_GET_STATE_FUNC(XInputGetStateFunc);
+		XInputGetStateFunc* XInputGetState = nullptr;
+		XINPUT_GET_STATE_FUNC(XInputGetStateStub)
 		{
-			xInputDllName = "xinput1_1.dll";
-			hXInput = LoadLibraryA(xInputDllName);
+			return ERROR_DEVICE_NOT_CONNECTED;
 		}
 
-		if (!hXInput)
+		//---------------------------------------------------------------------------
+		// Initialize XInput
+		//---------------------------------------------------------------------------
+		static void ldk_win32_initXInput()
 		{
-			LogError("could not initialize XInput. No suitable xinput dll found.");
-			return;
-		}
+			char* xInputDllName = "xinput1_3.dll";
+			HMODULE hXInput = LoadLibraryA(xInputDllName);
+			if (!hXInput)
+			{				
+				xInputDllName = "xinput9_1_0.dll";
+				hXInput = LoadLibraryA(xInputDllName);
+			}
 
-		LogInfo("XInput %s initialized.", xInputDllName);
-		//get xinput function pointers
-		XInputGetState = (XInputGetStateFunc*) GetProcAddress(hXInput, "XInputGetState");
-		if (!XInputGetState) XInputGetState = XInputGetStateStub;
-	}
+			if (!hXInput)
+			{
+				xInputDllName = "xinput1_1.dll";
+				hXInput = LoadLibraryA(xInputDllName);
+			}
+
+			if (!hXInput)
+			{
+				LogError("could not initialize XInput. No suitable xinput dll found.");
+				return;
+			}
+
+			LogInfo("XInput %s initialized.", xInputDllName);
+			//get xinput function pointers
+			XInputGetState = (XInputGetStateFunc*) GetProcAddress(hXInput, "XInputGetState");
+			if (!XInputGetState) XInputGetState = XInputGetStateStub;
+		}
 
 	} //namespace platform
 } // namespace ldk

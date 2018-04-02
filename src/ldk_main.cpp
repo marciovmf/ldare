@@ -20,6 +20,8 @@ void windowCloseCallback(ldk::platform::LDKWindow* window)
 
 uint32 ldkMain(uint32 argc, char** argv)
 {
+	ldk::Gamepad gamepad;
+
 	if (! ldk::platform::initialize())
 	{
 		LogError("Error initializing platform layer");
@@ -27,9 +29,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 	}
 
 	ldk::platform::LDKWindow* window = ldk::platform::createWindow(nullptr, "LDK1", nullptr);
-	ldk::platform::LDKWindow* window2 = ldk::platform::createWindow(nullptr, "LDK2", window);
 
-	if (!window || !window2)
+	if (!window)
 	{
 
 		LogError("Error creating main window");
@@ -40,15 +41,22 @@ uint32 ldkMain(uint32 argc, char** argv)
 	ldk::platform::setKeyCallback(window, keyboardCallback);
 	ldk::platform::setWindowCloseCallback(window, windowCloseCallback);
 
-	/* Set callbacks for window 2*/
-	ldk::platform::setKeyCallback(window2, keyboardCallback);
-	ldk::platform::setWindowCloseCallback(window2, windowCloseCallback);
-
 	while (!ldk::platform::windowShouldClose(window))
 	{
 		ldk::platform::pollEvents();
+		if (ldk::platform::getGamepadState(LDK_GAMEPAD_1, &gamepad) )
+		{
+			if (gamepad.button[GAMEPAD_BTN1] == (KEYSTATE_PRESSED | KEYSTATE_CHANGED))
+			{
+				LogInfo("Gamepad button A pressed");
+			}
+			else if (gamepad.button[GAMEPAD_BTN1] == (KEYSTATE_CHANGED))
+			{
+				LogInfo("Gamepad button A released");
+			}
+		}
+
 		ldk::platform::swapWindowBuffer(window);
-		ldk::platform::swapWindowBuffer(window2);
 	}
 
 	ldk::platform::terminate();

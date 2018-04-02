@@ -16,9 +16,10 @@
 #include <tchar.h>
 #include <objbase.h>
 
+#define LDK_MAX_AUDIO_BUFFER 16
 #define LDK_WINDOW_CLASS "LDK_WINDOW_CLASS"
 
-//TODO: User a custom container with custom memory allocation
+//TODO: Use a custom container with custom memory allocation
 #include <map>
 
 namespace ldk 
@@ -34,6 +35,8 @@ namespace ldk
 			uint8 controlKeyState;
 			uint8 altKeyState;
 			uint8 superKeyState;
+			BoundAudio boundBufferList[LDK_MAX_AUDIO_BUFFER];
+			uint32 boundBufferCount = 0;
 		} _platform;
 
 		/* platform specific window */
@@ -325,6 +328,77 @@ namespace ldk
 			return true;
 		}
 
+
+		//---------------------------------------------------------------------------
+		// Plays an audio buffer
+		// Returns the created buffer id
+		//---------------------------------------------------------------------------
+		uint32 ldk_win32_createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
+		{
+			BoundAudio* audio = nullptr;
+			uint32 audioId = _platform.boundBufferCount;
+
+			if (_platform.boundBufferCount < LDK_MAX_AUDIO_BUFFER)
+			{
+				// Get an audio buffer from the list
+				audio = &(_platform.boundBufferList[audioId]);
+				_platform.boundBufferCount++;
+			}
+			else
+			{
+				return -1;
+			}
+
+			// set format
+			WAVEFORMATEXTENSIBLE wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
+			// set data
+			BYTE *pDataBuffer = (BYTE*) data;
+
+			// set XAUDIO2 instructions on what and how to play
+			audio->buffer.AudioBytes = dataSize;
+			audio->buffer.pAudioData = (BYTE*) data;
+			audio->buffer.Flags = XAUDIO2_END_OF_STREAM;
+
+			HRESULT hr = 0;
+			//TODO: figure out how to use one single struct for both modern and legacy XAudio
+			if (pXAudio2_7 != nullptr)
+			{
+				hr = pXAudio2_7->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
+			}
+			else
+			{
+				hr = pXAudio2->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
+			}
+			if (FAILED(hr))
+			{
+				LogError("Error creating source voice");
+			}
+			return audioId; 
+		}
+
+		//---------------------------------------------------------------------------
+		// Plays an audio buffer
+		//---------------------------------------------------------------------------
+		void ldk_win32_playAudio(uint32 audioBufferId)
+		{
+			if (_platform.boundBufferCount >= LDK_MAX_AUDIO_BUFFER || _platform.boundBufferCount <= 0)
+				return;
+
+			BoundAudio* audio = &(_platform.boundBufferList[audioBufferId]);
+			HRESULT hr = audio->voice->SubmitSourceBuffer(&audio->buffer);
+
+			if (FAILED(hr))
+			{
+				LogError("Error %x submitting audio buffer", hr);
+			}
+
+			hr = audio->voice->Start(0);
+			if (FAILED(hr))
+			{
+				LogError("Error %x playing audio", hr);
+			}
+		}
+
 		/* Error callback function */
 		typedef void (* LDKPlatformErrorFunc)(uint32 errorCode, const char* errorMsg);
 
@@ -501,10 +575,10 @@ namespace ldk
 		{
 			ldk_win32_makeContextCurrent(window);
 			bool result = SwapBuffers(window->dc);
-//			if (!result)
-//			{
-//				LogInfo("SwapBuffer error %x", GetLastError());
-//			}
+			//			if (!result)
+			//			{
+			//				LogInfo("SwapBuffer error %x", GetLastError());
+			//			}
 
 			glClearColor(0, 0, 1.0, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT);
@@ -609,76 +683,76 @@ namespace ldk
 			return true;
 			}
 
-		// Updates all windows and OS dependent events
-		void pollEvents()
-		{
-			MSG msg;
-			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-		
-				LDKWindow* window = findWindowByHandle(msg.hwnd);
-				switch(msg.message)
-				{
-					//LDK_ASSERT(window != nullptr, "Could not found a matching window for the current event hwnd");
-					case WM_KEYDOWN:
-					case WM_KEYUP:
-						{
-							// bit 30 has previous key state
-							// bit 31 has current key state
-							// shitty fact: 0 means pressed, 1 means released. Very intuitive, Microsoft!
-							int8 isDown = (msg.lParam & (1 << 31)) == 0;
-							int8 wasDown = (msg.lParam & (1 << 30)) != 0;
-							int16 vkCode = msg.wParam;
-		
-							if (vkCode == VK_SHIFT)
-								_platform.shiftKeyState = isDown ? LDK_KEY_MOD_SHIFT : 0;
-							else if (vkCode == VK_CONTROL)
-								_platform.controlKeyState = isDown ? LDK_KEY_MOD_CONTROL : 0;
-							else if (vkCode == VK_MENU)
-								_platform.altKeyState = isDown ? LDK_KEY_MOD_ALT : 0;
-		
-							uint32 action;
-		
-							if (isDown)
-							{
-								if (wasDown)
-									action = LDK_KEY_REPEAT;
-								else
-									action = LDK_KEY_PRESS;
-							}
-							else
-							{
-								action = LDK_KEY_RELEASE;
-							}
-		
-		
-							//TODO: check how slow this is
-							uint32 modifierKeys = 
-								_platform.shiftKeyState | _platform.controlKeyState | _platform.altKeyState;
-		
-		
-							if (window->keyCallback)
-							{
-								window->keyCallback(window, vkCode, action, modifierKeys);
-							}
-						}
-						break;
-		
-						// Cursor position
-					case WM_MOUSEMOVE:
-						{
-							if (window->mouseCursorCallback)
-							{
-								window->mouseCursorCallback(window, GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam));
-							}
-						}
-						break;
-				}
-			}
-		
-		}
+// Updates all windows and OS dependent events
+void pollEvents()
+{
+	MSG msg;
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 
+		LDKWindow* window = findWindowByHandle(msg.hwnd);
+		switch(msg.message)
+		{
+			//LDK_ASSERT(window != nullptr, "Could not found a matching window for the current event hwnd");
+			case WM_KEYDOWN:
+			case WM_KEYUP:
+				{
+					// bit 30 has previous key state
+					// bit 31 has current key state
+					// shitty fact: 0 means pressed, 1 means released. Very intuitive, Microsoft!
+					int8 isDown = (msg.lParam & (1 << 31)) == 0;
+					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
+					int16 vkCode = msg.wParam;
+
+					if (vkCode == VK_SHIFT)
+						_platform.shiftKeyState = isDown ? LDK_KEY_MOD_SHIFT : 0;
+					else if (vkCode == VK_CONTROL)
+						_platform.controlKeyState = isDown ? LDK_KEY_MOD_CONTROL : 0;
+					else if (vkCode == VK_MENU)
+						_platform.altKeyState = isDown ? LDK_KEY_MOD_ALT : 0;
+
+					uint32 action;
+
+					if (isDown)
+					{
+						if (wasDown)
+							action = LDK_KEY_REPEAT;
+						else
+							action = LDK_KEY_PRESS;
+					}
+					else
+					{
+						action = LDK_KEY_RELEASE;
+					}
+
+
+					//TODO: check how slow this is
+					uint32 modifierKeys = 
+						_platform.shiftKeyState | _platform.controlKeyState | _platform.altKeyState;
+
+
+					if (window->keyCallback)
+					{
+						window->keyCallback(window, vkCode, action, modifierKeys);
+					}
+				}
+				break;
+
+				// Cursor position
+			case WM_MOUSEMOVE:
+				{
+					if (window->mouseCursorCallback)
+					{
+						window->mouseCursorCallback(window, GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam));
+					}
+				}
+				break;
+		}
 	}
+
+}
+
+}
 }

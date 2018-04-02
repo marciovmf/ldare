@@ -139,11 +139,11 @@ IXAudio2_7* XAudio2_7Create(uint32 flags X2DEFAULT(0))
 #ifdef _MSC_VER
 #pragma pack(pop)
 #endif
+
 namespace ldk
 {
 	namespace platform
 	{
-#define ldk_MAX_AUDIO 32
 		typedef decltype(&XAudio2Create) XAudio2CreateFunc;
 		static IXAudio2* pXAudio2 = nullptr;
 		static IXAudio2_7* pXAudio2_7 = nullptr; 
@@ -155,12 +155,7 @@ namespace ldk
 			IXAudio2SourceVoice* voice;
 		};
 
-		static BoundAudio _boundBufferList[ldk_MAX_AUDIO];
-		static uint32 _boundBufferCount = 0;
-
-		//---------------------------------------------------------------------------
-		// Initializes XAudio2
-		//--------------------------------------------------------------------------- 
+		/* Initializes XAudio2 */
 		static void ldk_win32_initXAudio()
 		{
 			XAudio2CreateFunc ptrXAudio2Create = nullptr;
@@ -233,77 +228,6 @@ namespace ldk
 			}
 			LogInfo("XAudio2 %s initialized.", xAudioDllName);
 		}
-
-		//---------------------------------------------------------------------------
-		// Plays an audio buffer
-		// Returns the created buffer id
-		//---------------------------------------------------------------------------
-		static uint32 createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
-		{
-			BoundAudio* audio = nullptr;
-			uint32 audioId = _boundBufferCount;
-
-			if (_boundBufferCount < ldk_MAX_AUDIO)
-			{
-				// Get an audio buffer from the list
-				audio = &(_boundBufferList[audioId]);
-				_boundBufferCount++;
-			}
-			else
-			{
-				return -1;
-			}
-
-			// set format
-			WAVEFORMATEXTENSIBLE wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
-			// set data
-			BYTE *pDataBuffer = (BYTE*) data;
-
-			// set XAUDIO2 instructions on what and how to play
-			audio->buffer.AudioBytes = dataSize;
-			audio->buffer.pAudioData = (BYTE*) data;
-			audio->buffer.Flags = XAUDIO2_END_OF_STREAM;
-
-			HRESULT hr = 0;
-			//TODO: figure out how to use one single struct for both modern and legacy XAudio
-			if (pXAudio2_7 != nullptr)
-			{
-				hr = pXAudio2_7->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
-			}
-			else
-			{
-				hr = pXAudio2->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
-			}
-			if (FAILED(hr))
-			{
-				LogError("Error creating source voice");
-			}
-			return audioId; 
-		}
-
-		//---------------------------------------------------------------------------
-		// Plays an audio buffer
-		//---------------------------------------------------------------------------
-		void playAudio(uint32 audioBufferId)
-		{
-			if (_boundBufferCount >= ldk_MAX_AUDIO || _boundBufferCount <= 0)
-				return;
-
-			BoundAudio* audio = &(_boundBufferList[audioBufferId]);
-			HRESULT hr = audio->voice->SubmitSourceBuffer(&audio->buffer);
-
-			if (FAILED(hr))
-			{
-				LogError("Error %x submitting audio buffer", hr);
-			}
-
-			hr = audio->voice->Start(0);
-			if (FAILED(hr))
-			{
-				LogError("Error %x playing audio", hr);
-			}
-		}
-
 	}
 }
 #endif // __LDK_XAUDIO2_WIN32__
