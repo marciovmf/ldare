@@ -2,19 +2,8 @@
  * ldare_platform.h
  * Defines platform specific functions for abstracting the real OS
  */
-#ifndef __LDARE_PLATFORM__
-#define __LDARE_PLATFORM__
-
-// Key Modifier
-#define LDK_KEY_MOD_SHIFT			0x0001
-#define LDK_KEY_MOD_CONTROL   0x0002
-#define LDK_KEY_MOD_ALT   		0x0004
-//#define LDK_KEY_MOD_SUPER   	0x0008
-
-// Key action
-#define LDK_KEY_PRESS					0x0001
-#define LDK_KEY_REPEAT				0x0002
-#define LDK_KEY_RELEASE				0x0003
+#ifndef _LDK_PLATFORM_H_
+#define _LDK_PLATFORM_H_
 
 #include <ldk/ldk.h>
 
@@ -22,7 +11,26 @@ namespace ldk
 {
 	namespace platform 
 	{
-		enum LDKWindowHint
+		struct KeyboardState
+		{
+			KeyState key[LDK_MAX_KBD_KEYS];
+		};
+
+		struct MouseState
+		{
+			KeyState button[LDK_GAMEPAD_MAX_DIGITAL_BUTTONS];
+			float axis[LDK_GAMEPAD_MAX_AXIS];
+			uint8 connected;
+		};
+
+		struct GamepadState
+		{
+			KeyState button[LDK_GAMEPAD_MAX_DIGITAL_BUTTONS];
+			float axis[LDK_GAMEPAD_MAX_AXIS];
+			uint8 connected;
+		};
+
+		enum WindowHint
 		{
 			WIDTH,
 			HEIGHT,
@@ -33,22 +41,13 @@ namespace ldk
 			DEPTH_BUFFER_BITS
 		};
 
-		/* platform specific window */
+		// platform specific window //
 		struct LDKWindow;
 
-		/* Error callback function */
+		// Error callback function //
 		typedef void (* LDKPlatformErrorFunc)(uint32 errorCode, const char* errorMsg);
 
-		/* Keyboard key callback function */
-		typedef void (* LDKPlatformKeyFunc) (LDKWindow* window, uint32 key, uint32 action, uint32 modifier);
-		
-		/* Mouse button callback function */
-		typedef void(* LDKPlatformMouseButtonFunc) (LDKWindow*, uint32 button, uint32 action, uint32 modifier);
-
-		/* Mouse cursor callback function */
-		typedef void(* LDKPlatformMouseCursorFunc) (LDKWindow*, uint32 xPos, uint32 yPos);
-		
-		/* Window close callback function */
+		// Window close callback function */
 		typedef void(* LDKPlatformWindowCloseFunc) (LDKWindow*);
 
 		// Initialize the platform layer
@@ -59,15 +58,6 @@ namespace ldk
 
 		// Sets error callback for the platform
 		void setErrorCallback(LDKPlatformErrorFunc errorCallback);
-
-		// Set the key callback for the given window
-		void setKeyCallback(LDKWindow* window, LDKPlatformKeyFunc keyCallback);
-
-		// set the mouse button callback for the given window
-		void setMouseButtonCallback(LDKWindow* window, LDKPlatformMouseButtonFunc mouseButtonCallback);
-		
-		// set the mouse cursor callback for the given window
-		void setMouseCursorCallback(LDKWindow* window, LDKPlatformMouseCursorFunc mouseCursorCallback);
 
 		// sets the close callback for teh giver window
 		// the close flag is set befor this callback, but it is possible to override it with setWindowCloseFlag
@@ -95,8 +85,14 @@ namespace ldk
 		// Update the window framebuffer
 		void swapWindowBuffer(LDKWindow* window);
 
+		// Get the state of mouse
+		const ldk::platform::MouseState* getMouseState();
+
+		// Get the state of keyboard
+		const ldk::platform::KeyboardState* getKeyboardState();
+
 		// Get the state of a gamepad.
-		bool getGamepadState(uint32 gamepadId, ldk::Gamepad* gamepadState);
+		const ldk::platform::GamepadState* getGamepadState(uint32 gamepadId);
 
 		// Updates all windows and OS dependent events
 		void pollEvents();
@@ -128,4 +124,4 @@ namespace ldk
 	}
 }
 
-#endif	// __LDARE_PLATFORM__
+#endif	// _LDK_PLATFORM_H_

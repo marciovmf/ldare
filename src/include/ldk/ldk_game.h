@@ -6,7 +6,7 @@
 #define _LDK_GAME_H_
 #include <ldk/ldk.h>
 
-namespace ldare 
+namespace ldk 
 {
 	//---------------------------------------------------------------------------
 	// Runtime settings the game can return to the engine 
@@ -28,14 +28,38 @@ namespace ldare
 } // ldare namespace
 
 // API exposed to the game
-namespace ldare
+namespace ldk
 {
-	struct GameApi
+	// Keyboard input functions
+	typedef int8 (*LDK_PFN_GETKEYDOWN)(uint16 key);
+	typedef int8 (*LDK_PFN_GETKEYUP)(uint16 key);
+	typedef int8 (*LDK_PFN_GETKEY)(uint16 key);
+
+	// gamepad input functions
+	typedef int8  (*LDK_PFN_GETBUTTONDOWN)(uint16 key, uint16 index);
+	typedef int8  (*LDK_PFN_GETBUTTONUP)(uint16 key, uint16 index);
+	typedef int8  (*LDK_PFN_GETBUTTON)(uint16 key, uint16 index);
+	typedef float (*LDK_PFN_GETAXIS)(uint16 axis, uint16 index);
+
+	struct KeyboardApi
 	{
-		ldare::SpriteBatchApi spriteBatch;
-		ldare::AssetApi asset;
-		ldare::AudioApi audio;
-		ldare::TextBatchApi text;
+		LDK_PFN_GETKEYDOWN	getKeyDown;
+		LDK_PFN_GETKEYUP 		getKeyUp;
+		LDK_PFN_GETKEY			getKey;
+	};
+
+	struct GamepadApi
+	{
+		LDK_PFN_GETBUTTONDOWN getButtonDown;
+		LDK_PFN_GETBUTTONUP 	getButtonUp;
+		LDK_PFN_GETBUTTON 		getButton;
+		LDK_PFN_GETAXIS 			getAxis;
+	};
+
+	struct Core
+	{
+		ldk::KeyboardApi	keyboard;
+		ldk::GamepadApi		gamepad;
 	};
 }
 
@@ -43,17 +67,14 @@ namespace ldare
 // Game Interface
 // This interface is used by the engine to communicate with the game
 //---------------------------------------------------------------------------
+#define LDK_GAME_FUNCTION_INIT "gameInit"
+#define LDK_GAME_FUNCTION_START "gameStart"
+#define LDK_GAME_FUNCTION_UPDATE "gameUpdate"
+#define LDK_GAME_FUNCTION_STOP "gameStop"
 
-#define GAME_INIT_FUNC(name) ldare::GameContext (name)()
-typedef GAME_INIT_FUNC(gameInitFunc);
-
-#define GAME_START_FUNC(name) void (name)(void* gameMemory, ldare::GameApi& gameApi)
-typedef GAME_START_FUNC(gameStartFunc);
-
-#define GAME_UPDATE_FUNC(name) void (name)(const float deltaTime, const ldare::Input& input, ldare::GameApi& gameApi)
-typedef GAME_UPDATE_FUNC(gameUpdateFunc);
-
-#define GAME_STOP_FUNC(name) void (name)();
-typedef GAME_STOP_FUNC(gameStopFunc)
+typedef void (*LDK_PFN_GAME_INIT)(ldk::Core* core);
+typedef void (*LDK_PFN_GAME_START)();
+typedef void (*LDK_PFN_GAME_UPDATE)(float deltaTime);
+typedef void (*LDK_PFN_GAME_STOP)();
 
 #endif // _LDK_GAME_H_

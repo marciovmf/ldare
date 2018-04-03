@@ -1,26 +1,25 @@
 
 #include <ldk/ldk.h>
 #include "ldk_platform.h"
-
-void keyboardCallback(ldk::platform::LDKWindow* window, uint32 key, uint32 action, uint32 modifier)
-{
-	if (key == LDK_KEY_ESCAPE)
-	{
-		if (action == LDK_KEY_PRESS)
-		{
-			ldk::platform::setWindowCloseFlag(window, true);
-		}
-	}
-}
+#include "ldk_keyboard.cpp"
+#include "ldk_gamepad.cpp"
 
 void windowCloseCallback(ldk::platform::LDKWindow* window)
 {
 	ldk::platform::destroyWindow(window);
 }
 
+static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window, const ldk::KeyboardApi& keyboard)
+{
+	if (keyboard.getKeyDown(LDK_KEY_ESCAPE))
+	{
+		ldk::platform::setWindowCloseFlag(window, true);
+	}
+}
+
 uint32 ldkMain(uint32 argc, char** argv)
 {
-	ldk::Gamepad gamepad;
+	ldk::Core core = {};
 
 	if (! ldk::platform::initialize())
 	{
@@ -32,29 +31,21 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 	if (!window)
 	{
-
 		LogError("Error creating main window");
 		return LDK_EXIT_FAIL;
 	}
 
-	/* Set callbacks for window 1*/
-	ldk::platform::setKeyCallback(window, keyboardCallback);
 	ldk::platform::setWindowCloseCallback(window, windowCloseCallback);
+	ldk::ldk_keyboard_initApi(&core.keyboard);
+	ldk::ldk_gamepad_initApi(&core.gamepad);
 
 	while (!ldk::platform::windowShouldClose(window))
 	{
 		ldk::platform::pollEvents();
-		if (ldk::platform::getGamepadState(LDK_GAMEPAD_1, &gamepad) )
-		{
-			if (gamepad.button[GAMEPAD_BTN1] == (KEYSTATE_PRESSED | KEYSTATE_CHANGED))
-			{
-				LogInfo("Gamepad button A pressed");
-			}
-			else if (gamepad.button[GAMEPAD_BTN1] == (KEYSTATE_CHANGED))
-			{
-				LogInfo("Gamepad button A released");
-			}
-		}
+		ldk::ldk_keyboard_update();
+		ldk::ldk_gamepad_update();
+
+		ldkHandleKeyboardInput(window, core.keyboard);
 
 		ldk::platform::swapWindowBuffer(window);
 	}
@@ -64,7 +55,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 	return LDK_EXIT_SUCCESS;
 }
 
-#if _LDK_WINDOWS_
+#ifdef _LDK_WINDOWS_
 #include <windows.h>
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -73,7 +64,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	return ldkMain(0, nullptr);
 }
 
-#if _LDK_DEBUG_
+#ifdef _LDK_DEBUG_
 #include <tchar.h>
 int _tmain(int argc, _TCHAR** argv)
 {

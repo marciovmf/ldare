@@ -28,7 +28,11 @@ namespace ldk
 	{
 		static struct LDKWin32
 		{
-			LDKPlatformErrorFunc 				errorCallback;
+			LDKPlatformErrorFunc	errorCallback;
+			KeyboardState					keyboardState;
+			MouseState						mouseState;
+			GamepadState					gamepadState[LDK_MAX_GAMEPADS];
+
 			//TODO: add window data to the win32 window instance so there is no need for this map
 			std::map<HWND, LDKWindow*> 	windowList;
 			uint8 shiftKeyState;
@@ -42,9 +46,6 @@ namespace ldk
 		/* platform specific window */
 		struct LDKWindow
 		{
-			LDKPlatformKeyFunc 					keyCallback;
-			LDKPlatformMouseButtonFunc 	mouseButtonCallback;
-			LDKPlatformMouseCursorFunc 	mouseCursorCallback;
 			LDKPlatformWindowCloseFunc	windowCloseCallback;
 			HINSTANCE hInstance;
 			HWND hwnd;
@@ -328,364 +329,372 @@ namespace ldk
 			return true;
 		}
 
-
-		//---------------------------------------------------------------------------
-		// Plays an audio buffer
-		// Returns the created buffer id
-		//---------------------------------------------------------------------------
-		uint32 ldk_win32_createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
+		void ldk_win32_updateGamePad()
 		{
-			BoundAudio* audio = nullptr;
-			uint32 audioId = _platform.boundBufferCount;
-
-			if (_platform.boundBufferCount < LDK_MAX_AUDIO_BUFFER)
-			{
-				// Get an audio buffer from the list
-				audio = &(_platform.boundBufferList[audioId]);
-				_platform.boundBufferCount++;
-			}
-			else
-			{
-				return -1;
-			}
-
-			// set format
-			WAVEFORMATEXTENSIBLE wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
-			// set data
-			BYTE *pDataBuffer = (BYTE*) data;
-
-			// set XAUDIO2 instructions on what and how to play
-			audio->buffer.AudioBytes = dataSize;
-			audio->buffer.pAudioData = (BYTE*) data;
-			audio->buffer.Flags = XAUDIO2_END_OF_STREAM;
-
-			HRESULT hr = 0;
-			//TODO: figure out how to use one single struct for both modern and legacy XAudio
-			if (pXAudio2_7 != nullptr)
-			{
-				hr = pXAudio2_7->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
-			}
-			else
-			{
-				hr = pXAudio2->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
-			}
-			if (FAILED(hr))
-			{
-				LogError("Error creating source voice");
-			}
-			return audioId; 
-		}
-
-		//---------------------------------------------------------------------------
-		// Plays an audio buffer
-		//---------------------------------------------------------------------------
-		void ldk_win32_playAudio(uint32 audioBufferId)
-		{
-			if (_platform.boundBufferCount >= LDK_MAX_AUDIO_BUFFER || _platform.boundBufferCount <= 0)
-				return;
-
-			BoundAudio* audio = &(_platform.boundBufferList[audioBufferId]);
-			HRESULT hr = audio->voice->SubmitSourceBuffer(&audio->buffer);
-
-			if (FAILED(hr))
-			{
-				LogError("Error %x submitting audio buffer", hr);
-			}
-
-			hr = audio->voice->Start(0);
-			if (FAILED(hr))
-			{
-				LogError("Error %x playing audio", hr);
-			}
-		}
-
-		/* Error callback function */
-		typedef void (* LDKPlatformErrorFunc)(uint32 errorCode, const char* errorMsg);
-
-		/* Keyboard key callback function */
-		typedef void (* LDKPlatformKeyFunc) (LDKWindow* window, uint32 key, uint32 action, uint32 modifier);
-
-		/* Mouse button callback function */
-		typedef void(* LDKMouseButtonFunc) (LDKWindow* window, uint32 button, uint32 action, uint32 modifier);
-
-		/* Mouse cursor callback function */
-		typedef void(* LDKPlatformMouseCursorFunc) (LDKWindow*, uint32 xPos, uint32 yPos);
-
-		// Initialize the platform layer
-		uint32 initialize()
-		{
-			CoInitialize(NULL);
-			_appInstance = GetModuleHandle(NULL);
-
-			ldk_win32_initXInput();
-			ldk_win32_initXAudio();
-			return ldk_win32_registerWindowClass(_appInstance);
-		}
-
-		// terminates the platform layer
-		void terminate()
-		{
-		}
-
-		// Sets error callback for the platform
-		void setErrorCallback(LDKPlatformErrorFunc errorCallback)
-		{
-			_platform.errorCallback = errorCallback;
-		}
-
-		// Set the key callback for the given window
-		void setKeyCallback(LDKWindow* window, LDKPlatformKeyFunc keyCallback)
-		{
-			window->keyCallback	= keyCallback;
-		}
-
-		// set the mouse button callback for the given window
-		void setMouseButtonCallback(LDKWindow* window, LDKMouseButtonFunc mouseButtonCallback)
-		{
-			window->mouseButtonCallback	= mouseButtonCallback;
-		}
-
-		// set the mouse cursor callback for the given window
-		void setMouseCursorCallback(LDKWindow* window, LDKPlatformMouseCursorFunc mouseCursorCallback)
-		{
-			window->mouseCursorCallback	= mouseCursorCallback;
-		}
-
-		void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback)
-		{
-			window->windowCloseCallback = windowCloseCallback;
-		}
-
-		// Creates a window
-		LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
-		{
-			uint32* pAttribute = attributes;	
-			uint32 width = 800;
-			uint32 height = 600;
-			uint32 visible = 1;
-			uint32 colorBits = 32;
-			uint32 depthBits = 24;
-			uint32 glVersionMajor = 3;
-			uint32 glVersionMinor = 0;
-			bool success = true;
-
-			while ( pAttribute != 0 && *pAttribute != 0 )
-			{
-				ldk::platform::LDKWindowHint windowHint = (ldk::platform::LDKWindowHint) *pAttribute;
-
-				switch (windowHint)
-				{
-					case ldk::platform::LDKWindowHint::WIDTH:
-						width = *++pAttribute;
-						break;
-					case ldk::platform::LDKWindowHint::HEIGHT:
-						height = *++pAttribute;
-						break;
-					case ldk::platform::LDKWindowHint::VISIBLE:
-						visible = *++pAttribute;
-						break;
-					case ldk::platform::LDKWindowHint::GL_CONTEXT_VERSION_MAJOR:
-						glVersionMajor = *++pAttribute;
-						break;
-					case ldk::platform::LDKWindowHint::GL_CONTEXT_VERSION_MINOR:
-						glVersionMinor = *++pAttribute;
-						break;
-					case ldk::platform::LDKWindowHint::COLOR_BUFFER_BITS:
-						colorBits = *++pAttribute;
-						break;
-					case ldk::platform::LDKWindowHint::DEPTH_BUFFER_BITS:
-						depthBits = *++pAttribute;
-						break;
-					default:
-						LogError("Ignoring unkown window hint");
-						break;
-				}
-				++pAttribute;
-			}
-
-			//TODO Use a custom allocator
-			ldk::platform::LDKWindow* window = new LDKWindow();
-			*window = {};
-
-			if (!ldk_win32_createWindow(window, width, height, _appInstance, (TCHAR*) title))
-			{
-				LogError("Could not create window");
-				return nullptr;
-			}
-
-			/* create a new context or share an existing one ? */
-			if (share)
-			{
-				//FIXME: Context sharing is not working!
-				window->rc = share->rc;
-				wglMakeCurrent(window->dc, window->rc);
-			}
-			else
-			{
-				if (!ldk_win32_initOpenGL(*window, _appInstance, glVersionMajor, glVersionMinor, colorBits, depthBits))
-				{
-					success = false;
-				}
-			}
-
-			if (visible)
-			{
-				ldk::platform::showWindow(window);
-			}
-
-			if (!success)
-			{
-				delete window;
-				return nullptr;
-			}
-
-			_platform.windowList.insert(std::make_pair(window->hwnd, window));
-			return window;
-		}
-
-		// Toggles the window fullscreen/windowed
-		bool toggleFullScreen(LDKWindow* window, bool fullScreen)
-		{
-			return LDK_FAIL;
-		}
-
-		// Destroys a window
-		void destroyWindow(LDKWindow* window)
-		{
-			auto it = _platform.windowList.find(window->hwnd);
-			_platform.windowList.erase(it);
-			DestroyWindow(window->hwnd);
-		}
-
-		// returns the value of the close flag of the specified window
-		bool windowShouldClose(LDKWindow* window)
-		{
-			return window->closeFlag;
-		}
-
-		void setWindowCloseFlag(LDKWindow* window, bool flag)
-		{
-			window->closeFlag = flag;	
-			if (window->windowCloseCallback)
-				window->windowCloseCallback(window);
-		}
-
-		// Update the window framebuffer
-		void swapWindowBuffer(LDKWindow* window)
-		{
-			ldk_win32_makeContextCurrent(window);
-			bool result = SwapBuffers(window->dc);
-			//			if (!result)
-			//			{
-			//				LogInfo("SwapBuffer error %x", GetLastError());
-			//			}
-
-			glClearColor(0, 0, 1.0, 1.0);
-			glClear(GL_COLOR_BUFFER_BIT);
-		}
-
-		void showWindow(LDKWindow* window)
-		{
-			ShowWindow(window->hwnd, SW_SHOW);
-		}
-
-		// Get the state of a gamepad.
-		bool getGamepadState(uint32 gamepadId, ldk::Gamepad* gamepad)
-		{
-			// clear 'changed' bit from input key state
-			for(int i=0; i < GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
-			{
-				gamepad->button[i] &= ~KEYSTATE_CHANGED;
-			}
-
 			// get gamepad input
-			ldk::platform::XINPUT_STATE gamepadState;
-			//Gamepad& gamepad = gameInput.gamepad[gamepadIndex];
-
-			// ignore unconnected controllers
-			if ( platform::XInputGetState(gamepadId, &gamepadState) == ERROR_DEVICE_NOT_CONNECTED )
+			for(int32 gamepadIndex = 0; gamepadIndex < LDK_MAX_GAMEPADS; gamepadIndex++)
 			{
-				if ( gamepad->connected)
-				{
-					gamepad = {};					
-				}
-				gamepad->connected = 0;
-				return false;
-			}
+				ldk::platform::XINPUT_STATE gamepadState;
+				GamepadState& gamepad = _platform.gamepadState[gamepadIndex];
 
-			// digital buttons
-			WORD buttons = gamepadState.Gamepad.wButtons;
-			uint8 isDown=0;
-			uint8 wasDown=0;
+				// ignore unconnected controllers
+				if ( platform::XInputGetState(gamepadIndex, &gamepadState) == ERROR_DEVICE_NOT_CONNECTED )
+				{
+					if ( gamepad.connected)
+					{
+						gamepad = {};					
+					}
+					gamepad.connected = 0;
+					continue;
+				}
+
+				// digital buttons
+				WORD buttons = gamepadState.Gamepad.wButtons;
+				uint8 isDown=0;
+				uint8 wasDown=0;
 
 #define GET_GAMEPAD_BUTTON(btn) do {\
 	isDown = (buttons & XINPUT_##btn) > 0;\
-	wasDown = gamepad->button[btn] & KEYSTATE_PRESSED;\
-	gamepad->button[btn] = ((isDown != wasDown) << 0x01) | isDown;\
+	wasDown = gamepad.button[btn] & LDK_KEYSTATE_PRESSED;\
+	gamepad.button[btn] = ((isDown != wasDown) << 0x01) | isDown;\
 } while(0)
-			GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_UP);			
-			GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_DOWN);
-			GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_LEFT);
-			GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_RIGHT);
-			GET_GAMEPAD_BUTTON(GAMEPAD_START);
-			GET_GAMEPAD_BUTTON(GAMEPAD_BACK);
-			GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_THUMB);
-			GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_THUMB);
-			GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_SHOULDER);
-			GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_SHOULDER);
-			GET_GAMEPAD_BUTTON(GAMEPAD_A);
-			GET_GAMEPAD_BUTTON(GAMEPAD_B);
-			GET_GAMEPAD_BUTTON(GAMEPAD_X);
-			GET_GAMEPAD_BUTTON(GAMEPAD_Y);
+				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_UP);			
+				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_DOWN);
+				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_LEFT);
+				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_RIGHT);
+				GET_GAMEPAD_BUTTON(GAMEPAD_START);
+				GET_GAMEPAD_BUTTON(GAMEPAD_BACK);
+				GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_THUMB);
+				GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_THUMB);
+				GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_SHOULDER);
+				GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_SHOULDER);
+				GET_GAMEPAD_BUTTON(GAMEPAD_A);
+				GET_GAMEPAD_BUTTON(GAMEPAD_B);
+				GET_GAMEPAD_BUTTON(GAMEPAD_X);
+				GET_GAMEPAD_BUTTON(GAMEPAD_Y);
 #undef SET_GAMEPAD_BUTTON
 
-			//TODO: Make these calculations directly in assembly to make it faster
+				//TODO: Make these calculations directly in assembly to make it faster
 #define GAMEPAD_AXIS_VALUE(value) (value/(float)(value < 0 ? XINPUT_MIN_AXIS_VALUE * -1: XINPUT_MAX_AXIS_VALUE))
 #define GAMEPAD_AXIS_IS_DEADZONE(value, deadzone) ( value > -deadzone && value < deadzone)
 
-			// Left thumb axis
-			int32 axisX = gamepadState.Gamepad.sThumbLX;
-			int32 axisY = gamepadState.Gamepad.sThumbLY;
-			int32 deadZone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
+				// Left thumb axis
+				int32 axisX = gamepadState.Gamepad.sThumbLX;
+				int32 axisY = gamepadState.Gamepad.sThumbLY;
+				int32 deadZone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
 
-			gamepad->axis[GAMEPAD_AXIS_LX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
-			GAMEPAD_AXIS_VALUE(axisX);
+				gamepad.axis[GAMEPAD_AXIS_LX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+				GAMEPAD_AXIS_VALUE(axisX);
 
-			gamepad->axis[GAMEPAD_AXIS_LY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
-			GAMEPAD_AXIS_VALUE(axisY);
+				gamepad.axis[GAMEPAD_AXIS_LY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+				GAMEPAD_AXIS_VALUE(axisY);
 
-			// Right thumb axis
-			axisX = gamepadState.Gamepad.sThumbRX;
-			axisY = gamepadState.Gamepad.sThumbRY;
-			deadZone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
+				// Right thumb axis
+				axisX = gamepadState.Gamepad.sThumbRX;
+				axisY = gamepadState.Gamepad.sThumbRY;
+				deadZone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
 
-			gamepad->axis[GAMEPAD_AXIS_RX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
-			GAMEPAD_AXIS_VALUE(axisX);
+				gamepad.axis[GAMEPAD_AXIS_RX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+				GAMEPAD_AXIS_VALUE(axisX);
 
-			gamepad->axis[GAMEPAD_AXIS_RY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
-			GAMEPAD_AXIS_VALUE(axisY);
+				gamepad.axis[GAMEPAD_AXIS_RY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+				GAMEPAD_AXIS_VALUE(axisY);
 
-			// Left trigger
-			axisX = gamepadState.Gamepad.bLeftTrigger;
-			axisY = gamepadState.Gamepad.bRightTrigger;
-			deadZone = XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
 
-			gamepad->axis[GAMEPAD_AXIS_LTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :	
-			axisX/(float) XINPUT_MAX_TRIGGER_VALUE;
+				// Left trigger
+				axisX = gamepadState.Gamepad.bLeftTrigger;
+				axisY = gamepadState.Gamepad.bRightTrigger;
+				deadZone = XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
 
-			gamepad->axis[GAMEPAD_AXIS_RTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
-			axisY/(float) XINPUT_MAX_TRIGGER_VALUE;
+				gamepad.axis[GAMEPAD_AXIS_LTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :	
+				axisX/(float) XINPUT_MAX_TRIGGER_VALUE;
+
+				gamepad.axis[GAMEPAD_AXIS_RTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+				axisY/(float) XINPUT_MAX_TRIGGER_VALUE;
 
 #undef GAMEPAD_AXIS_IS_DEADZONE
 #undef GAMEPAD_AXIS_VALUE
 
-			gamepad->connected = 1;
-			return true;
-			}
+				gamepad.connected = 1;
+				}
+
+}
+
+//---------------------------------------------------------------------------
+// Plays an audio buffer
+// Returns the created buffer id
+//---------------------------------------------------------------------------
+uint32 ldk_win32_createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
+{
+	BoundAudio* audio = nullptr;
+	uint32 audioId = _platform.boundBufferCount;
+
+	if (_platform.boundBufferCount < LDK_MAX_AUDIO_BUFFER)
+	{
+		// Get an audio buffer from the list
+		audio = &(_platform.boundBufferList[audioId]);
+		_platform.boundBufferCount++;
+	}
+	else
+	{
+		return -1;
+	}
+
+	// set format
+	WAVEFORMATEXTENSIBLE wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
+	// set data
+	BYTE *pDataBuffer = (BYTE*) data;
+
+	// set XAUDIO2 instructions on what and how to play
+	audio->buffer.AudioBytes = dataSize;
+	audio->buffer.pAudioData = (BYTE*) data;
+	audio->buffer.Flags = XAUDIO2_END_OF_STREAM;
+
+	HRESULT hr = 0;
+	//TODO: figure out how to use one single struct for both modern and legacy XAudio
+	if (pXAudio2_7 != nullptr)
+	{
+		hr = pXAudio2_7->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
+	}
+	else
+	{
+		hr = pXAudio2->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
+	}
+	if (FAILED(hr))
+	{
+		LogError("Error creating source voice");
+	}
+	return audioId; 
+}
+
+//---------------------------------------------------------------------------
+// Plays an audio buffer
+//---------------------------------------------------------------------------
+void ldk_win32_playAudio(uint32 audioBufferId)
+{
+	if (_platform.boundBufferCount >= LDK_MAX_AUDIO_BUFFER || _platform.boundBufferCount <= 0)
+		return;
+
+	BoundAudio* audio = &(_platform.boundBufferList[audioBufferId]);
+	HRESULT hr = audio->voice->SubmitSourceBuffer(&audio->buffer);
+
+	if (FAILED(hr))
+	{
+		LogError("Error %x submitting audio buffer", hr);
+	}
+
+	hr = audio->voice->Start(0);
+	if (FAILED(hr))
+	{
+		LogError("Error %x playing audio", hr);
+	}
+}
+
+/* Error callback function */
+typedef void (* LDKPlatformErrorFunc)(uint32 errorCode, const char* errorMsg);
+
+// Initialize the platform layer
+uint32 initialize()
+{
+	CoInitialize(NULL);
+	_appInstance = GetModuleHandle(NULL);
+
+	ldk_win32_initXInput();
+	ldk_win32_initXAudio();
+	return ldk_win32_registerWindowClass(_appInstance);
+}
+
+// terminates the platform layer
+void terminate()
+{
+}
+
+// Sets error callback for the platform
+void setErrorCallback(LDKPlatformErrorFunc errorCallback)
+{
+	_platform.errorCallback = errorCallback;
+}
+
+void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback)
+{
+	window->windowCloseCallback = windowCloseCallback;
+}
+
+// Creates a window
+LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
+{
+	uint32* pAttribute = attributes;	
+	uint32 width = 800;
+	uint32 height = 600;
+	uint32 visible = 1;
+	uint32 colorBits = 32;
+	uint32 depthBits = 24;
+	uint32 glVersionMajor = 3;
+	uint32 glVersionMinor = 0;
+	bool success = true;
+
+	while ( pAttribute != 0 && *pAttribute != 0 )
+	{
+		ldk::platform::WindowHint windowHint = (ldk::platform::WindowHint) *pAttribute;
+
+		switch (windowHint)
+		{
+			case ldk::platform::WindowHint::WIDTH:
+				width = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::HEIGHT:
+				height = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::VISIBLE:
+				visible = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::GL_CONTEXT_VERSION_MAJOR:
+				glVersionMajor = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::GL_CONTEXT_VERSION_MINOR:
+				glVersionMinor = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::COLOR_BUFFER_BITS:
+				colorBits = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::DEPTH_BUFFER_BITS:
+				depthBits = *++pAttribute;
+				break;
+			default:
+				LogError("Ignoring unkown window hint");
+				break;
+		}
+		++pAttribute;
+	}
+
+	//TODO Use a custom allocator
+	ldk::platform::LDKWindow* window = new LDKWindow();
+	*window = {};
+
+	if (!ldk_win32_createWindow(window, width, height, _appInstance, (TCHAR*) title))
+	{
+		LogError("Could not create window");
+		return nullptr;
+	}
+
+	/* create a new context or share an existing one ? */
+	if (share)
+	{
+		//FIXME: Context sharing is not working!
+		window->rc = share->rc;
+		wglMakeCurrent(window->dc, window->rc);
+	}
+	else
+	{
+		if (!ldk_win32_initOpenGL(*window, _appInstance, glVersionMajor, glVersionMinor, colorBits, depthBits))
+		{
+			success = false;
+		}
+	}
+
+	if (visible)
+	{
+		ldk::platform::showWindow(window);
+	}
+
+	if (!success)
+	{
+		delete window;
+		return nullptr;
+	}
+
+	_platform.windowList.insert(std::make_pair(window->hwnd, window));
+	return window;
+}
+
+// Toggles the window fullscreen/windowed
+bool toggleFullScreen(LDKWindow* window, bool fullScreen)
+{
+	return LDK_FAIL;
+}
+
+// Destroys a window
+void destroyWindow(LDKWindow* window)
+{
+	auto it = _platform.windowList.find(window->hwnd);
+	_platform.windowList.erase(it);
+	DestroyWindow(window->hwnd);
+}
+
+// returns the value of the close flag of the specified window
+bool windowShouldClose(LDKWindow* window)
+{
+	return window->closeFlag;
+}
+
+void setWindowCloseFlag(LDKWindow* window, bool flag)
+{
+	window->closeFlag = flag;	
+	if (window->windowCloseCallback)
+		window->windowCloseCallback(window);
+}
+
+// Update the window framebuffer
+void swapWindowBuffer(LDKWindow* window)
+{
+	ldk_win32_makeContextCurrent(window);
+	bool result = SwapBuffers(window->dc);
+	//			if (!result)
+	//			{
+	//				LogInfo("SwapBuffer error %x", GetLastError());
+	//			}
+
+	glClearColor(0, 0, 1.0, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void showWindow(LDKWindow* window)
+{
+	ShowWindow(window->hwnd, SW_SHOW);
+}
+
+
+// Get the state of mouse
+const ldk::platform::MouseState* getMouseState()
+{
+	return &_platform.mouseState;
+}
+
+// Get the state of keyboard
+const ldk::platform::KeyboardState*	getKeyboardState()
+{
+	return &_platform.keyboardState;
+}
+
+
+// Get the state of a gamepad.
+const ldk::platform::GamepadState* getGamepadState(uint32 gamepadId)
+{
+	LDK_ASSERT(( gamepadId >=0 && gamepadId < LDK_MAX_GAMEPADS),"Gamepad id is out of range");
+	return &_platform.gamepadState[gamepadId];
+}
+
+
 
 // Updates all windows and OS dependent events
 void pollEvents()
 {
+	// clear 'changed' bit from keyboard key state
+	for(int i=0; i < LDK_MAX_KBD_KEYS ; i++)
+	{
+		_platform.keyboardState.key[i] &= ~LDK_KEYSTATE_CHANGED;
+	}
+
+	// clear 'changed' bit from gamepads buttons state
+	for (uint32 id=0; id < LDK_MAX_GAMEPADS; id++)
+	{
+		// clear 'changed' bit from input key state
+		for(uint32 i=0; i < LDK_GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
+		{
+			_platform.gamepadState[id].button[i] &= ~LDK_KEYSTATE_CHANGED;
+		}
+	}
+
 	MSG msg;
 	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 	{
@@ -701,52 +710,28 @@ void pollEvents()
 				{
 					// bit 30 has previous key state
 					// bit 31 has current key state
-					// shitty fact: 0 means pressed, 1 means released. Very intuitive, Microsoft!
+					// shitty fact: 0 means pressed, 1 means released
 					int8 isDown = (msg.lParam & (1 << 31)) == 0;
 					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
 					int16 vkCode = msg.wParam;
-
-					if (vkCode == VK_SHIFT)
-						_platform.shiftKeyState = isDown ? LDK_KEY_MOD_SHIFT : 0;
-					else if (vkCode == VK_CONTROL)
-						_platform.controlKeyState = isDown ? LDK_KEY_MOD_CONTROL : 0;
-					else if (vkCode == VK_MENU)
-						_platform.altKeyState = isDown ? LDK_KEY_MOD_ALT : 0;
-
-					uint32 action;
-
-					if (isDown)
+#if _LDK_DEBBUG_
+					if (vkCode == KBD_F12 && isDown)
 					{
-						if (wasDown)
-							action = LDK_KEY_REPEAT;
-						else
-							action = LDK_KEY_PRESS;
-					}
-					else
-					{
-						action = LDK_KEY_RELEASE;
+						Win32_toggleFullScreen(_app.window);
+						continue;
 					}
 
-
-					//TODO: check how slow this is
-					uint32 modifierKeys = 
-						_platform.shiftKeyState | _platform.controlKeyState | _platform.altKeyState;
-
-
-					if (window->keyCallback)
-					{
-						window->keyCallback(window, vkCode, action, modifierKeys);
-					}
+					if (vkCode == KBD_ESCAPE)
+						_app.window.shouldClose = true;
+#endif
+					_platform.keyboardState.key[vkCode] = ((isDown != wasDown) << 1) | isDown;
+					continue;
 				}
 				break;
 
 				// Cursor position
 			case WM_MOUSEMOVE:
 				{
-					if (window->mouseCursorCallback)
-					{
-						window->mouseCursorCallback(window, GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam));
-					}
 				}
 				break;
 		}
