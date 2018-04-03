@@ -1,11 +1,11 @@
-#ifndef __LDK_KEYBOARD__
-#define __LDK_KEYBOARD__
+#ifndef _LDK_INPUT_H_
+#define _LDK_INPUT_H_
 
 namespace ldk
 {
-
-#define KEYSTATE_PRESSED  0x01	
-#define KEYSTATE_CHANGED  0x02
+#define LDK_MAX_KBD_KEYS 255
+#define LDK_KEYSTATE_PRESSED  0x01
+#define LDK_KEYSTATE_CHANGED  0x02
 
 	typedef int8 KeyState;
 
@@ -15,78 +15,9 @@ namespace ldk
 #define LDK_GAMEPAD_3 2
 #define LDK_GAMEPAD_4 3
 
-#define GAMEPAD_MAX_DIGITAL_BUTTONS 14
-#define GAMEPAD_MAX_AXIS 6
-#define MAX_GAMEPADS 4
-
-	struct Gamepad 
-	{
-		KeyState button[GAMEPAD_MAX_DIGITAL_BUTTONS];
-		float axis[GAMEPAD_MAX_AXIS];
-		uint8 connected;
-	};
-
-#define MAX_KBD_KEYS 255
-#define MAX_MOUSE_KEYS 5
-	struct Input
-	{
-		KeyState keyboard[MAX_KBD_KEYS];
-		Gamepad gamepad[MAX_GAMEPADS];
-		KeyState mouse[MAX_MOUSE_KEYS];
-		struct 
-		{
-			int32 x;
-			int32 y;
-		} cursor;
-
-
-		inline int8 getKey(uint16 key) const
-		{
-			return keyboard[key] & (KEYSTATE_CHANGED | KEYSTATE_PRESSED);
-		}
-
-		inline int8 getKeyDown(uint16 key) const
-		{
-			return keyboard[key] == (KEYSTATE_CHANGED | KEYSTATE_PRESSED);
-		}
-
-		inline int8 getKeyUp(uint16 key) const
-		{
-			return keyboard[key] == KEYSTATE_CHANGED;
-		}
-
-		inline int8 getButton(uint16 key, uint16 index = 0) const
-		{
-			if (index >= MAX_GAMEPADS)
-				return 0;
-			return 	gamepad[index].connected && 
-				gamepad[index].button[key] & KEYSTATE_PRESSED;
-		}
-
-		inline int8 getButtonDown(uint16 key, uint16 index = 0) const
-		{
-			if (index >= MAX_GAMEPADS)
-				return 0;
-			//return gamepad[index].connected && 
-			return	gamepad[index].button[key] == (KEYSTATE_CHANGED | KEYSTATE_PRESSED);
-		}
-
-		inline int8 getButtonUp(uint16 key, uint16 index = 0) const
-		{
-			if (index >= MAX_GAMEPADS)
-				return 0;
-			return  gamepad[index].connected && gamepad[index].button[key] == KEYSTATE_CHANGED;
-		}
-
-		inline float getAxis(uint16 axis, uint16 index = 0) const
-		{
-			if (index >= MAX_GAMEPADS || !gamepad[index].connected)
-				return 0.0f;
-			return gamepad[index].axis[axis];
-		}
-
-	};
-
+#define LDK_GAMEPAD_MAX_DIGITAL_BUTTONS 14
+#define LDK_GAMEPAD_MAX_AXIS 6
+#define LDK_MAX_GAMEPADS 4
 
 	//---------------------------------------------------------------------------
 	// GAMEPAD
@@ -244,4 +175,4 @@ namespace ldk
 #define LDK_KEY_F24           0x87
 
 }
-#endif // __LDK_KEYBOARD__
+#endif	// _LDK_INPUT_H_

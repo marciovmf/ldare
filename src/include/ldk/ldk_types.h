@@ -3,11 +3,12 @@
 
 // Compile time defines
 // plaforms:
-// _LDK_WINDOWS_, _LDK_ANDROID_, _LDK_XXX_
+// _LDK_WINDOWS_, _LDK_ANDROID_, _LDK_MAC_, _LDK_IOS_
 //
 // Debug options:
 // _LDK_DEBUG_
-//
+// Engine/Editor
+// _LDK_EDITOR_
 
 #include <stdint.h>
 typedef int8_t int8;

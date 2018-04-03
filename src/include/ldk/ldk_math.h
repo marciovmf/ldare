@@ -1,9 +1,9 @@
 /**
  * win32_math.h
- * ldare math functions and structures
+ * ldk math functions and structures
  */
-#ifndef __LDARE_MATH__
-#define __LDARE_MATH__
+#ifndef _LDK_MATH_H_
+#define _LDK_MATH_H_
 
 #include <math.h>
 #define PI 3.14159265359L
@@ -12,7 +12,7 @@
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
-namespace ldare
+namespace ldk
 {
 
 	float lerp(float start, float end, float f)
@@ -440,7 +440,7 @@ namespace ldare
 			float depth = far - near;
 
 			diagonal(1.0f);
-			//ldare::Mat4 ortho;
+			//ldk::Mat4 ortho;
 			ASSERT(width != 0, "Orthographic width can not be zero");
 			ASSERT(height != 0, "Orthographic height can not be zero");
 			ASSERT(depth != 0, "Orthographic depth can not be zero");
@@ -457,7 +457,7 @@ namespace ldare
 		}
 
 	};
-} // ldare
+} // ldk
 
-#endif // __LDARE_MATH__
+#endif // _LDK_MATH_H_
 

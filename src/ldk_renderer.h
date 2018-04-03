@@ -5,7 +5,7 @@
 // The renderer namespace is for the renderer backend only. 
 // It will not be exposed to the game layer.
 //
-namespace ldare
+namespace ldk
 {
 	namespace renderer
 	{	

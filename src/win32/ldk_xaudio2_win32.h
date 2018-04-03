@@ -2,8 +2,9 @@
 // Minimal XAudio2 interface for dynamicaly loading/initializing XAudio2 prior
 // to 2.8. Most of this content was extracted from XAudio2.h from DirectX SDK (June 2010).
 //--------------------------------------------------------------------------- 
-#ifndef __LDK_XAUDIO2_WIN32__
-#define __LDK_XAUDIO2_WIN32__
+#ifndef _LDK_XAUDIO2_WIN32_H_
+#define _LDK_XAUDIO2_WIN32_H_
+
 #include <XAudio2.h> 							// Default Windows SDK XAudio header
 #include <unknwn.h>
 #include <mmreg.h>
@@ -230,4 +231,4 @@ namespace ldk
 		}
 	}
 }
-#endif // __LDK_XAUDIO2_WIN32__
+#endif // _LDK_XAUDIO2_WIN32_H_

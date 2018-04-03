@@ -1,3 +1,5 @@
+#ifndef _LDK_XINPUT_WIN32_H_
+#define _LDK_XINPUT_WIN32_H_
 
 #define XINPUT_GAMEPAD_DPAD_UP	0x0001
 #define XINPUT_GAMEPAD_DPAD_DOWN	0x0002
@@ -88,3 +90,4 @@ namespace ldk
 	} //namespace platform
 } // namespace ldk
 
+#endif	//_LDK_XINPUT_WIN32_H_

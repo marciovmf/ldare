@@ -1,5 +1,5 @@
-#ifndef __LDK_RENDERER_BUFFER__	
-#define __LDK_RENDERER_BUFFER__	
+#ifndef _LDK_RENDERER_BUFFER_H_	
+#define _LDK_RENDERER_BUFFER_H_	
 
 //
 // The renderer namespace is for the renderer backend only. 
@@ -87,4 +87,4 @@ namespace ldare{
 //		{2, BufferLayout::Type::FLOAT32, BufferLayout::Size::X4, 0, 0 }};
 
 
-#endif // __LDK_RENDERER_BUFFER__	
+#endif // _LDK_RENDERER_BUFFER_H_	
