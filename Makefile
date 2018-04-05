@@ -24,7 +24,8 @@ LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
 .PHONY: game engine assets
 
-all: platform engine game assets
+#all: platform engine game assets
+all: engine
 
 game: assets
 
@@ -53,4 +54,4 @@ tool: src\win32\tools\ldare_tool_font.cpp
 
 clean:
 	del /S /Q .\$(OUTDIR)\*
-	rd /S /Q .\$(OUTDIR)\assets
+	IF EXIST "$(OUTDIR)\assets" rd /S /Q .\$(OUTDIR)\assets

@@ -31,7 +31,7 @@ namespace ldk
 	{
 		float x, y;
 		float operator[](int32 n)
-		{ ASSERT(n >= 0 && n < 2,"vector index should be between positive and within vector size");	
+		{ LDK_ASSERT(n >= 0 && n < 2,"vector index should be between positive and within vector size");	
 			return (&x)[n]; }
 
 		bool operator==(const Vec2& other)
@@ -111,7 +111,7 @@ namespace ldk
 
 		float operator[](int32 n)
 		{ 
-			ASSERT(n >= 0 && n < 3, "vector index should be between positive and within vector size");
+			LDK_ASSERT(n >= 0 && n < 3, "vector index should be between positive and within vector size");
 			return (&x)[n]; 
 		}
 
@@ -219,7 +219,7 @@ namespace ldk
 
 		float operator[](int32 n)
 		{ 
-			ASSERT(n >= 0 && n < 4, "vector index should be between positive and within vector size");
+			LDK_ASSERT(n >= 0 && n < 4, "vector index should be between positive and within vector size");
 			return (&x)[n]; 
 		}
 
@@ -358,7 +358,7 @@ namespace ldk
 
 		float operator[](int32 n)
 		{ 
-			ASSERT(n >= 0 && n < 16, "vector index should be between positive and within vector size");
+			LDK_ASSERT(n >= 0 && n < 16, "vector index should be between positive and within vector size");
 			return element[n];
 		}
 
@@ -441,10 +441,10 @@ namespace ldk
 
 			diagonal(1.0f);
 			//ldk::Mat4 ortho;
-			ASSERT(width != 0, "Orthographic width can not be zero");
-			ASSERT(height != 0, "Orthographic height can not be zero");
-			ASSERT(depth != 0, "Orthographic depth can not be zero");
-
+			LDK_ASSERT(width != 0, "Orthographic width can not be zero");
+			LDK_ASSERT(height != 0, "Orthographic height can not be zero");
+			LDK_ASSERT(depth != 0, "Orthographic depth can not be zero");
+			
 			// Diagonal
 			element[0] = 2.0f / width;
 			element[5] = 2.0f / height;

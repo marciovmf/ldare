@@ -11,6 +11,12 @@ namespace ldk
 {
 	namespace platform 
 	{
+		// platform specific window 
+		struct LDKWindow;
+
+		// platform specific shared library
+		struct SharedLib;
+
 		struct KeyboardState
 		{
 			KeyState key[LDK_MAX_KBD_KEYS];
@@ -41,13 +47,10 @@ namespace ldk
 			DEPTH_BUFFER_BITS
 		};
 
-		// platform specific window //
-		struct LDKWindow;
-
-		// Error callback function //
+		// Error callback function 
 		typedef void (* LDKPlatformErrorFunc)(uint32 errorCode, const char* errorMsg);
 
-		// Window close callback function */
+		// Window close callback function 
 		typedef void(* LDKPlatformWindowCloseFunc) (LDKWindow*);
 
 		// Initialize the platform layer
@@ -96,6 +99,16 @@ namespace ldk
 
 		// Updates all windows and OS dependent events
 		void pollEvents();
+
+		//---------------------------------------------------------------------------
+		// Shared Library loading/unloading
+		//---------------------------------------------------------------------------
+
+		ldk::platform::SharedLib* loadSharedLib(char* sharedLibName);
+
+		bool unloadSharedLib(ldk::platform::SharedLib* sharedLib);
+
+		const	void* getFunctionFromSharedLib(const ldk::platform::SharedLib*, const char* function);
 
 		//---------------------------------------------------------------------------
 		// Loads an entire file to memory

@@ -6,30 +6,32 @@
 #define _LDK_GAME_H_
 #include <ldk/ldk.h>
 
-namespace ldk 
-{
-	//---------------------------------------------------------------------------
-	// Runtime settings the game can return to the engine 
-	// during initialization
-	//---------------------------------------------------------------------------
-	struct GameContext
-	{
-		int32 windowWidth;
-		int32 windowHeight;
-		size_t gameMemorySize; 				// Amount of memory allocated to the game
-		struct 
-		{
-			uint32 width;
-			uint32 height;
-		} Resolution;
-		float clearColor[3];
-		bool fullScreen;
-	};
-} // ldare namespace
+#if defined(_LDK_WINDOWS_)
+#		define LDK_GAME_MODULE_NAME "ldk_game.dll"
+#elif defined(_LDK_MAC_) ||
+#		define LDK_GAME_MODULE_NAME "ldk_game.dll"
+#else
+#		error "Undefined platform"
+#endif
 
 // API exposed to the game
 namespace ldk
 {
+	struct Core;
+	//---------------------------------------------------------------------------
+	// Game Interface
+	// This interface is used by the engine to communicate with the game
+	//---------------------------------------------------------------------------
+#define LDK_GAME_FUNCTION_INIT "gameInit"
+#define LDK_GAME_FUNCTION_START "gameStart"
+#define LDK_GAME_FUNCTION_UPDATE "gameUpdate"
+#define LDK_GAME_FUNCTION_STOP "gameStop"
+
+	typedef void (*LDK_PFN_GAME_INIT)(ldk::Core* core);
+	typedef void (*LDK_PFN_GAME_START)();
+	typedef void (*LDK_PFN_GAME_UPDATE)(float deltaTime);
+	typedef void (*LDK_PFN_GAME_STOP)();
+
 	// Keyboard input functions
 	typedef int8 (*LDK_PFN_GETKEYDOWN)(uint16 key);
 	typedef int8 (*LDK_PFN_GETKEYUP)(uint16 key);
@@ -61,20 +63,15 @@ namespace ldk
 		ldk::KeyboardApi	keyboard;
 		ldk::GamepadApi		gamepad;
 	};
+
+	struct Game
+	{
+		LDK_PFN_GAME_INIT init;
+		LDK_PFN_GAME_START start;
+		LDK_PFN_GAME_UPDATE update;
+		LDK_PFN_GAME_STOP stop;
+	};
+
 }
-
-//---------------------------------------------------------------------------
-// Game Interface
-// This interface is used by the engine to communicate with the game
-//---------------------------------------------------------------------------
-#define LDK_GAME_FUNCTION_INIT "gameInit"
-#define LDK_GAME_FUNCTION_START "gameStart"
-#define LDK_GAME_FUNCTION_UPDATE "gameUpdate"
-#define LDK_GAME_FUNCTION_STOP "gameStop"
-
-typedef void (*LDK_PFN_GAME_INIT)(ldk::Core* core);
-typedef void (*LDK_PFN_GAME_START)();
-typedef void (*LDK_PFN_GAME_UPDATE)(float deltaTime);
-typedef void (*LDK_PFN_GAME_STOP)();
 
 #endif // _LDK_GAME_H_

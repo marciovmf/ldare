@@ -17,9 +17,30 @@ static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window, const ldk::
 	}
 }
 
+bool loadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
+{
+	*sharedLib = ldk::platform::loadSharedLib(LDK_GAME_MODULE_NAME);
+
+	if (!*sharedLib)
+		return false;
+
+	game->init = (ldk::LDK_PFN_GAME_INIT)
+		ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_INIT);
+	game->start = (ldk::LDK_PFN_GAME_START)
+		ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_START);
+	game->update = (ldk::LDK_PFN_GAME_UPDATE)
+		ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_UPDATE);
+	game->stop = (ldk::LDK_PFN_GAME_STOP)
+		ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_STOP);
+
+	return game->init && game->start && game->update && game->stop;
+}
+
 uint32 ldkMain(uint32 argc, char** argv)
 {
 	ldk::Core core = {};
+	ldk::Game game = {};
+	ldk::platform::SharedLib* gameSharedLib;
 
 	if (! ldk::platform::initialize())
 	{
@@ -32,6 +53,12 @@ uint32 ldkMain(uint32 argc, char** argv)
 	if (!window)
 	{
 		LogError("Error creating main window");
+		return LDK_EXIT_FAIL;
+	}
+
+	if (!loadGameModule(&game, &gameSharedLib))
+	{
+		LogError("Error loading game module");
 		return LDK_EXIT_FAIL;
 	}
 
@@ -50,6 +77,10 @@ uint32 ldkMain(uint32 argc, char** argv)
 		ldk::platform::swapWindowBuffer(window);
 	}
 
+
+	if (gameSharedLib)
+		ldk::platform::unloadSharedLib(gameSharedLib);
+
 	ldk::platform::terminate();
 
 	return LDK_EXIT_SUCCESS;
@@ -63,8 +94,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	//TODO: Handle command line arguments
 	return ldkMain(0, nullptr);
 }
-
 #ifdef _LDK_DEBUG_
+
 #include <tchar.h>
 int _tmain(int argc, _TCHAR** argv)
 {
