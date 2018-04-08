@@ -66,6 +66,9 @@ uint32 ldkMain(uint32 argc, char** argv)
 	ldk::ldk_keyboard_initApi(&core.keyboard);
 	ldk::ldk_gamepad_initApi(&core.gamepad);
 
+	game.init(&core);
+
+	game.start();
 	while (!ldk::platform::windowShouldClose(window))
 	{
 		ldk::platform::pollEvents();
@@ -74,9 +77,12 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 		ldkHandleKeyboardInput(window, core.keyboard);
 
+		game.update(0);
+
 		ldk::platform::swapWindowBuffer(window);
 	}
 
+	game.stop();
 
 	if (gameSharedLib)
 		ldk::platform::unloadSharedLib(gameSharedLib);

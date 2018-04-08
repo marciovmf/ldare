@@ -24,8 +24,7 @@ LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
 .PHONY: game engine assets
 
-#all: platform engine game assets
-all: engine
+all: platform engine game assets
 
 game: assets
 
