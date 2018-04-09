@@ -712,16 +712,6 @@ namespace ldk
 							int8 isDown = (msg.lParam & (1 << 31)) == 0;
 							int8 wasDown = (msg.lParam & (1 << 30)) != 0;
 							int16 vkCode = msg.wParam;
-		#if _LDK_DEBBUG_
-							if (vkCode == KBD_F12 && isDown)
-							{
-								Win32_toggleFullScreen(_app.window);
-								continue;
-							}
-		
-							if (vkCode == KBD_ESCAPE)
-								_app.window.shouldClose = true;
-		#endif
 							_platform.keyboardState.key[vkCode] = ((isDown != wasDown) << 1) | isDown;
 							continue;
 						}
