@@ -5,7 +5,7 @@ namespace ldk
 
 	static int8 ldk_keyboard_getKey(uint16 key)
 	{
-		return _keyboardState->key[key] & (LDK_KEYSTATE_CHANGED | LDK_KEYSTATE_PRESSED);
+		return _keyboardState->key[key] & LDK_KEYSTATE_PRESSED;
 	}
 
 	static int8 ldk_keyboard_getKeyDown(uint16 key)
