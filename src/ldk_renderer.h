@@ -9,12 +9,13 @@ namespace ldk
 {
 	namespace renderer
 	{	
+		struct Material;
+		struct GpuBuffer;
+
 		void setClearColor(Vec4 color);
 		void clear();
-		void draw();
-		void drawIndexed();
-		//TODO: Support instanced rendering
-		//void DrawInstanced();
+
+		void drawIndexed(Material* material, GpuBuffer* vertexBuffer, GpuBuffer* indexBuffer, uint32 indexCount, uint32 start);
 	}
 }
 

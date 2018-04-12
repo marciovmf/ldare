@@ -1,9 +1,9 @@
 
-namespace ldare
+namespace ldk
 {
 	namespace renderer
 	{
-		static inline GLenum getGlEnum(renderer::Buffer::Type type)
+		static inline GLenum getGlEnum(renderer::GpuBuffer::Type type)
 		{
 				switch(type)
 				{
@@ -24,26 +24,26 @@ namespace ldare
 
 		}
 
-		static inline GLenum getGlEnum(renderer::BufferLayout::Type type)
+		static inline GLenum getGlEnum(renderer::GpuBufferLayout::Type type)
 		{
 			switch(type)
 			{
-				case renderer::BufferLayout::Type::INT8:
+				case renderer::GpuBufferLayout::Type::INT8:
 					return GL_BYTE;
-				case renderer::BufferLayout::Type::UINT8:
+				case renderer::GpuBufferLayout::Type::UINT8:
 					return GL_UNSIGNED_BYTE;
-				case renderer::BufferLayout::Type::INT16:
+				case renderer::GpuBufferLayout::Type::INT16:
 					return GL_SHORT;
-				case renderer::BufferLayout::Type::UINT16:
+				case renderer::GpuBufferLayout::Type::UINT16:
 					return GL_UNSIGNED_SHORT;
-				case renderer::BufferLayout::Type::FLOAT32:
+				case renderer::GpuBufferLayout::Type::FLOAT32:
 					return GL_FLOAT;
 				default:
 						return GL_INVALID_ENUM;
 			}
 		}
 
-		static inline GLenum getGlBufferUsage(renderer::Buffer::Type type)
+		static inline GLenum getGlBufferUsage(renderer::GpuBuffer::Type type)
 		{
 			switch(type)
 				{
@@ -64,11 +64,11 @@ namespace ldare
 
 		}
 
-		renderer::Buffer createBuffer(renderer::Buffer::Type type, 
-				size_t size, const renderer::BufferLayout* layout, uint32 layoutCount, void* data)
+		renderer::GpuBuffer createBuffer(renderer::GpuBuffer::Type type, 
+				size_t size, const renderer::GpuBufferLayout* layout, uint32 layoutCount, void* data)
 		{
 			// find ideal buffer target and memory strategy for the given buffer type
-			renderer::Buffer buffer;
+			renderer::GpuBuffer buffer;
 			buffer.GL.target = getGlEnum(type);
 			buffer.GL.usage = getGlBufferUsage(type);
 			
@@ -98,27 +98,27 @@ namespace ldare
 			return buffer;
 		}
 
-		void setBufferData(const renderer::Buffer& buffer, void* data, size_t dataSize, uint32 offset)
+		void setBufferData(const renderer::GpuBuffer& buffer, void* data, size_t dataSize, uint32 offset)
 		{
 			glBufferSubData(buffer.GL.target, offset, dataSize, (const GLvoid*) data);
 		}
 
-		void setBufferData(const renderer::Buffer& buffer, void* data, size_t dataSize)
+		void setBufferData(const renderer::GpuBuffer& buffer, void* data, size_t dataSize)
 		{
 			glBufferData(buffer.GL.target, dataSize, (const GLvoid*) data, buffer.GL.usage);
 		}
 
-		inline void bindBuffer(const renderer::Buffer& buffer)
+		inline void bindBuffer(const renderer::GpuBuffer& buffer)
 		{
 			glBindBuffer(buffer.GL.target, buffer.GL.id);
 		}
 
-		inline void unbindBuffer(const renderer::Buffer& buffer)
+		inline void unbindBuffer(const renderer::GpuBuffer& buffer)
 		{
 			glBindBuffer(buffer.GL.target, 0);
 		}
 
-		void deleteBuffer(renderer::Buffer& buffer)
+		void deleteBuffer(renderer::GpuBuffer& buffer)
 		{
 			glDeleteBuffers(1, &buffer.GL.id);
 			buffer.GL.id = -1;
