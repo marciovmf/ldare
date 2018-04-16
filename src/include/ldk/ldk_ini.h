@@ -13,17 +13,23 @@ namespace ldk
 		VEC4
 	};
 
+	struct StringLiteral
+	{
+		char8* start;
+		uint32 lenght;
+	};
+
 	struct Variant
 	{
 		VariantType type;
-
-		union Value
+		union 
 		{
 			uint8 boolvalue;
 			uint32 intValue;
 			float floatValue;
 			Vec3 vec3Value;
 			Vec4 vec4Value;
+			StringLiteral stringValue;
 		};
 	};
 }
