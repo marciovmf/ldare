@@ -1,0 +1,3 @@
+[section]
+intval = 1
+ floatval = 2.0

@@ -113,7 +113,7 @@ namespace ldk
 		//---------------------------------------------------------------------------
 		// Loads an entire file to memory
 		//---------------------------------------------------------------------------
-		//void* loadFileToBuffer(const char* filename, size_t* bufferSize);
+		void* loadFileToBuffer(const char8* filename, size_t* bufferSize);
 
 		//---------------------------------------------------------------------------
 		// Requests allocation of size bytes of virtual memory

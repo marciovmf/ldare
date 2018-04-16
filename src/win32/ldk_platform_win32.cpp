@@ -425,335 +425,381 @@ namespace ldk
 
 }
 
-		//---------------------------------------------------------------------------
-		// Plays an audio buffer
-		// Returns the created buffer id
-		//---------------------------------------------------------------------------
-		uint32 ldk_win32_createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
-		{
-			BoundAudio* audio = nullptr;
-			uint32 audioId = _platform.boundBufferCount;
-		
-			if (_platform.boundBufferCount < LDK_MAX_AUDIO_BUFFER)
-			{
-				// Get an audio buffer from the list
-				audio = &(_platform.boundBufferList[audioId]);
-				_platform.boundBufferCount++;
-			}
-			else
-			{
-				return -1;
-			}
-		
-			// set format
-			WAVEFORMATEXTENSIBLE wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
-			// set data
-			BYTE *pDataBuffer = (BYTE*) data;
-		
-			// set XAUDIO2 instructions on what and how to play
-			audio->buffer.AudioBytes = dataSize;
-			audio->buffer.pAudioData = (BYTE*) data;
-			audio->buffer.Flags = XAUDIO2_END_OF_STREAM;
-		
-			HRESULT hr = 0;
-			//TODO: figure out how to use one single struct for both modern and legacy XAudio
-			if (pXAudio2_7 != nullptr)
-			{
-				hr = pXAudio2_7->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
-			}
-			else
-			{
-				hr = pXAudio2->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
-			}
-			if (FAILED(hr))
-			{
-				LogError("Error creating source voice");
-			}
-			return audioId; 
-		}
+//---------------------------------------------------------------------------
+// Plays an audio buffer
+// Returns the created buffer id
+//---------------------------------------------------------------------------
+uint32 ldk_win32_createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
+{
+	BoundAudio* audio = nullptr;
+	uint32 audioId = _platform.boundBufferCount;
 
-		//---------------------------------------------------------------------------
-		// Plays an audio buffer
-		//---------------------------------------------------------------------------
-		void ldk_win32_playAudio(uint32 audioBufferId)
-		{
-			if (_platform.boundBufferCount >= LDK_MAX_AUDIO_BUFFER || _platform.boundBufferCount <= 0)
-				return;
-		
-			BoundAudio* audio = &(_platform.boundBufferList[audioBufferId]);
-			HRESULT hr = audio->voice->SubmitSourceBuffer(&audio->buffer);
-		
-			if (FAILED(hr))
-			{
-				LogError("Error %x submitting audio buffer", hr);
-			}
-		
-			hr = audio->voice->Start(0);
-			if (FAILED(hr))
-			{
-				LogError("Error %x playing audio", hr);
-			}
-		}
+	if (_platform.boundBufferCount < LDK_MAX_AUDIO_BUFFER)
+	{
+		// Get an audio buffer from the list
+		audio = &(_platform.boundBufferList[audioId]);
+		_platform.boundBufferCount++;
+	}
+	else
+	{
+		return -1;
+	}
 
-		// Initialize the platform layer
-		uint32 initialize()
-		{
-			CoInitialize(NULL);
-			_appInstance = GetModuleHandle(NULL);
-		
-			ldk_win32_initXInput();
-			ldk_win32_initXAudio();
-			return ldk_win32_registerWindowClass(_appInstance);
-		}
+	// set format
+	WAVEFORMATEXTENSIBLE wfx = *((WAVEFORMATEXTENSIBLE*) fmt);
+	// set data
+	BYTE *pDataBuffer = (BYTE*) data;
 
-		// terminates the platform layer
-		void terminate()
-		{
-		}
+	// set XAUDIO2 instructions on what and how to play
+	audio->buffer.AudioBytes = dataSize;
+	audio->buffer.pAudioData = (BYTE*) data;
+	audio->buffer.Flags = XAUDIO2_END_OF_STREAM;
 
-		// Sets error callback for the platform
-		void setErrorCallback(LDKPlatformErrorFunc errorCallback)
-		{
-			_platform.errorCallback = errorCallback;
-		}
-		
-		void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback)
-		{
-			window->windowCloseCallback = windowCloseCallback;
-		}
+	HRESULT hr = 0;
+	//TODO: figure out how to use one single struct for both modern and legacy XAudio
+	if (pXAudio2_7 != nullptr)
+	{
+		hr = pXAudio2_7->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
+	}
+	else
+	{
+		hr = pXAudio2->CreateSourceVoice(&audio->voice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO,nullptr, nullptr);
+	}
+	if (FAILED(hr))
+	{
+		LogError("Error creating source voice");
+	}
+	return audioId; 
+}
 
-		// Creates a window
-		LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
+//---------------------------------------------------------------------------
+// Plays an audio buffer
+//---------------------------------------------------------------------------
+void ldk_win32_playAudio(uint32 audioBufferId)
+{
+	if (_platform.boundBufferCount >= LDK_MAX_AUDIO_BUFFER || _platform.boundBufferCount <= 0)
+		return;
+
+	BoundAudio* audio = &(_platform.boundBufferList[audioBufferId]);
+	HRESULT hr = audio->voice->SubmitSourceBuffer(&audio->buffer);
+
+	if (FAILED(hr))
+	{
+		LogError("Error %x submitting audio buffer", hr);
+	}
+
+	hr = audio->voice->Start(0);
+	if (FAILED(hr))
+	{
+		LogError("Error %x playing audio", hr);
+	}
+}
+
+// Initialize the platform layer
+uint32 initialize()
+{
+	CoInitialize(NULL);
+	_appInstance = GetModuleHandle(NULL);
+
+	ldk_win32_initXInput();
+	ldk_win32_initXAudio();
+	return ldk_win32_registerWindowClass(_appInstance);
+}
+
+// terminates the platform layer
+void terminate()
+{
+}
+
+// Sets error callback for the platform
+void setErrorCallback(LDKPlatformErrorFunc errorCallback)
+{
+	_platform.errorCallback = errorCallback;
+}
+
+void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback)
+{
+	window->windowCloseCallback = windowCloseCallback;
+}
+
+// Creates a window
+LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
+{
+	uint32* pAttribute = attributes;	
+	uint32 width = 800;
+	uint32 height = 600;
+	uint32 visible = 1;
+	uint32 colorBits = 32;
+	uint32 depthBits = 24;
+	uint32 glVersionMajor = 3;
+	uint32 glVersionMinor = 0;
+	bool success = true;
+
+	while ( pAttribute != 0 && *pAttribute != 0 )
+	{
+		ldk::platform::WindowHint windowHint = (ldk::platform::WindowHint) *pAttribute;
+
+		switch (windowHint)
 		{
-			uint32* pAttribute = attributes;	
-			uint32 width = 800;
-			uint32 height = 600;
-			uint32 visible = 1;
-			uint32 colorBits = 32;
-			uint32 depthBits = 24;
-			uint32 glVersionMajor = 3;
-			uint32 glVersionMinor = 0;
-			bool success = true;
-		
-			while ( pAttribute != 0 && *pAttribute != 0 )
-			{
-				ldk::platform::WindowHint windowHint = (ldk::platform::WindowHint) *pAttribute;
-		
-				switch (windowHint)
+			case ldk::platform::WindowHint::WIDTH:
+				width = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::HEIGHT:
+				height = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::VISIBLE:
+				visible = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::GL_CONTEXT_VERSION_MAJOR:
+				glVersionMajor = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::GL_CONTEXT_VERSION_MINOR:
+				glVersionMinor = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::COLOR_BUFFER_BITS:
+				colorBits = *++pAttribute;
+				break;
+			case ldk::platform::WindowHint::DEPTH_BUFFER_BITS:
+				depthBits = *++pAttribute;
+				break;
+			default:
+				LogError("Ignoring unkown window hint");
+				break;
+		}
+		++pAttribute;
+	}
+
+	//TODO Use a custom allocator
+	ldk::platform::LDKWindow* window = new LDKWindow();
+	*window = {};
+
+	if (!ldk_win32_createWindow(window, width, height, _appInstance, (TCHAR*) title))
+	{
+		LogError("Could not create window");
+		return nullptr;
+	}
+
+	/* create a new context or share an existing one ? */
+	if (share)
+	{
+		//FIXME: Context sharing is not working!
+		window->rc = share->rc;
+		wglMakeCurrent(window->dc, window->rc);
+	}
+	else
+	{
+		if (!ldk_win32_initOpenGL(*window, _appInstance, glVersionMajor, glVersionMinor, colorBits, depthBits))
+		{
+			success = false;
+		}
+	}
+
+	if (visible)
+	{
+		ldk::platform::showWindow(window);
+	}
+
+	if (!success)
+	{
+		delete window;
+		return nullptr;
+	}
+
+	_platform.windowList.insert(std::make_pair(window->hwnd, window));
+	return window;
+}
+
+// Toggles the window fullscreen/windowed
+bool toggleFullScreen(LDKWindow* window, bool fullScreen)
+{
+	return LDK_FAIL;
+}
+
+// Destroys a window
+void destroyWindow(LDKWindow* window)
+{
+	auto it = _platform.windowList.find(window->hwnd);
+	_platform.windowList.erase(it);
+	DestroyWindow(window->hwnd);
+}
+
+// returns the value of the close flag of the specified window
+bool windowShouldClose(LDKWindow* window)
+{
+	return window->closeFlag;
+}
+
+void setWindowCloseFlag(LDKWindow* window, bool flag)
+{
+	window->closeFlag = flag;	
+	if (window->windowCloseCallback)
+		window->windowCloseCallback(window);
+}
+
+// Update the window framebuffer
+void swapWindowBuffer(LDKWindow* window)
+{
+	ldk_win32_makeContextCurrent(window);
+	bool result = SwapBuffers(window->dc);
+	//			if (!result)
+	//			{
+	//				LogInfo("SwapBuffer error %x", GetLastError());
+	//			}
+
+	glClearColor(0, 0, 1.0, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void showWindow(LDKWindow* window)
+{
+	ShowWindow(window->hwnd, SW_SHOW);
+}
+
+// Get the state of mouse
+const ldk::platform::MouseState* getMouseState()
+{
+	return &_platform.mouseState;
+}
+
+// Get the state of keyboard
+const ldk::platform::KeyboardState*	getKeyboardState()
+{
+	return &_platform.keyboardState;
+}
+
+// Get the state of a gamepad.
+const ldk::platform::GamepadState* getGamepadState(uint32 gamepadId)
+{
+	LDK_ASSERT(( gamepadId >=0 && gamepadId < LDK_MAX_GAMEPADS),"Gamepad id is out of range");
+	return &_platform.gamepadState[gamepadId];
+}
+
+// Updates all windows and OS dependent events
+void pollEvents()
+{
+	// clear 'changed' bit from keyboard key state
+	for(int i=0; i < LDK_MAX_KBD_KEYS ; i++)
+	{
+		_platform.keyboardState.key[i] &= ~LDK_KEYSTATE_CHANGED;
+	}
+
+	// clear 'changed' bit from gamepads buttons state
+	for (uint32 id=0; id < LDK_MAX_GAMEPADS; id++)
+	{
+		// clear 'changed' bit from input key state
+		for(uint32 i=0; i < LDK_GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
+		{
+			_platform.gamepadState[id].button[i] &= ~LDK_KEYSTATE_CHANGED;
+		}
+	}
+
+	MSG msg;
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+
+		LDKWindow* window = findWindowByHandle(msg.hwnd);
+		switch(msg.message)
+		{
+			//LDK_ASSERT(window != nullptr, "Could not found a matching window for the current event hwnd");
+			case WM_KEYDOWN:
+			case WM_KEYUP:
 				{
-					case ldk::platform::WindowHint::WIDTH:
-						width = *++pAttribute;
-						break;
-					case ldk::platform::WindowHint::HEIGHT:
-						height = *++pAttribute;
-						break;
-					case ldk::platform::WindowHint::VISIBLE:
-						visible = *++pAttribute;
-						break;
-					case ldk::platform::WindowHint::GL_CONTEXT_VERSION_MAJOR:
-						glVersionMajor = *++pAttribute;
-						break;
-					case ldk::platform::WindowHint::GL_CONTEXT_VERSION_MINOR:
-						glVersionMinor = *++pAttribute;
-						break;
-					case ldk::platform::WindowHint::COLOR_BUFFER_BITS:
-						colorBits = *++pAttribute;
-						break;
-					case ldk::platform::WindowHint::DEPTH_BUFFER_BITS:
-						depthBits = *++pAttribute;
-						break;
-					default:
-						LogError("Ignoring unkown window hint");
-						break;
+					// bit 30 has previous key state
+					// bit 31 has current key state
+					// shitty fact: 0 means pressed, 1 means released
+					int8 isDown = (msg.lParam & (1 << 31)) == 0;
+					int8 wasDown = (msg.lParam & (1 << 30)) != 0;
+					int16 vkCode = msg.wParam;
+					_platform.keyboardState.key[vkCode] = ((isDown != wasDown) << 1) | isDown;
+					continue;
 				}
-				++pAttribute;
-			}
-		
-			//TODO Use a custom allocator
-			ldk::platform::LDKWindow* window = new LDKWindow();
-			*window = {};
-		
-			if (!ldk_win32_createWindow(window, width, height, _appInstance, (TCHAR*) title))
-			{
-				LogError("Could not create window");
-				return nullptr;
-			}
-		
-			/* create a new context or share an existing one ? */
-			if (share)
-			{
-				//FIXME: Context sharing is not working!
-				window->rc = share->rc;
-				wglMakeCurrent(window->dc, window->rc);
-			}
-			else
-			{
-				if (!ldk_win32_initOpenGL(*window, _appInstance, glVersionMajor, glVersionMinor, colorBits, depthBits))
+				break;
+
+				// Cursor position
+			case WM_MOUSEMOVE:
 				{
-					success = false;
 				}
-			}
-		
-			if (visible)
-			{
-				ldk::platform::showWindow(window);
-			}
-		
-			if (!success)
-			{
-				delete window;
-				return nullptr;
-			}
-		
-			_platform.windowList.insert(std::make_pair(window->hwnd, window));
-			return window;
+				break;
 		}
+	}
+}
 
-		// Toggles the window fullscreen/windowed
-		bool toggleFullScreen(LDKWindow* window, bool fullScreen)
-		{
-			return LDK_FAIL;
-		}
-		
-		// Destroys a window
-		void destroyWindow(LDKWindow* window)
-		{
-			auto it = _platform.windowList.find(window->hwnd);
-			_platform.windowList.erase(it);
-			DestroyWindow(window->hwnd);
-		}
-		
-		// returns the value of the close flag of the specified window
-		bool windowShouldClose(LDKWindow* window)
-		{
-			return window->closeFlag;
-		}
-		
-		void setWindowCloseFlag(LDKWindow* window, bool flag)
-		{
-			window->closeFlag = flag;	
-			if (window->windowCloseCallback)
-				window->windowCloseCallback(window);
-		}
+ldk::platform::SharedLib* loadSharedLib(char* sharedLibName)
+{
+	HMODULE hmodule = LoadLibrary(sharedLibName);
 
-		// Update the window framebuffer
-		void swapWindowBuffer(LDKWindow* window)
-		{
-			ldk_win32_makeContextCurrent(window);
-			bool result = SwapBuffers(window->dc);
-			//			if (!result)
-			//			{
-			//				LogInfo("SwapBuffer error %x", GetLastError());
-			//			}
-		
-			glClearColor(0, 0, 1.0, 1.0);
-			glClear(GL_COLOR_BUFFER_BIT);
-		}
+	if (!hmodule)
+		return nullptr;
 
-		void showWindow(LDKWindow* window)
-		{
-			ShowWindow(window->hwnd, SW_SHOW);
-		}
+	//TODO: Use custom allocation here
+	SharedLib* sharedLib = new SharedLib;
+	sharedLib->handle = hmodule;
+	return sharedLib;
+}
 
-		// Get the state of mouse
-		const ldk::platform::MouseState* getMouseState()
-		{
-			return &_platform.mouseState;
-		}
-		
-		// Get the state of keyboard
-		const ldk::platform::KeyboardState*	getKeyboardState()
-		{
-			return &_platform.keyboardState;
-		}
-		
-		// Get the state of a gamepad.
-		const ldk::platform::GamepadState* getGamepadState(uint32 gamepadId)
-		{
-			LDK_ASSERT(( gamepadId >=0 && gamepadId < LDK_MAX_GAMEPADS),"Gamepad id is out of range");
-			return &_platform.gamepadState[gamepadId];
-		}
+bool unloadSharedLib(ldk::platform::SharedLib* sharedLib)
+{
+	if (sharedLib->handle && FreeLibrary(sharedLib->handle))
+	{
+		sharedLib->handle = NULL;
+		delete sharedLib;
+		return true;
+	}
 
-		// Updates all windows and OS dependent events
-		void pollEvents()
-		{
-			// clear 'changed' bit from keyboard key state
-			for(int i=0; i < LDK_MAX_KBD_KEYS ; i++)
-			{
-				_platform.keyboardState.key[i] &= ~LDK_KEYSTATE_CHANGED;
-			}
-		
-			// clear 'changed' bit from gamepads buttons state
-			for (uint32 id=0; id < LDK_MAX_GAMEPADS; id++)
-			{
-				// clear 'changed' bit from input key state
-				for(uint32 i=0; i < LDK_GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
-				{
-					_platform.gamepadState[id].button[i] &= ~LDK_KEYSTATE_CHANGED;
-				}
-			}
-		
-			MSG msg;
-			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-		
-				LDKWindow* window = findWindowByHandle(msg.hwnd);
-				switch(msg.message)
-				{
-					//LDK_ASSERT(window != nullptr, "Could not found a matching window for the current event hwnd");
-					case WM_KEYDOWN:
-					case WM_KEYUP:
-						{
-							// bit 30 has previous key state
-							// bit 31 has current key state
-							// shitty fact: 0 means pressed, 1 means released
-							int8 isDown = (msg.lParam & (1 << 31)) == 0;
-							int8 wasDown = (msg.lParam & (1 << 30)) != 0;
-							int16 vkCode = msg.wParam;
-							_platform.keyboardState.key[vkCode] = ((isDown != wasDown) << 1) | isDown;
-							continue;
-						}
-						break;
-		
-						// Cursor position
-					case WM_MOUSEMOVE:
-						{
-						}
-						break;
-				}
-			}
-		}
+	return false;
+}
 
-		ldk::platform::SharedLib* loadSharedLib(char* sharedLibName)
-		{
-			HMODULE hmodule = LoadLibrary(sharedLibName);
-			
-			if (!hmodule)
-				return nullptr;
+const void* getFunctionFromSharedLib(const ldk::platform::SharedLib* sharedLib, const char* function)
+{
+	return GetProcAddress(sharedLib->handle, function);
+}
 
-			//TODO: Use custom allocation here
-			SharedLib* sharedLib = new SharedLib;
-			sharedLib->handle = hmodule;
-			return sharedLib;
-		}
-		
-		bool unloadSharedLib(ldk::platform::SharedLib* sharedLib)
-		{
-			if (sharedLib->handle && FreeLibrary(sharedLib->handle))
-			{
-				sharedLib->handle = NULL;
-				delete sharedLib;
-				return true;
-			}
+void* memoryAlloc(size_t size)
+{
+	LDK_ASSERT(size>0, "allocation size must be greater than zero");
+	void* mem =
+		VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	if (mem==0) { LogError("Error allocating memory"); }
+	return mem;
+}
 
-			return false;
-		}
-		
-		const void* getFunctionFromSharedLib(const ldk::platform::SharedLib* sharedLib, const char* function)
-		{
-			return GetProcAddress(sharedLib->handle, function);
-		}
-	} // namespace platform
+void* loadFileToBuffer(const char8* fileName, size_t* bufferSize)
+{
+	HANDLE hFile = CreateFile((LPCSTR)fileName,
+			GENERIC_READ,
+			FILE_SHARE_READ,
+			0,
+			OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL,
+			0);
+
+	DWORD err = GetLastError();
+
+	if (hFile == INVALID_HANDLE_VALUE) 
+	{
+		LogError("Could not open file '%s'", fileName);
+		return nullptr;
+	}
+
+	int32 fileSize;
+	fileSize = GetFileSize(hFile, 0);
+
+	if ( bufferSize != nullptr) { *bufferSize = fileSize; }
+	//TODO: alloc memory from the proper Heap
+	void *buffer = memoryAlloc(fileSize);
+	uint32 bytesRead;
+	if (!buffer || ReadFile(hFile, buffer, fileSize, (LPDWORD)&bytesRead, 0) == 0)
+	{
+		err = GetLastError();
+		LogError("%d Could not read file '%s'", err, fileName);
+		return nullptr;
+	}
+
+	CloseHandle(hFile);
+	return buffer;
+}
+
+} // namespace platform
 } // namespace ldk

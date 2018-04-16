@@ -3,6 +3,9 @@
 #include "ldk_platform.h"
 #include "ldk_keyboard.cpp"
 #include "ldk_gamepad.cpp"
+#include "ldk_ini.cpp"
+//TODO: use a higher level renderer interface here
+//#include "ldk_renderer_gl.cpp"
 
 void windowCloseCallback(ldk::platform::LDKWindow* window)
 {
@@ -66,6 +69,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 	ldk::ldk_keyboard_initApi(&core.keyboard);
 	ldk::ldk_gamepad_initApi(&core.gamepad);
 
+
+	ldk::ldk_ini_parseFile((const char8*) "teste.txt");
 	game.init(&core);
 
 	game.start();

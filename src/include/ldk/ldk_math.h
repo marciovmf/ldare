@@ -15,10 +15,10 @@
 namespace ldk
 {
 
-	float lerp(float start, float end, float f)
-	{
-		return (start * (1.0f - f)) + (end * f);
-	}
+//	float lerp(float start, float end, float f)
+//	{
+//		return (start * (1.0f - f)) + (end * f);
+//	}
 
 	struct Rectangle
 	{
