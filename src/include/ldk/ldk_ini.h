@@ -24,10 +24,10 @@ namespace ldk
 		VariantType type;
 		union 
 		{
-			uint8 boolvalue;
+			uint8 boolValue;
+			Vec3 vec3Value;
 			uint32 intValue;
 			float floatValue;
-			Vec3 vec3Value;
 			Vec4 vec4Value;
 			StringLiteral stringValue;
 		};
