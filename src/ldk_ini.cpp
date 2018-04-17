@@ -235,7 +235,6 @@ namespace ldk
 		return false;
 	}
 
-
 	// parse identifier + = + rvalue
 	bool parseAssignment(_IniBufferStream& stream, Statement* statement)
 	{
@@ -349,13 +348,15 @@ namespace ldk
 
 	static void skipEmptyLines(_IniBufferStream& stream)
 	{
-		char8 c; 
-		do 
+		char8 c;
+		do
 		{
 			skipWhiteSpace(stream);
 			c = stream.getc();
 		} while (c == '\n');
-		stream.ungetc();
+
+		if (c != EOF)
+			stream.ungetc();
 	}
 
 	bool ldk_ini_parseFile(const char8* fileName)
@@ -373,11 +374,11 @@ namespace ldk
 		Statement statement;
 		bool noError = true;
 
-		while (stream.peek() != EOF && noError)
+		while (noError)
 		{
 			skipEmptyLines(stream);
 
-			if (parseStatement(stream, &statement))
+			if (stream.peek() != EOF && parseStatement(stream, &statement))
 			{
 				if ( statement.type == StatementType::SECTION_DECLARATION)
 				{
