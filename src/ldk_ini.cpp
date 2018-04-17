@@ -124,27 +124,25 @@ namespace ldk
 	static bool parseIdentifier(_IniBufferStream& stream, Identifier* identifier)
 	{
 		char8* identifierText = stream.pos;
+		uint32 identifierLength = 0;
 		char8 c = stream.getc();
 
-		if (!isLetter(c))
+		if (isLetter(c))
 		{
-			LogUnexpectedToken(c, stream.line, stream.column);
-			return false;
+			do
+			{
+				++identifierLength;
+				c = stream.getc();
+			} while(isLetter(c) || isDigit(c) || c == '_' || c == '-');
+
+			stream.ungetc();
+			//TODO: Make sure identifier names are 127bytes or less
+			strncpy((char*)&(identifier->name[0]),(const char*) identifierText, identifierLength);
+			return true;
 		}
 
-		uint32 identifierLength = 0;
-		do
-		{
-			c = stream.getc();
-			++identifierLength;
-		}while (isLetter(c) || isDigit(c) || c == '_' || c == '-');
-
-		stream.ungetc();
-
-		//copy identifier name to buffer
-		//TODO: Make sure identifier names are 127bytes or less
-		strncpy((char*)&(identifier->name[0]),(const char*) identifierText, identifierLength);
-		return true;
+		LogError("Unexpected token '%c' at %d,%d while parsing identifier", c, stream.line, stream.column);
+		return false;
 	}
 
 	// Returns -1 if unary '-', or +1 if unary '+'
@@ -163,64 +161,9 @@ namespace ldk
 			*signal = 1;
 			return true;
 		}
+
+		*signal = 1;
 		return false;
-	}
-
-	inline bool parseIntLiteral(_IniBufferStream& stream, Variant* variant)
-	{
-		char8 c = stream.getc();
-		if (!isDigit(c))
-		{
-			LogUnexpectedToken(c, stream.line, stream.column);
-			return false;
-		}
-		
-		char8* literalStart = stream.pos;
-		uint32 literalLength = 0;
-
-		while(isDigit(c))
-		{
-			++literalLength;
-			c = stream.getc();
-		}
-
-		stream.ungetc();
-
-		variant->type = VariantType::INT;
-		char buff[16];
-		strncpy(buff, (const char*)literalStart, literalLength);
-		variant->intValue = atoi(buff);
-
-		return true;
-	}
-
-	inline bool parseFractionLiteral(_IniBufferStream& stream, Variant* variant)
-	{
-		char8 c = stream.getc();
-
-		if (c != '.')
-		{
-			LogUnexpectedToken(c, stream.line, stream.column);
-			return false;
-		}
-		
-		char8* literalStart = stream.pos;
-		uint32 literalLength = 0;
-
-		while(isDigit(c))
-		{
-			++literalLength;
-			c = stream.getc();
-		}
-
-		stream.ungetc();
-		variant->type = VariantType::FLOAT;
-		char buff[16];
-
-		strncpy(buff, (const char*)literalStart, literalLength);
-		variant->intValue = atof(buff);
-
-		return true;
 	}
 
 	static bool parseNumericLiteral(_IniBufferStream& stream, Variant* variant)
@@ -229,61 +172,42 @@ namespace ldk
 		parseUnarySignal(stream, &signal);
 		skipWhiteSpace(stream);
 
-		char8 c = stream.peek();
-		char8* p = stream.pos;
+		char8* literalStart = stream.pos;
 		uint32 literalLength = 0;
+		int8 dotCount = 0;
+		char8 c;
 
-		char buff[64];
-		c = stream.peek();
-	
-		// float starting with a dot
-		if ( c == '.')
+		do 
 		{
-			if (!parseFractionLiteral(stream, variant))
-			{
-				LogError("Error parsing float literal at %d,%d", stream.line, stream.column);
-				return false;
-			}
-
-			skipWhiteSpace(stream);
 			c = stream.getc();
-			if (c != '\n')
-			{
-				LogUnexpectedToken(c, stream.line, stream.column);
-				return false;
-			}
+			if (c == '.') ++dotCount;
+			++literalLength;
+		} while(isDigit(c) || (c == '.' && dotCount < 2));
 
+		stream.ungetc();
+		--literalLength;
+
+		const int maxBuffLen = 32;
+		char buff[maxBuffLen]; //I know, I should check the limit of an int/float... someday
+
+		if ( literalLength >= maxBuffLen)
+			literalLength = maxBuffLen - 1;
+
+		strncpy(buff, (const char*) literalStart, literalLength);
+
+		if (dotCount > 0)
+		{
 			variant->type = VariantType::FLOAT;
+			variant->floatValue = atof(buff) * signal;
 		}
 		else
 		{
-			if (!parseIntLiteral(stream, variant))
-			{
-				LogError("Error parsing numeric literal at %d,%d", stream.line, stream.column);
-				return false;
-			}
-
-			c = stream.peek();
-			if (c == '.')
-			{
-				int32 wholePart = variant->intValue;
-				if (!parseFractionLiteral(stream, variant))
-				{
-					LogError("Error parsing float literal at %d,%d", stream.line, stream.column);
-					return false;
-				}
-				
-				variant->type = VariantType::FLOAT;
-				variant->floatValue += wholePart;
-			}
-			else
-			{
-				variant->type = VariantType::INT;
-			}
+			variant->type = VariantType::INT;
+			variant->intValue = atoi(buff) * signal;
 		}
 		return true;
 	}
-	
+
 	static bool parseRValue(_IniBufferStream& stream, Variant* variant)
 	{
 		skipWhiteSpace(stream);
@@ -292,14 +216,80 @@ namespace ldk
 		return false;
 	}
 
+	static bool toBooValue(char8* str, bool* boolValue)
+	{
+		uint32 len = strlen((char*)str);
+
+		if ( strncmp((char*)str, "true", len) == 0)
+		{
+			*boolValue = true;
+			return true;
+		}
+
+		if ( strncmp((char*)str, "false", len) == 0)
+		{
+			*boolValue = false;
+			return true;
+		}
+
+		return false;
+	}
+
+
 	// parse identifier + = + rvalue
 	bool parseAssignment(_IniBufferStream& stream, Statement* statement)
 	{
+		char8 c;
+		statement->type = StatementType::ASSIGNMENT;
+		Identifier tempIdentifier = {};
 
-		// parse identifier
-		// getc() == '='
-		// parseRValue()
-		// getc() == '\n'
+		if (parseIdentifier(stream, &statement->assignment.identifier))
+		{
+			skipWhiteSpace(stream);
+
+			c = stream.getc();
+			if ( c == '=')
+			{
+				skipWhiteSpace(stream);
+				c = stream.peek();
+
+				// Bool literal
+				if (isLetter(c))
+				{
+					if (parseIdentifier(stream, &tempIdentifier))
+					{
+						bool boolValue;
+						if (toBooValue(&(tempIdentifier.name[0]), &boolValue))
+						{
+							statement->assignment.value.type = VariantType::BOOL;
+							statement->assignment.value.boolValue = (uint8)boolValue;
+							return true;
+						}
+						
+						LogError("Unexpected identifier '%s' at %d,%d while parsing assignment", 
+							tempIdentifier.name, stream.line, stream.column);
+						return false;
+					}
+				}
+
+				// string literal
+//				else if (c == '"')
+//				{
+//					stream.getc();
+//					do
+//					{
+//					}while();
+//					stream.getc();
+//				}
+
+				// Nuneric literal
+				else if (parseNumericLiteral(stream, &statement->assignment.value))
+				{
+					return true;
+				}
+			}
+		}
+		LogError("Unexpected token '%c' at %d,%d while parsing assignment", c, stream.line, stream.column);
 		return false;
 	}
 
@@ -307,54 +297,65 @@ namespace ldk
 	static bool parseSectionDeclaration(_IniBufferStream& stream, Statement* statement)
 	{
 		char8 c = stream.getc();
-		if (c != '[')
+
+		if (c == '[')
 		{
-			LogUnexpectedToken(c, stream.line, stream.column);
-			return false;
+			skipWhiteSpace(stream);
+			if (parseIdentifier(stream, &statement->sectionDeclaration.sectionName))
+			{
+				skipWhiteSpace(stream);
+				c = stream.getc();
+				if ( c == ']')
+				{
+					statement->type = StatementType::SECTION_DECLARATION;
+					return true;
+				}
+			}
 		}
 
-		if (!parseIdentifier(stream, &statement->sectionDeclaration.sectionName))
-		{
-			LogError("Error parsing identifier at %d,%d", stream.line, stream.column);
-			return false;
-		}
-
-		c = stream.getc();
-		if (c != ']')
-		{
-			LogUnexpectedToken(c, stream.line, stream.column);
-			return false;
-		}
-	
-		skipWhiteSpace(stream);
-
-		c = stream.getc();
-		if (c != '\n')
-		{
-			LogUnexpectedToken(c, stream.line, stream.column);
-			return false;
-		}
-
-		statement->type = StatementType::SECTION_DECLARATION;
-		return true;
+		LogError("Error parsing identifier at %d,%d", stream.line, stream.column);
+		return false;
 	}
 
 	static bool parseStatement(_IniBufferStream& stream, Statement* statement)
 	{
 		skipWhiteSpace(stream);
-
+		*statement = {};
 		statement->line = stream.line;
 		statement->column = stream.column;
+		bool success = false;
 
 		char8 c = stream.peek();
 		if (c == '[')
-			return parseSectionDeclaration(stream, statement);
+			success = parseSectionDeclaration(stream, statement);
 		else if (isLetter(c))
-			return parseAssignment(stream, statement);
+			success = parseAssignment(stream, statement);
 		else
-				LogUnexpectedToken(c, stream.line, stream.column);
-		
+			LogUnexpectedToken(c, stream.line, stream.column);
+
+		skipWhiteSpace(stream);
+
+		// skip comment
+		if (success)
+		{
+			c = stream.getc();
+			if (c == '\n')
+			{
+				return true;
+			}
+		}
 		return false;
+	}
+
+	static void skipEmptyLines(_IniBufferStream& stream)
+	{
+		char8 c; 
+		do 
+		{
+			skipWhiteSpace(stream);
+			c = stream.getc();
+		} while (c == '\n');
+		stream.ungetc();
 	}
 
 	bool ldk_ini_parseFile(const char8* fileName)
@@ -370,12 +371,44 @@ namespace ldk
 		_IniBufferStream stream(buffer, fileSize);
 
 		Statement statement;
-		while (parseStatement(stream, &statement) )
+		bool noError = true;
+
+		while (stream.peek() != EOF && noError)
 		{
-			if ( statement.type == StatementType::SECTION_DECLARATION)
+			skipEmptyLines(stream);
+
+			if (parseStatement(stream, &statement))
 			{
-				LogInfo("%d, %d SECTION DECLARATION  = '%s'", statement.line, statement.column,
-						statement.sectionDeclaration.sectionName);
+				if ( statement.type == StatementType::SECTION_DECLARATION)
+				{
+					LogInfo("%d, %d SECTION DECLARATION  = '%s'", statement.line, statement.column,
+							statement.sectionDeclaration.sectionName);
+				}
+				else if ( statement.type == StatementType::ASSIGNMENT)
+				{
+					if (statement.assignment.value.type == VariantType::FLOAT)
+					{
+						LogInfo("%d, %d FLOAT ASSIGNMENT  '%s' = '%f'", statement.line, statement.column,
+								statement.assignment.identifier.name, 
+								statement.assignment.value.floatValue);
+					}
+					else if (statement.assignment.value.type == VariantType::INT)
+					{
+						LogInfo("%d, %d INT ASSIGNMENT  '%s' = '%d'", statement.line, statement.column,
+								statement.assignment.identifier.name, 
+								statement.assignment.value.intValue);
+					}
+					else if (statement.assignment.value.type == VariantType::BOOL)
+					{
+						LogInfo("%d, %d BOOL ASSIGNMENT  '%s' = '%s'", statement.line, statement.column,
+								statement.assignment.identifier.name, 
+								statement.assignment.value.boolValue ? "true" : "false");
+					}
+				}
+			}
+			else
+			{
+				noError = false;
 			}
 		}
 
