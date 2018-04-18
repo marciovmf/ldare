@@ -272,14 +272,38 @@ namespace ldk
 				}
 
 				// string literal
-//				else if (c == '"')
-//				{
-//					stream.getc();
-//					do
-//					{
-//					}while();
-//					stream.getc();
-//				}
+				else if (c == '"')
+				{
+					uint32 stringLen =0;
+					char8* stringStart = stream.pos+1;
+
+					stream.getc();
+					do
+					{
+						++stringLen;
+						c = stream.getc();
+
+					}while(c != '"' && c != EOF);
+					--stringLen;
+
+					if ( c == '"')
+					{
+						//HACK: store the proper string somewere else
+						// null terminate the string
+						if ( stringLen > 0)
+						{
+							*(stringStart + stringLen) = 0; 
+						}
+
+						statement->assignment.value.type = VariantType::STRING;
+						statement->assignment.value.stringValue.lenght = stringLen;
+						statement->assignment.value.stringValue.start = stringStart;
+						return true;
+					}
+
+					LogError("Unexpected EOF at %d,%d while parsing string", stream.line, stream.column);
+					return false; // maybe file terminated before string gets closed
+				}
 
 				// Nuneric literal
 				else if (parseNumericLiteral(stream, &statement->assignment.value))
@@ -404,6 +428,12 @@ namespace ldk
 						LogInfo("%d, %d BOOL ASSIGNMENT  '%s' = '%s'", statement.line, statement.column,
 								statement.assignment.identifier.name, 
 								statement.assignment.value.boolValue ? "true" : "false");
+					}
+					else if (statement.assignment.value.type == VariantType::STRING)
+					{
+						LogInfo("%d, %d STRING ASSIGNMENT  '%s' = '%s'", statement.line, statement.column,
+								statement.assignment.identifier.name, 
+								statement.assignment.value.stringValue.start);
 					}
 				}
 			}
