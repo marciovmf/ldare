@@ -130,7 +130,7 @@ struct BITMAP_FILE_HEADER
 
 	void freeAsset(void* memory, size_t size)
 	{
-		//TODO: This is a bit hacky. I do not whant to free knwo static memory
+		//TODO: This is still a bit hacky.
 		ldare::platform::memoryFree(memory, size);
 	}
 
