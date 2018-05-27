@@ -5,34 +5,25 @@
 #define MEGABYTE(value) (size_t) (KILOBYTE(value) * 1024LL)
 #define GIGABYTE(value) (size_t) (MEGABYTE(value) * 1024LL)
 
+#ifdef _LDK_DEBUG_		
+#	define LDK_HEAP_INI_DATA 1
+#	define LDK_HEAP_MATERIAL 2
+#	define LDK_HEAP_SHADER 3
+#endif
 
-namespace ldare
+#include <cstdlib>
+
+namespace ldk
 {
-		struct Heap;
-		struct HeapAllocationHeader
-		{
-			Heap* heap; 					// Pool that allocated this memory;
-			HeapAllocationHeader* prev;
-			HeapAllocationHeader* next;
-		};
 
-		struct Heap
-		{
-			size_t memorySize; 										// virtual memory size
-			size_t objectSize; 										// size of objects this heap contais
-			size_t totalUsed; 										// total amount of memory used
-			HeapAllocationHeader* freeMemList; 		// start of free heap object list
-			HeapAllocationHeader* usedMemList; 		// start of used heap object list
-		};
+	struct Heap
+	{
+		void* memory;
+		uint32 size;
+		uint32 free;
+	};
 
-		//---------------------------------------------------------------------------
-		// Get memory from heap
-		//---------------------------------------------------------------------------
-		void* getHeapMemory(ldare::Heap* heap);
-		
-		//---------------------------------------------------------------------------
-		// Free heap memory
-		//---------------------------------------------------------------------------
-		void freeHeapMemory(void* memory);
+	bool ldk_memory_resizeHeap(Heap* heap, size_t minimum);
+	bool ldk_memory_allocHeap(Heap* heap, uint32 initialSize);
 }
 #endif		// _LDK_MEMORY_H_

@@ -1,14 +1,12 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 #define LogUnexpectedToken(expected, line, column)	LogError("Expecting letter while parsing identifier but found %c at %d,%d", (expected), (line), (column));
 #define LDK_INI_MAX_IDENTIFIER 128
-
+#define LDK_INI_DEFAULT_BUFFER_SIZE 512
 namespace ldk
 {
-
 	struct _IniBufferStream
 	{
 		char8* buffer;
@@ -18,12 +16,17 @@ namespace ldk
 		char8* pos;
 		char8* eofAddr;
 
+		inline bool eof()
+		{
+			return pos >= eofAddr;
+		}
+
 		_IniBufferStream(void* buffer, size_t size):
 			buffer((char8*)buffer), line(1), column(1), pos((char8*)buffer), eofAddr((char8*)buffer+size) {}
 
 		char8 peek()
 		{
-			if ( pos >= eofAddr)
+			if (eof())
 				return EOF;
 
 			return *pos;
@@ -71,7 +74,8 @@ namespace ldk
 
 	struct Identifier
 	{
-		char8 name[LDK_INI_MAX_IDENTIFIER];
+		char8* start;
+		uint32 length;
 	};
 
 	struct SectionDeclarationStatement
@@ -79,10 +83,24 @@ namespace ldk
 		Identifier sectionName;
 	};
 
+	struct Literal
+	{
+		VariantType type;
+		union 
+		{
+			Identifier stringValue;
+			Vec4 vec4Value;
+			Vec3 vec3Value;
+			float floatValue;
+			uint32 intValue;
+			uint8 boolValue;
+		};
+	};
+
 	struct AssignmentStatement
 	{
 		Identifier identifier;
-		Variant value;
+		Literal value;
 	};
 
 	struct Statement
@@ -101,6 +119,18 @@ namespace ldk
 
 	};
 
+	int32 stringToHash(char8* str)
+	{
+		uint32 stringLen = strlen((const char*)str);
+		int32 hash = 0;
+		for (uint32 i = 0; i < stringLen; i++)
+		{
+			hash += ((char8)* str) * i;
+		}
+
+		return hash;
+	}
+	
 	inline bool isLetter(char8 c)
 	{
 		return (c >= 64 && c <= 90) || (c >= 97 && c <= 122);
@@ -127,6 +157,8 @@ namespace ldk
 		uint32 identifierLength = 0;
 		char8 c = stream.getc();
 
+		size_t usedData;
+
 		if (isLetter(c))
 		{
 			do
@@ -135,10 +167,20 @@ namespace ldk
 				c = stream.getc();
 			} while(isLetter(c) || isDigit(c) || c == '_' || c == '-');
 
+			identifier->start = identifierText;
+			identifier->length = identifierLength;
+
 			stream.ungetc();
 			//TODO: Make sure identifier names are 127bytes or less
-			strncpy((char*)&(identifier->name[0]),(const char*) identifierText, identifierLength);
-			return true;
+			
+			if (identifierLength < 128)
+			{
+				//strncpy((char*)&(identifier->name[0]),(const char*) identifierText, identifierLength);
+				return true;
+			}
+
+			LogError("Identifier too big at %d,%d while parsing identifier", stream.line, stream.column);
+			return false;
 		}
 
 		LogError("Unexpected token '%c' at %d,%d while parsing identifier", c, stream.line, stream.column);
@@ -166,7 +208,7 @@ namespace ldk
 		return false;
 	}
 
-	static bool parseNumericLiteral(_IniBufferStream& stream, Variant* variant)
+	static bool parseNumericLiteral(_IniBufferStream& stream, Literal* variant)
 	{
 		int32 signal;
 		parseUnarySignal(stream, &signal);
@@ -216,17 +258,32 @@ namespace ldk
 		return false;
 	}
 
-	static bool toBooValue(char8* str, bool* boolValue)
+	static bool identifierCompare(Identifier& identifier, const char* str)
 	{
-		uint32 len = strlen((char*)str);
+		int32 length = strlen(str);
+		if (length != identifier.length)
+			return false;
 
-		if ( strncmp((char*)str, "true", len) == 0)
+		for(uint32 i=0; i < identifier.length; i++)
+		{
+			if (identifier.start[i] != str[i])
+				return false;
+		}
+
+		return true;
+	}
+
+	static bool toBooValue(Identifier& identifier, bool* boolValue)
+	{
+		uint32 len = identifier.length;
+
+		if (identifierCompare(identifier, "true"))
 		{
 			*boolValue = true;
 			return true;
 		}
 
-		if ( strncmp((char*)str, "false", len) == 0)
+		if ( identifierCompare(identifier, "false"))
 		{
 			*boolValue = false;
 			return true;
@@ -245,7 +302,6 @@ namespace ldk
 		if (parseIdentifier(stream, &statement->assignment.identifier))
 		{
 			skipWhiteSpace(stream);
-
 			c = stream.getc();
 			if ( c == '=')
 			{
@@ -258,15 +314,15 @@ namespace ldk
 					if (parseIdentifier(stream, &tempIdentifier))
 					{
 						bool boolValue;
-						if (toBooValue(&(tempIdentifier.name[0]), &boolValue))
+						if (toBooValue(tempIdentifier, &boolValue))
 						{
 							statement->assignment.value.type = VariantType::BOOL;
 							statement->assignment.value.boolValue = (uint8)boolValue;
 							return true;
 						}
-						
-						LogError("Unexpected identifier '%s' at %d,%d while parsing assignment", 
-							tempIdentifier.name, stream.line, stream.column);
+
+						LogError("Unexpected identifier '%.*s' at %d,%d while parsing assignment", 
+								tempIdentifier.length, tempIdentifier.start, stream.line, stream.column);
 						return false;
 					}
 				}
@@ -288,16 +344,9 @@ namespace ldk
 
 					if ( c == '"')
 					{
-						//HACK: store the proper string somewere else
-						// null terminate the string
-						if ( stringLen > 0)
-						{
-							*(stringStart + stringLen) = 0; 
-						}
-
 						statement->assignment.value.type = VariantType::STRING;
-						statement->assignment.value.stringValue.lenght = stringLen;
 						statement->assignment.value.stringValue.start = stringStart;
+						statement->assignment.value.stringValue.length = stringLen;
 						return true;
 					}
 
@@ -383,58 +432,162 @@ namespace ldk
 			stream.ungetc();
 	}
 
-	bool ldk_ini_parseFile(const char8* fileName)
+	static uint32 variantDataSize(Literal& literal)
+	{
+		switch (literal.type)
+		{
+			case ldk::VariantType::BOOL:
+				return sizeof(bool);
+				break;
+			case ldk::VariantType::INT:
+				return sizeof(uint32);
+				break;
+			case ldk::VariantType::FLOAT:
+				return sizeof(float);
+				break;
+			case ldk::VariantType::STRING:
+				return literal.stringValue.length + 1;
+				break;
+		}
+
+		LogWarning("Unknown literal type");
+		return 0;
+	}
+
+	// Returns the offset of the section from the start of the heap
+	static uint32 pushVariantSection(Heap& heap, Identifier& identifier)
+	{
+		uint32 necessarySize = sizeof(VariantSection);
+
+		if(heap.free < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
+		{
+				return -1;
+		}
+
+		VariantSection* section = (VariantSection*)((char*)heap.memory + heap.size - heap.free);
+		heap.free -= sizeof(VariantSection);
+
+		strncpy((char*)section->name, (char*)identifier.start, identifier.length);
+		section->name[identifier.length] = 0;
+		section->hash = stringToHash(section->name);
+		section->totalSize = sizeof(VariantSection);
+		section->variantCount = 0;
+		
+		// Increment the number of section on the section root
+		VariantSectionRoot* sectionRoot = (VariantSectionRoot*) heap.memory;
+		++sectionRoot->sectionCount;
+
+		int32 offset = (char*)section - (char*)heap.memory;
+		return offset;
+	}
+
+	static bool pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal)
+	{
+		uint32 necessarySize = sizeof(Variant) + variantDataSize(literal);
+
+
+		if(heap.free < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
+		{
+			return false;
+		}
+		
+		Variant* variant = (Variant*)((char*)heap.memory + heap.size - heap.free);
+		heap.free -= necessarySize;
+
+		// update section info
+		VariantSection* section = (VariantSection*)(((char*)heap.memory) + sectionOffset);
+		section->totalSize += necessarySize;
+		++section->variantCount;
+
+		// save variant data into the stream
+		strncpy((char*)variant->key,(char*) identifier.start, identifier.length);
+		variant->key[identifier.length] = 0;
+		variant->hash = stringToHash(variant->key);
+		variant->type = literal.type;
+		variant->size = necessarySize;
+
+		char* dataStart = ((char*)variant) + sizeof(Variant);
+
+		switch (literal.type)
+		{
+			case ldk::VariantType::BOOL:
+				*((bool*)dataStart) = literal.boolValue;
+				break;
+			case ldk::VariantType::INT:
+				*((int32*)dataStart) = literal.intValue;
+				break;
+			case ldk::VariantType::FLOAT:
+				*((float*)dataStart) = literal.floatValue;
+				break;
+			case ldk::VariantType::STRING:
+				strncpy(dataStart, (char*)literal.stringValue.start, literal.stringValue.length);
+				dataStart[literal.stringValue.length] = 0;
+				break;
+			default:
+				return false;
+				break;
+		}
+
+		return true;
+	}
+
+	// returns the offset of the root section
+	static uint32 pushRootSection(Heap& heap)
+	{
+		char* rootSectionName = "__ldk_root_section__";
+		uint32 rootSectionNameLen = strlen(rootSectionName);
+		int32 rootSectionOffset = sizeof(ldk::VariantSectionRoot);
+
+		// initialize the number of section on the section root
+		VariantSectionRoot* sectionRoot = (VariantSectionRoot*) heap.memory;
+		sectionRoot->sectionCount = 0;
+
+		// Account for the root section
+		heap.free -= rootSectionOffset;
+		Identifier rootSectionIdentifier = {(char8*)rootSectionName, rootSectionNameLen};
+
+		return pushVariantSection(heap, rootSectionIdentifier);
+			
+	}
+
+	VariantSectionRoot* ldk_config_parseFile(const char8* fileName)
 	{
 		size_t fileSize;
 		void* buffer = platform::loadFileToBuffer(fileName, &fileSize);
 
 		if (!buffer)
 		{
-			return false;
+			return nullptr;
 		}
-
+		
 		_IniBufferStream stream(buffer, fileSize);
+		Heap heap;
+		ldk_memory_allocHeap(&heap, LDK_INI_DEFAULT_BUFFER_SIZE);
+
+		int32 currentSectionOffset = pushRootSection(heap);
 
 		Statement statement;
 		bool noError = true;
 
-		while (noError)
+		while (!stream.eof() && noError)
 		{
 			skipEmptyLines(stream);
+			
+			if (stream.peek() == EOF)
+				continue;
 
-			if (stream.peek() != EOF && parseStatement(stream, &statement))
+			if (parseStatement(stream, &statement))
 			{
 				if ( statement.type == StatementType::SECTION_DECLARATION)
 				{
-					LogInfo("%d, %d SECTION DECLARATION  = '%s'", statement.line, statement.column,
-							statement.sectionDeclaration.sectionName);
+					currentSectionOffset = pushVariantSection(heap, statement.sectionDeclaration.sectionName);
 				}
 				else if ( statement.type == StatementType::ASSIGNMENT)
 				{
-					if (statement.assignment.value.type == VariantType::FLOAT)
-					{
-						LogInfo("%d, %d FLOAT ASSIGNMENT  '%s' = '%f'", statement.line, statement.column,
-								statement.assignment.identifier.name, 
-								statement.assignment.value.floatValue);
-					}
-					else if (statement.assignment.value.type == VariantType::INT)
-					{
-						LogInfo("%d, %d INT ASSIGNMENT  '%s' = '%d'", statement.line, statement.column,
-								statement.assignment.identifier.name, 
-								statement.assignment.value.intValue);
-					}
-					else if (statement.assignment.value.type == VariantType::BOOL)
-					{
-						LogInfo("%d, %d BOOL ASSIGNMENT  '%s' = '%s'", statement.line, statement.column,
-								statement.assignment.identifier.name, 
-								statement.assignment.value.boolValue ? "true" : "false");
-					}
-					else if (statement.assignment.value.type == VariantType::STRING)
-					{
-						LogInfo("%d, %d STRING ASSIGNMENT  '%s' = '%s'", statement.line, statement.column,
-								statement.assignment.identifier.name, 
-								statement.assignment.value.stringValue.start);
-					}
+					bool isStringAssignment = false;
+
+					pushVariant(heap, currentSectionOffset, 
+							statement.assignment.identifier, statement.assignment.value);
 				}
 			}
 			else
@@ -443,6 +596,93 @@ namespace ldk
 			}
 		}
 
-		return true;
+		if (noError)
+			return (VariantSectionRoot*) heap.memory;
+		else
+			return nullptr;
 	}
+
+	VariantSection* ldk_config_getSection(VariantSectionRoot* rootSection, const char* name)
+	{
+		int32 hash = stringToHash((char8*)name);
+		//First section is ALWAYS after the section root
+		VariantSection* section = (VariantSection*) ((char*)rootSection + sizeof(VariantSectionRoot));
+
+		for (int i = 0; i < rootSection->sectionCount; i++) 
+		{
+			if (section->hash == hash && strncmp((char*)section->name, (char*) name, LDK_MAX_IDENTIFIER_SIZE) == 0)
+			{
+				return section;
+			}
+
+			section = (VariantSection*)((char*)section + section->totalSize);
+		}
+		return nullptr;
+	}
+
+	Variant* ldk_config_getVariant(const VariantSection* section, const char* key)
+	{
+		int32 hash = stringToHash((char8*)key);
+		//Variant* v = (ldk::Variant*) (((char*)section) + sizeof(ldk::VariantSection));
+		Variant* v = (ldk::Variant*)(section + 1);
+
+		for (int i = 0; i < section->variantCount; i++)
+		{
+			if ((v->hash == hash) && (strncmp((const char*)key, (const char*)v->key, LDK_MAX_IDENTIFIER_SIZE) == 0))
+					return v;
+
+			v = (Variant*)((char*)v + v->size);
+		}
+
+		return nullptr;
+	}
+
+	bool ldk_config_getInt(VariantSection* section, const char* key, int32* intValue)
+	{
+		Variant* v = ldk_config_getVariant(section, key);
+		if (v != nullptr && v->type == VariantType::INT)
+		{
+			*intValue = *(int*)(v+1);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool ldk_config_getBool(VariantSection* section, const char* key, bool* boolValue)
+	{
+		Variant* v = ldk_config_getVariant(section, key);
+		if (v != nullptr && v->type == VariantType::BOOL)
+		{
+			*boolValue = *(bool*)(v+1);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool ldk_config_getFloat(VariantSection* section, const char* key, float* floatValue)
+	{
+		Variant* v = ldk_config_getVariant(section, key);
+		if (v != nullptr && v->type == VariantType::FLOAT)
+		{
+			*floatValue = *(float*)(v+1);
+			return true;
+		}
+
+		return false;
+	}
+
+	const bool ldk_config_getString(VariantSection* section, const char* key, char** stringValue)
+	{
+		Variant* v = ldk_config_getVariant(section, key);
+		if (v != nullptr && v->type == VariantType::STRING)
+		{
+			*stringValue = ((char*)++v);
+			return true;
+		}
+
+		return false;
+	}
+
 }

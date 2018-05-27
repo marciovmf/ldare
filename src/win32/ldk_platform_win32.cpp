@@ -612,7 +612,21 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
 // Toggles the window fullscreen/windowed
 bool toggleFullScreen(LDKWindow* window, bool fullScreen)
 {
-	return LDK_FAIL;
+	//TODO: This fullscreen sucks! Do it properly!
+	//  if fullscreen, save current window width and height
+	//  if ! fullscreen, resore previous windows width and height
+
+ window->fullscreenFlag = fullScreen;
+ 
+ if (!fullScreen)
+	 return fullScreen;
+
+ int32 maxWidth = GetSystemMetrics(SM_CXFULLSCREEN);
+ int32 maxHeight = GetSystemMetrics(SM_CYFULLSCREEN);
+
+ SetWindowLong(window->hwnd, GWL_STYLE, WS_VISIBLE | WS_DLGFRAME | WS_MAXIMIZE);
+ SetWindowPos( window->hwnd, NULL,0, 0,maxWidth, maxHeight,0);
+ return true;
 }
 
 // Destroys a window

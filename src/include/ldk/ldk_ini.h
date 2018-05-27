@@ -1,6 +1,8 @@
 #ifndef _LDK_INI_H_
 #define _LDK_INI_H_
 
+#define LDK_MAX_IDENTIFIER_SIZE 63
+
 namespace ldk
 {
 	enum VariantType
@@ -13,24 +15,26 @@ namespace ldk
 		VEC4
 	};
 
-	struct StringLiteral
-	{
-		char8* start;
-		uint32 lenght;
-	};
-
 	struct Variant
 	{
+		char8 key[LDK_MAX_IDENTIFIER_SIZE];
+		uint32 size;
 		VariantType type;
-		union 
-		{
-			uint8 boolValue;
-			Vec3 vec3Value;
-			uint32 intValue;
-			float floatValue;
-			Vec4 vec4Value;
-			StringLiteral stringValue;
-		};
+		int32 hash;
+	};
+
+	struct VariantSection
+	{
+		int32 hash;
+		uint32 variantCount;
+		uint32 totalSize; //total size of variant section, including this header
+		char8 name[LDK_MAX_IDENTIFIER_SIZE];
+	};
+
+	struct VariantSectionRoot
+	{
+		uint32 sectionCount;	
 	};
 }
+
 #endif// _LDK_INI_H_

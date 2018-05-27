@@ -1,11 +1,24 @@
 
 #include <ldk/ldk.h>
 #include "ldk_platform.h"
+#include "ldk_memory.h"
+#include "ldk_memory.cpp"
 #include "ldk_keyboard.cpp"
 #include "ldk_gamepad.cpp"
 #include "ldk_ini.cpp"
 //TODO: use a higher level renderer interface here
 //#include "ldk_renderer_gl.cpp"
+#define LDK_DEFAULT_GAME_WINDOW_TITLE "LDK Window"
+#define LDK_DEFAULT_CONFIG_FILE "ldk.cfg"
+
+struct GameConfig
+{
+	int32 width;
+	int32 height;
+	bool fullscreen;
+	float aspect;
+	char* title;
+};
 
 void windowCloseCallback(ldk::platform::LDKWindow* window)
 {
@@ -39,11 +52,39 @@ bool loadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
 	return game->init && game->start && game->update && game->stop;
 }
 
+GameConfig loadGameConfig()
+{
+	GameConfig defaultConfig = {};
+	defaultConfig.width = defaultConfig.height = 600;
+	defaultConfig.aspect = 1.777;
+	defaultConfig.title = LDK_DEFAULT_GAME_WINDOW_TITLE;
+	
+	ldk::VariantSectionRoot* root = ldk::ldk_config_parseFile((const char8*) LDK_DEFAULT_CONFIG_FILE);
+
+	if (root)
+	{
+		ldk::VariantSection* sectionDisplay =
+			ldk::ldk_config_getSection(root,"display");
+
+		if (sectionDisplay != nullptr)
+		{
+			ldk::ldk_config_getBool(sectionDisplay, "fullscreen", &defaultConfig.fullscreen);
+			ldk::ldk_config_getInt(sectionDisplay, "width", &defaultConfig.width);
+			ldk::ldk_config_getString(sectionDisplay, "title", &defaultConfig.title);
+			ldk::ldk_config_getInt(sectionDisplay, "height", &defaultConfig.height);
+			ldk::ldk_config_getFloat(sectionDisplay, "aspect", &defaultConfig.aspect);
+		}
+
+	}
+	return defaultConfig;
+}
+
 uint32 ldkMain(uint32 argc, char** argv)
 {
 	ldk::Core core = {};
 	ldk::Game game = {};
 	ldk::platform::SharedLib* gameSharedLib;
+	GameConfig gameConfig;
 
 	if (! ldk::platform::initialize())
 	{
@@ -51,7 +92,14 @@ uint32 ldkMain(uint32 argc, char** argv)
 		return LDK_EXIT_FAIL;
 	}
 
-	ldk::platform::LDKWindow* window = ldk::platform::createWindow(nullptr, "LDK1", nullptr);
+	gameConfig = loadGameConfig();
+
+	uint32 windowHints[] = { 
+		(uint32)ldk::platform::WindowHint::WIDTH,  gameConfig.width,
+		(uint32)ldk::platform::WindowHint::HEIGHT, gameConfig.height,
+		0};
+
+	ldk::platform::LDKWindow* window = ldk::platform::createWindow(windowHints, gameConfig.title, nullptr);
 
 	if (!window)
 	{
@@ -66,11 +114,10 @@ uint32 ldkMain(uint32 argc, char** argv)
 	}
 
 	ldk::platform::setWindowCloseCallback(window, windowCloseCallback);
+	ldk::platform::toggleFullScreen(window, gameConfig.fullscreen);
 	ldk::ldk_keyboard_initApi(&core.keyboard);
 	ldk::ldk_gamepad_initApi(&core.gamepad);
 
-
-	ldk::ldk_ini_parseFile((const char8*) "teste.txt");
 	game.init(&core);
 
 	game.start();
@@ -105,6 +152,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	//TODO: Handle command line arguments
 	return ldkMain(0, nullptr);
 }
+
 #ifdef _LDK_DEBUG_
 
 #include <tchar.h>
@@ -113,6 +161,7 @@ int _tmain(int argc, _TCHAR** argv)
 	//TODO: parse command line here and pass it to winmain
 	return WinMain(GetModuleHandle(NULL), NULL, NULL, SW_SHOW);
 }
+
 #endif // _LDK_DEBUG_
 
 #else // _LDK_WINDOWS_

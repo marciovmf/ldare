@@ -38,7 +38,7 @@ namespace ldk
 
 		enum WindowHint
 		{
-			WIDTH,
+			WIDTH = 1,
 			HEIGHT,
 			VISIBLE,										// 0 = hidden, > 0 = visible 
 			GL_CONTEXT_VERSION_MINOR,
