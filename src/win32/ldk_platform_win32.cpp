@@ -52,17 +52,23 @@ namespace ldk
 		struct LDKWindow
 		{
 			LDKPlatformWindowCloseFunc	windowCloseCallback;
+			LDKPlatformWindowResizeFunc windowResizeCallback;
 			HINSTANCE hInstance;
 			HWND hwnd;
 			HDC dc;
 			HGLRC rc;
 			bool closeFlag;
 			bool fullscreenFlag;
+			LONG defaultStyle;
+			RECT defaultRect;
 		};
 
 		static HINSTANCE _appInstance;
 
-#define findWindowByHandle(hwnd) (_platform.windowList[hwnd])
+		LDKWindow* findWindowByHandle(HWND hwnd) 
+		{
+			return _platform.windowList[hwnd];
+		}
 
 		LRESULT CALLBACK ldk_win32_windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
@@ -85,6 +91,13 @@ namespace ldk
 					{
 						LDKWindow* window = findWindowByHandle(hwnd);
 						ldk::platform::setWindowCloseFlag(window, true);
+					}
+
+				case WM_SIZE:
+					{
+						LDKWindow* window = findWindowByHandle(hwnd);
+						if (window && window->windowResizeCallback)
+							window->windowResizeCallback(window, LOWORD(lParam), HIWORD(lParam));
 					}
 					break;
 
@@ -522,6 +535,11 @@ void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc window
 	window->windowCloseCallback = windowCloseCallback;
 }
 
+void setWindowResizeCallback(LDKWindow* window, LDKPlatformWindowResizeFunc windowResizeCallback)
+{
+	window->windowResizeCallback = windowResizeCallback;
+}
+
 // Creates a window
 LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
 {
@@ -605,28 +623,52 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
 		return nullptr;
 	}
 
-	_platform.windowList.insert(std::make_pair(window->hwnd, window));
+	//_platform.windowList.insert(std::make_pair(window->hwnd, window));
+	_platform.windowList[window->hwnd] = window;
 	return window;
 }
 
 // Toggles the window fullscreen/windowed
-bool toggleFullScreen(LDKWindow* window, bool fullScreen)
+void toggleFullScreen(LDKWindow* window, bool fullScreen)
 {
-	//TODO: This fullscreen sucks! Do it properly!
-	//  if fullscreen, save current window width and height
-	//  if ! fullscreen, resore previous windows width and height
+ if (fullScreen == window->fullscreenFlag)
+	 return;
+
+ LONG newStyle = 0;
+ RECT newRect;
+
+ if (fullScreen)
+ {
+	 // save current rect and style
+	 GetWindowRect(window->hwnd, &window->defaultRect);
+	 window->defaultStyle = GetWindowLong(window->hwnd, GWL_STYLE);
+
+	 LogInfo("SAVING WINDOW SIZE = %dx%d %dx%d",
+			 window->defaultRect.top,
+			 window->defaultRect.left,
+			 window->defaultRect.right,
+			 window->defaultRect.bottom);
+	 newStyle = WS_POPUP;
+	 GetWindowRect(GetDesktopWindow(), &newRect);
+ }
+ else
+ {
+		newStyle = window->defaultStyle;
+		newRect = window->defaultRect;
+ }
 
  window->fullscreenFlag = fullScreen;
- 
- if (!fullScreen)
-	 return fullScreen;
+ SetWindowLong(window->hwnd, GWL_STYLE, newStyle);
+ SetWindowPos(window->hwnd, HWND_TOP, 
+		 0, 0,
+		 newRect.right - newRect.left, 
+		 newRect.bottom - newRect.top, 
+		 SWP_SHOWWINDOW);
+}
 
- int32 maxWidth = GetSystemMetrics(SM_CXFULLSCREEN);
- int32 maxHeight = GetSystemMetrics(SM_CYFULLSCREEN);
-
- SetWindowLong(window->hwnd, GWL_STYLE, WS_VISIBLE | WS_DLGFRAME | WS_MAXIMIZE);
- SetWindowPos( window->hwnd, NULL,0, 0,maxWidth, maxHeight,0);
- return true;
+bool isFullScreen(LDKWindow* window)
+{
+	return window->fullscreenFlag;
 }
 
 // Destroys a window
@@ -649,7 +691,6 @@ void setWindowCloseFlag(LDKWindow* window, bool flag)
 	if (window->windowCloseCallback)
 		window->windowCloseCallback(window);
 }
-
 // Update the window framebuffer
 void swapWindowBuffer(LDKWindow* window)
 {

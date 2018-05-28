@@ -25,11 +25,22 @@ void windowCloseCallback(ldk::platform::LDKWindow* window)
 	ldk::platform::destroyWindow(window);
 }
 
+void windowResizeCallback(ldk::platform::LDKWindow* window, int32 width, int32 height)
+{
+	// Recalculate projection matrix here.
+	return;
+}
+
 static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window, const ldk::KeyboardApi& keyboard)
 {
 	if (keyboard.getKeyDown(LDK_KEY_ESCAPE))
 	{
 		ldk::platform::setWindowCloseFlag(window, true);
+	}
+	
+	if (keyboard.getKeyDown(LDK_KEY_F12))
+	{
+		ldk::platform::toggleFullScreen(window, !ldk::platform::isFullScreen(window));
 	}
 }
 
@@ -114,6 +125,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 	}
 
 	ldk::platform::setWindowCloseCallback(window, windowCloseCallback);
+	ldk::platform::setWindowResizeCallback(window, windowResizeCallback);
 	ldk::platform::toggleFullScreen(window, gameConfig.fullscreen);
 	ldk::ldk_keyboard_initApi(&core.keyboard);
 	ldk::ldk_gamepad_initApi(&core.gamepad);

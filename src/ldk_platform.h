@@ -53,6 +53,8 @@ namespace ldk
 		// Window close callback function 
 		typedef void(* LDKPlatformWindowCloseFunc) (LDKWindow*);
 
+		typedef void(* LDKPlatformWindowResizeFunc) (LDKWindow*, int32 width, int32 height);
+
 		// Initialize the platform layer
 		uint32 initialize();
 
@@ -65,12 +67,17 @@ namespace ldk
 		// sets the close callback for teh giver window
 		// the close flag is set befor this callback, but it is possible to override it with setWindowCloseFlag
 		void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback);
+		
+		// sets the reize callback for the given window
+		void setWindowResizeCallback(LDKWindow* window, LDKPlatformWindowResizeFunc windowResizeCallback);
 
 		// Creates a window
 		LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share);
 
 		// Toggles the window fullscreen/windowed
-		bool toggleFullScreen(LDKWindow* window, bool fullScreen);
+		void toggleFullScreen(LDKWindow* window, bool fullScreen);
+		
+		bool isFullScreen(LDKWindow* window);
 
 		// Destroys a window
 		void destroyWindow(LDKWindow* window);
