@@ -1,6 +1,6 @@
-#include <ldare/ldare.h>
-#include <ldare/ldare_asset.h>
-#include "ldare_ttf.h"
+#include <ldk/ldk.h>
+#include <ldk/ldk_asset.h>
+#include "../../ldk_ttf.h"
 #include <windows.h>
 #include <tchar.h>
 #include <fstream>
@@ -85,7 +85,9 @@ static HGDIOBJ installSystemFontFromTTF(HDC dc, const char* fontFile,  const cha
 
 	LOGFONT logFont =
 	{
-		-MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), 72),
+		//-MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), 72),
+		//40,
+		-16,
 		0,
 		0,
 		0,
@@ -183,21 +185,33 @@ static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 static void saveFontAsset(const char* fileName, uint16 firstChar, uint16 lastChar, uint16 defaultCharacter,
 		uint32 bitmapWidth, uint32 bitmapHeight, void* gliphData, uint32 gliphDataSize)
 {
-	ldare::FontAsset fontAsset;
+	ldk::FontAsset fontAsset;
 	fontAsset.rasterWidth = bitmapWidth;
 	fontAsset.rasterHeight = bitmapHeight;
 	fontAsset.firstCodePoint = firstChar;
 	fontAsset.lastCodePoint = lastChar;
 	fontAsset.defaultCodePoint = defaultCharacter;
-	fontAsset.gliphData = (ldare::FontGliphRect*)sizeof(ldare::FontAsset);
+	fontAsset.gliphData = (ldk::FontGliphRect*)sizeof(ldk::FontAsset);
 
 	// create file
 	ofstream file(fileName, ios::binary);
 	if(!file) return;
 
-	file.write((char*) &fontAsset, sizeof(ldare::FontAsset)); // save font header
+	file.write((char*) &fontAsset, sizeof(ldk::FontAsset)); // save font header
 	file.write((char*)gliphData, gliphDataSize); 							// save gliph data
 	file.close();
+}
+
+void enableFontSmoothing()
+{
+SystemParametersInfo(SPI_SETFONTSMOOTHING,
+                     TRUE,
+                     0,
+                     SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+SystemParametersInfo(SPI_SETFONTSMOOTHINGTYPE,
+                     0,
+                     (PVOID)FE_FONTSMOOTHINGCLEARTYPE,
+                     SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
 }
 
 int _tmain(int argc, _TCHAR** argv)
@@ -270,6 +284,10 @@ int _tmain(int argc, _TCHAR** argv)
 		fontBuffer[i] = codePoint;
 	}
 
+
+	enableFontSmoothing();
+
+
 	RECT bitmapRect = calcFontBitmapSize(dc, input.fontString, input.maxLineWidth, spacing);
 	HBITMAP hDcBitmap = CreateCompatibleBitmap(dc, bitmapRect.right, bitmapRect.bottom);
 	SelectObject(dc, hDcBitmap);
@@ -285,7 +303,7 @@ int _tmain(int argc, _TCHAR** argv)
 	SetBkMode(dc, TRANSPARENT);
 	uint32 nextLine = input.fontStringLen/2;
 
-	ldare::FontGliphRect* fontGliphData = new ldare::FontGliphRect[input.fontStringLen];
+	ldk::FontGliphRect* fontGliphData = new ldk::FontGliphRect[input.fontStringLen];
 
 	//gliphY = bitmapRect.bottom;
 	// Output gliphs to the Bitmap
@@ -319,7 +337,7 @@ int _tmain(int argc, _TCHAR** argv)
 	sprintf(bmpFileName, "%s.font", fontName);
 	saveFontAsset(bmpFileName, fontMetrics.tmFirstChar, fontMetrics.tmLastChar, 
 			fontMetrics.tmDefaultChar, bitmapRect.right, bitmapRect.bottom, 
-			fontGliphData, sizeof(ldare::FontGliphRect) * input.fontStringLen);
+			fontGliphData, sizeof(ldk::FontGliphRect) * input.fontStringLen);
 
 	delete fontGliphData;
 	delete fontBuffer;

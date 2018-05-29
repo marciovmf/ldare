@@ -47,8 +47,8 @@ engine: platform
 	@echo Building ldare engine...
 	cl $(LDKSRC) /Fe$(OUTDIR)\$(TARGET) /Fo$(OUTDIR)\ $(CFLAGS) /link /subsystem:console $(LIBS) $(OUTDIR)\platform.obj
 
-tool: src\win32\tools\ldare_tool_font.cpp
-	cl src\win32\tools\ldare_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\  $(CFLAGS) $(LINKFLAGS)
+tool: src\win32\tools\ldk_tool_font.cpp
+	cl src\win32\tools\ldk_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\  $(CFLAGS) $(LINKFLAGS)
 
 outdirfolder:
 	IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR)

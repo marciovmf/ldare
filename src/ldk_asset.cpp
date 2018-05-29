@@ -3,7 +3,7 @@
 #define RIFF_FOURCC_RIFF 0x46464952
 #define RIFF_FOURCC_FMT 0x20746d66
 #define RIFF_FOURCC_DATA 0x61746164
-namespace ldare
+namespace ldk
 {
 
 #ifdef _MSC_VER
@@ -54,19 +54,19 @@ struct BITMAP_FILE_HEADER
 	//---------------------------------------------------------------------------
 	// Material functions
 	//---------------------------------------------------------------------------
-	ldare::Material loadMaterial(const char* vertex, const char* fragment, const char* textureFile)
+	ldk::Material loadMaterial(const char* vertex, const char* fragment, const char* textureFile)
 	{
-		ldare::Material material;
-		ldare::Bitmap bitmap;
-		material.shader = ldare::loadShader(vertex, fragment);
-		material.texture = ldare::loadTexture(textureFile);
+		ldk::Material material;
+		ldk::Bitmap bitmap;
+		material.shader = ldk::loadShader(vertex, fragment);
+		material.texture = ldk::loadTexture(textureFile);
 		return material;
 	}
 
-	bool loadBitmap(const char* file, ldare::Bitmap* bitmap)
+	bool loadBitmap(const char* file, ldk::Bitmap* bitmap)
 	{	
 		LogInfo("Loading texture: %s", file);
-		bitmap->bmpFileMemoryToRelease_ = ldare::platform::loadFileToBuffer(file, &bitmap->bmpMemorySize_);
+		bitmap->bmpFileMemoryToRelease_ = ldk::platform::loadFileToBuffer(file, &bitmap->bmpMemorySize_);
 		if (!bitmap->bmpFileMemoryToRelease_ || bitmap->bmpMemorySize_ == 0) { return false; }
 
 		BITMAP_FILE_HEADER *bitmapHeader = (BITMAP_FILE_HEADER*)bitmap->bmpFileMemoryToRelease_;
@@ -77,7 +77,7 @@ struct BITMAP_FILE_HEADER
 				|| bitmapHeader->BitsPerPixel != 16 && bitmapHeader->BitsPerPixel != 32)
 		{
 
-			ldare::freeAsset(bitmap->bmpFileMemoryToRelease_, bitmap->bmpMemorySize_);
+			ldk::freeAsset(bitmap->bmpFileMemoryToRelease_, bitmap->bmpMemorySize_);
 			LogError("Unsupported bitmap type.");
 			return false;
 		}
@@ -114,10 +114,10 @@ struct BITMAP_FILE_HEADER
 		return true;
 	}
 
-	bool loadFont(const char* file, ldare::FontAsset** font)
+	bool loadFont(const char* file, ldk::FontAsset** font)
 	{
 		size_t fontAssetSize;
-		ldare::FontAsset* fontAsset = (ldare::FontAsset*) ldare::platform::loadFileToBuffer(file, &fontAssetSize);
+		ldk::FontAsset* fontAsset = (ldk::FontAsset*) ldk::platform::loadFileToBuffer(file, &fontAssetSize);
 		if (!fontAsset || fontAssetSize == 0) { return false; }
 
 		// fix gliph array pointer
@@ -131,7 +131,7 @@ struct BITMAP_FILE_HEADER
 	void freeAsset(void* memory, size_t size)
 	{
 		//TODO: This is a bit hacky. I do not whant to free knwo static memory
-		ldare::platform::memoryFree(memory, size);
+		ldk::platform::memoryFree(memory, size);
 	}
 
 	//---------------------------------------------------------------------------
@@ -156,9 +156,9 @@ struct BITMAP_FILE_HEADER
 		return nullptr;
 	}
 
-	bool loadAudio(const char* file, ldare::Audio* audio)
+	bool loadAudio(const char* file, ldk::Audio* audio)
 	{
-		audio->audioFileMemoryToRelease_ = ldare::platform::loadFileToBuffer(file, (size_t*) &audio->audioMemorySize_);
+		audio->audioFileMemoryToRelease_ = ldk::platform::loadFileToBuffer(file, (size_t*) &audio->audioMemorySize_);
 
 		if (! audio->audioFileMemoryToRelease_ || audio->audioMemorySize_ == 0)
 			return false; 
@@ -190,13 +190,13 @@ struct BITMAP_FILE_HEADER
 			return false;
 		}
 
-		audio->id = ldare::platform::createAudioBuffer(fmt, fmtSize, data, dataSize);
+		audio->id = ldk::platform::createAudioBuffer(fmt, fmtSize, data, dataSize);
 		return true;
 	}
 
-	void playAudio(const ldare::Audio* audio)
+	void playAudio(const ldk::Audio* audio)
 	{
-		ldare::platform::playAudio(audio->id);
+		ldk::platform::playAudio(audio->id);
 	}
 
-} // namespace ldare
+} // namespace ldk

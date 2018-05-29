@@ -1,5 +1,5 @@
-#ifndef __LDARE_TTF__
-#define __LDARE_TTF__
+#ifndef __LDK_TTF__
+#define __LDK_TTF__
 
 #include <string.h>
 
@@ -127,4 +127,4 @@ void* getTTFTablePtr(const uint8* data, uint32 tableName)
 	return nullptr;
 }
 
-#endif // __LDARE_TTF__
+#endif // __LDK_TTF__

@@ -1,9 +1,9 @@
-#ifndef __LDARE_ASSET__
-#define __LDARE_ASSET__
+#ifndef __LDK_ASSET__
+#define __LDK_ASSET__
 
 #define BITMAP_FILE_HEADER_SIGNATURE 0x4D42
 
-namespace ldare
+namespace ldk
 {
 	typedef uint32 Shader;
 
@@ -16,8 +16,8 @@ namespace ldare
 
 	struct Material
 	{
-		ldare::Shader shader;
-		ldare::Texture texture;
+		ldk::Shader shader;
+		ldk::Texture texture;
 	};
 	
 	struct Audio
@@ -39,7 +39,7 @@ namespace ldare
 		size_t bmpMemorySize_;
 	};
 
-#define LDARE_ASSET_TYPE_FONT 0x1
+#define LDK_ASSET_TYPE_FONT 0x1
 /*
 	struct AssetName
 	{
@@ -57,7 +57,7 @@ namespace ldare
 
 	struct AssetHeader
 	{
-		uint32 magic; 					// 0x4C444146 'LDAF' ldare asset file
+		uint32 magic; 					// 0x4C444146 'LDAF' ldk asset file
 		uint16 major; 					// major version
 		uint16 minor; 					// minor version
 		uint32 numAssets; 			// number of assets in this file
@@ -83,22 +83,22 @@ namespace ldare
 
 	//TODO: this is for testing only. materials will be defined on a custom asset file on something similar
 #define ASSET_API_LOAD_MATERIAL(name) \
-	ldare::Material name(const char* vertexShader, const char* fragmentShader, const char* textureFile)
+	ldk::Material name(const char* vertexShader, const char* fragmentShader, const char* textureFile)
 
 	typedef ASSET_API_LOAD_MATERIAL(loadMaterialFunc);
 
 #define ASSET_API_LOAD_FONT(name) \
-	bool name(const char* file, ldare::FontAsset** font)
+	bool name(const char* file, ldk::FontAsset** font)
 
 	typedef ASSET_API_LOAD_FONT(loadFontFunc);
 
 #define ASSET_API_LOAD_AUDIO(name) \
-	 bool name(const char* file, ldare::Audio* audio)
+	 bool name(const char* file, ldk::Audio* audio)
 
 	typedef ASSET_API_LOAD_AUDIO(loadAudioFunc);
 
 #define ASSET_API_PLAY_AUDIO(name) \
-	 void name(const ldare::Audio* audio)
+	 void name(const ldk::Audio* audio)
 
 	typedef ASSET_API_PLAY_AUDIO(playAudioFunc);
 
@@ -114,11 +114,11 @@ namespace ldare
 		playAudioFunc* playAudio;
 	};
 
-	bool loadBitmap(const char* file, ldare::Bitmap* bitmap);
-	bool loadAudio(const char* file, ldare::Audio* audio);
-	bool loadFont(const char* file, ldare::FontAsset** fontAsset);
-	void playAudio(const ldare::Audio* audio);
+	bool loadBitmap(const char* file, ldk::Bitmap* bitmap);
+	bool loadAudio(const char* file, ldk::Audio* audio);
+	bool loadFont(const char* file, ldk::FontAsset** fontAsset);
+	void playAudio(const ldk::Audio* audio);
 	void freeAsset(void* memory, size_t size);
-} // namespace ldare
+} // namespace ldk
 
-#endif // __LDARE_ASSET__
+#endif // __LDK_ASSET__
