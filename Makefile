@@ -24,7 +24,7 @@ LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
 .PHONY: game engine assets
 
-all: platform engine game assets
+all: outdirfolder platform engine game assets
 
 game: assets
 
@@ -39,7 +39,6 @@ assets:
 	@echo copying standard engine assets ...
 	@xcopy assets $(OUTDIR)\assets /Y /I /E /F
 
-
 platform:
 	@echo buiding platform
 	cl src\win32\ldk_platform_win32.cpp /c /Fo$(OUTDIR)\platform.obj $(CFLAGS)
@@ -51,6 +50,8 @@ engine: platform
 tool: src\win32\tools\ldare_tool_font.cpp
 	cl src\win32\tools\ldare_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\  $(CFLAGS) $(LINKFLAGS)
 
+outdirfolder:
+	IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR)
 clean:
-	del /S /Q .\$(OUTDIR)\*
+	IF EXIST "$(OUTDIR)" del /S /Q .\$(OUTDIR)\*
 	IF EXIST "$(OUTDIR)\assets" rd /S /Q .\$(OUTDIR)\assets
