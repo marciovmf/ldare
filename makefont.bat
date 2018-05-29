@@ -1,3 +1,3 @@
 @echo off
-build\makefont.exe %1 15 256
+build\makefont.exe %1 20 256
 

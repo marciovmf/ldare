@@ -87,7 +87,7 @@ static HGDIOBJ installSystemFontFromTTF(HDC dc, const char* fontFile,  const cha
 	{
 		//-MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), 72),
 		//40,
-		-16,
+		-fontSize,
 		0,
 		0,
 		0,
