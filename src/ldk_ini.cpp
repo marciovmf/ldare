@@ -7,6 +7,36 @@
 #define LDK_INI_DEFAULT_BUFFER_SIZE 512
 namespace ldk
 {
+	enum VariantType
+	{
+		BOOL,
+		INT,
+		FLOAT,
+		STRING,
+		VEC3,
+		VEC4
+	};
+
+	struct Variant
+	{
+		char8 key[LDK_MAX_IDENTIFIER_SIZE + 1];
+		uint32 size;
+		VariantType type;
+		int32 hash;
+	};
+
+	struct VariantSection
+	{
+		int32 hash;
+		uint32 variantCount;
+		uint32 totalSize; //total size of variant section, including this header
+		char8 name[LDK_MAX_IDENTIFIER_SIZE + 1];
+	};
+
+	struct VariantSectionRoot
+	{
+		uint32 sectionCount;	
+	};
 	struct _IniBufferStream
 	{
 		char8* buffer;

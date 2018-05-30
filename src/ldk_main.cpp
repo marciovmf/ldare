@@ -6,6 +6,7 @@
 #include "ldk_keyboard.cpp"
 #include "ldk_gamepad.cpp"
 #include "ldk_ini.cpp"
+
 //TODO: use a higher level renderer interface here
 //#include "ldk_renderer_gl.cpp"
 #define LDK_DEFAULT_GAME_WINDOW_TITLE "LDK Window"
