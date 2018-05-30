@@ -17,7 +17,7 @@ namespace ldk
 
 	struct Variant
 	{
-		char8 key[LDK_MAX_IDENTIFIER_SIZE];
+		char8 key[LDK_MAX_IDENTIFIER_SIZE + 1];
 		uint32 size;
 		VariantType type;
 		int32 hash;
@@ -28,7 +28,7 @@ namespace ldk
 		int32 hash;
 		uint32 variantCount;
 		uint32 totalSize; //total size of variant section, including this header
-		char8 name[LDK_MAX_IDENTIFIER_SIZE];
+		char8 name[LDK_MAX_IDENTIFIER_SIZE + 1];
 	};
 
 	struct VariantSectionRoot
@@ -36,22 +36,14 @@ namespace ldk
 		uint32 sectionCount;	
 	};
 
-	
-	struct ConfigSection;
-
-	//Gets a configuration section
-	const ConfigSection* ldk_cfg_getSection(const char8* name);
-
-	//
-	bool ldk_cfg_tryGetBool(const ConfigSection* section, const char8* name, bool *value);
-	bool ldk_cfg_tryGetInt(const ConfigSection* section, const char8* name, uint32 *value);
-	bool ldk_cfg_tryGetFloat(const ConfigSection* section, const char8* name, float *value);
-	bool ldk_cfg_tryGetVec3(const ConfigSection* section, const char8* name, Vec3 *value);
-	bool ldk_cfg_tryGetVec4(const ConfigSection* section, const char8* name, Vec4 *value);
-	bool ldk_cfg_tryGetString(const ConfigSection* section, const char8* name, const char8* *value);
-
-	// returns a list of variants. if count is not null, it is filled with the number of variants in the given section
-	 const Variant* ldk_cfg_getVariantList(const ConfigSection* section, uint32* count);
+	VariantSectionRoot* ldk_config_parseFile(const char8* fileName);
+	VariantSectionRoot* ldk_config_parseBuffer(const char8* fileName);
+	VariantSection* ldk_config_getSection(VariantSectionRoot* rootSection, const char* name);
+	Variant* ldk_config_getVariant(const VariantSection* section, const char* key);
+	bool ldk_config_getInt(VariantSection* section, const char* key, int32* intValue);
+	bool ldk_config_getBool(VariantSection* section, const char* key, bool* boolValue);
+	bool ldk_config_getFloat(VariantSection* section, const char* key, float* floatValue);
+	const bool ldk_config_getString(VariantSection* section, const char* key, char** stringValue);
 }
 
 #endif// _LDK_INI_H_
