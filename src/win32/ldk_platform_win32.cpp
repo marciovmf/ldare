@@ -813,11 +813,19 @@ const void* getFunctionFromSharedLib(const ldk::platform::SharedLib* sharedLib, 
 
 void* memoryAlloc(size_t size)
 {
+	//TODO: Do proper memory management here
 	LDK_ASSERT(size>0, "allocation size must be greater than zero");
 	void* mem =
-		VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+		//VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+		malloc(size);
 	if (mem==0) { LogError("Error allocating memory"); }
 	return mem;
+}
+
+void memoryFree(void* memory)
+{
+	//TODO: Do proper memory management here
+		free(memory);
 }
 
 void* loadFileToBuffer(const char8* fileName, size_t* bufferSize)

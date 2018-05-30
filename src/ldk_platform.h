@@ -125,12 +125,12 @@ namespace ldk
 		//---------------------------------------------------------------------------
 		// Requests allocation of size bytes of virtual memory
 		//---------------------------------------------------------------------------
-		//void* memoryAlloc(size_t size);
+		void* memoryAlloc(size_t size);
 	
 		//---------------------------------------------------------------------------
 		// releases allocated virtual memory
 		//---------------------------------------------------------------------------
-		//void memoryFree(void* memory);
+		void memoryFree(void* memory);
 		
 		//---------------------------------------------------------------------------
 		// Get the number of ticks since engine initialization

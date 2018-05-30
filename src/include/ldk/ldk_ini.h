@@ -37,7 +37,7 @@ namespace ldk
 	};
 
 	VariantSectionRoot* ldk_config_parseFile(const char8* fileName);
-	VariantSectionRoot* ldk_config_parseBuffer(const char8* fileName);
+	VariantSectionRoot* ldk_config_parseBuffer(void* buffer, size_t size);
 	VariantSection* ldk_config_getSection(VariantSectionRoot* rootSection, const char* name);
 	Variant* ldk_config_getVariant(const VariantSection* section, const char* key);
 	bool ldk_config_getInt(VariantSection* section, const char* key, int32* intValue);

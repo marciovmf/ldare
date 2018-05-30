@@ -534,7 +534,7 @@ namespace ldk
 	// returns the offset of the root section
 	static uint32 pushRootSection(Heap& heap)
 	{
-		char* rootSectionName = "__ldk_root_section__";
+		char* rootSectionName = "/";
 		uint32 rootSectionNameLen = strlen(rootSectionName);
 		int32 rootSectionOffset = sizeof(ldk::VariantSectionRoot);
 
@@ -547,20 +547,11 @@ namespace ldk
 		Identifier rootSectionIdentifier = {(char8*)rootSectionName, rootSectionNameLen};
 
 		return pushVariantSection(heap, rootSectionIdentifier);
-			
 	}
 
-	VariantSectionRoot* ldk_config_parseFile(const char8* fileName)
+	VariantSectionRoot* ldk_config_parseBuffer(void* buffer, size_t size)
 	{
-		size_t fileSize;
-		void* buffer = platform::loadFileToBuffer(fileName, &fileSize);
-
-		if (!buffer)
-		{
-			return nullptr;
-		}
-		
-		_IniBufferStream stream(buffer, fileSize);
+		_IniBufferStream stream(buffer, size);
 		Heap heap;
 		ldk_memory_allocHeap(&heap, LDK_INI_DEFAULT_BUFFER_SIZE);
 
@@ -600,6 +591,21 @@ namespace ldk
 			return (VariantSectionRoot*) heap.memory;
 		else
 			return nullptr;
+	}
+
+	VariantSectionRoot* ldk_config_parseFile(const char8* fileName)
+	{
+		size_t fileSize;
+		void* buffer = platform::loadFileToBuffer(fileName, &fileSize);
+
+		if (!buffer)
+		{
+			return nullptr;
+		}
+
+		VariantSectionRoot* root = ldk_config_parseBuffer(buffer, fileSize);
+		platform::memoryFree(buffer);
+		return root;
 	}
 
 	VariantSection* ldk_config_getSection(VariantSectionRoot* rootSection, const char* name)
