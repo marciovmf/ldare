@@ -10,7 +10,6 @@ namespace	ldk
 		if (heap->memory)
 		{
 			heap->size = newSize;
-			heap->free += newSize;
 		}
 		else
 		{
@@ -25,7 +24,8 @@ namespace	ldk
 		heap->memory = malloc(initialSize);
 		if (heap->memory)
 		{
-			heap->free = heap->size = initialSize;
+			heap->size = initialSize;
+			heap->used = 0;
 			return true;
 		}
 		return false;

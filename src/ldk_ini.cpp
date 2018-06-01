@@ -37,6 +37,7 @@ namespace ldk
 	{
 		uint32 sectionCount;	
 	};
+
 	struct _IniBufferStream
 	{
 		char8* buffer;
@@ -488,14 +489,16 @@ namespace ldk
 	static uint32 pushVariantSection(Heap& heap, Identifier& identifier)
 	{
 		uint32 necessarySize = sizeof(VariantSection);
-
-		if(heap.free < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
+		int32 availableSize = heap.size - heap.used;
+		
+		if(availableSize < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
 		{
 				return -1;
 		}
 
-		VariantSection* section = (VariantSection*)((char*)heap.memory + heap.size - heap.free);
-		heap.free -= sizeof(VariantSection);
+		VariantSection* section = (VariantSection*)((char*)heap.memory + heap.used);
+
+		heap.used += sizeof(VariantSection);
 
 		strncpy((char*)section->name, (char*)identifier.start, identifier.length);
 		section->name[identifier.length] = 0;
@@ -514,15 +517,15 @@ namespace ldk
 	static bool pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal)
 	{
 		uint32 necessarySize = sizeof(Variant) + variantDataSize(literal);
+		int32 availableSize = heap.size - heap.used;
 
-
-		if(heap.free < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
+		if(availableSize < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
 		{
 			return false;
 		}
 		
-		Variant* variant = (Variant*)((char*)heap.memory + heap.size - heap.free);
-		heap.free -= necessarySize;
+		Variant* variant = (Variant*)((char*)heap.memory + heap.used );
+		heap.used += necessarySize;
 
 		// update section info
 		VariantSection* section = (VariantSection*)(((char*)heap.memory) + sectionOffset);
@@ -536,7 +539,7 @@ namespace ldk
 		variant->type = literal.type;
 		variant->size = necessarySize;
 
-		char* dataStart = ((char*)variant) + sizeof(Variant);
+		char* dataStart = (char*)++variant;
 
 		switch (literal.type)
 		{
@@ -573,7 +576,7 @@ namespace ldk
 		sectionRoot->sectionCount = 0;
 
 		// Account for the root section
-		heap.free -= rootSectionOffset;
+		heap.used += rootSectionOffset;
 		Identifier rootSectionIdentifier = {(char8*)rootSectionName, rootSectionNameLen};
 
 		return pushVariantSection(heap, rootSectionIdentifier);

@@ -35,9 +35,9 @@ game:
 
 assets:
 	@echo copying game assets ...
-	@xcopy game\assets $(OUTDIR)\assets /Y /I /E /F
+	xcopy game\assets $(OUTDIR)\assets /Y /I /E /F > NUL
 	@echo copying standard engine assets ...
-	@xcopy assets $(OUTDIR)\assets /Y /I /E /F
+	xcopy assets $(OUTDIR)\assets /Y /I /E /F > NUL
 
 platform:
 	@echo buiding platform
@@ -53,5 +53,5 @@ tool: src\win32\tools\ldk_tool_font.cpp
 outdirfolder:
 	IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR)
 clean:
-	IF EXIST "$(OUTDIR)" del /S /Q .\$(OUTDIR)\*
-	IF EXIST "$(OUTDIR)\assets" rd /S /Q .\$(OUTDIR)\assets
+	@IF EXIST "$(OUTDIR)" del /S /Q .\$(OUTDIR)\* > NUL
+	@IF EXIST "$(OUTDIR)\assets" rd /S /Q .\$(OUTDIR)\assets > NUL

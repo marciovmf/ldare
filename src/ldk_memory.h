@@ -20,7 +20,7 @@ namespace ldk
 	{
 		void* memory;
 		uint32 size;
-		uint32 free;
+		uint32 used;
 	};
 
 	bool ldk_memory_resizeHeap(Heap* heap, size_t minimum);

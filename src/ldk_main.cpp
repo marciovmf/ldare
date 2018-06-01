@@ -111,7 +111,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 		(uint32)ldk::platform::WindowHint::HEIGHT, gameConfig.height,
 		0};
 
-	ldk::platform::LDKWindow* window = ldk::platform::createWindow(windowHints, gameConfig.title, nullptr);
+	ldk::platform::LDKWindow* window =
+		ldk::platform::createWindow(windowHints, gameConfig.title, nullptr);
 
 	if (!window)
 	{
