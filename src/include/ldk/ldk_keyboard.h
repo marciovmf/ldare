@@ -1,64 +1,18 @@
-#ifndef _LDK_INPUT_H_
-#define _LDK_INPUT_H_
+#ifndef _LDK_KEYBOARD_H_
+#define _LDK_KEYBOARD_H_
 
 namespace ldk
 {
-#define LDK_MAX_KBD_KEYS 255
-#define LDK_KEYSTATE_PRESSED  0x01
-#define LDK_KEYSTATE_CHANGED  0x02
+	namespace input
+	{
+		// Keyboard functions
+		LDK_API	int8 getKey(uint16 key);
+		LDK_API	int8 isKeyDown(uint16 key);
+		LDK_API	int8 isKeyUp(uint16 key);
+		LDK_API	void keyboardUpdate();
+	}
+}
 
-	typedef int8 KeyState;
-
-// Gamepad ids
-#define LDK_GAMEPAD_1 0
-#define LDK_GAMEPAD_2 1
-#define LDK_GAMEPAD_3 2
-#define LDK_GAMEPAD_4 3
-
-#define LDK_GAMEPAD_MAX_DIGITAL_BUTTONS 14
-#define LDK_GAMEPAD_MAX_AXIS 6
-#define LDK_MAX_GAMEPADS 4
-
-	//---------------------------------------------------------------------------
-	// GAMEPAD
-	//---------------------------------------------------------------------------
-	//digital buttons
-#define GAMEPAD_DPAD_UP	0x00
-#define GAMEPAD_DPAD_DOWN	0x01
-#define GAMEPAD_DPAD_LEFT	0x02
-#define GAMEPAD_DPAD_RIGHT	0x03
-#define GAMEPAD_START	0x04
-#define GAMEPAD_FN1	0x04
-#define GAMEPAD_BACK	0x05
-#define GAMEPAD_FN2	0x05
-#define GAMEPAD_LEFT_THUMB	0x06
-#define GAMEPAD_RIGHT_THUMB	0x07
-#define GAMEPAD_LEFT_SHOULDER	0x08
-#define GAMEPAD_RIGHT_SHOULDER	0x09
-#define GAMEPAD_A	0x0A
-#define GAMEPAD_BTN1	0x0A
-#define GAMEPAD_B	0x0B
-#define GAMEPAD_BTN2	0x0B
-#define GAMEPAD_X	0x0C
-#define GAMEPAD_BTN3	0x0C
-#define GAMEPAD_Y	0x0D
-#define GAMEPAD_BTN4	0x0D
-	// axis
-#define GAMEPAD_AXIS_LX 0x00
-#define GAMEPAD_AXIS_LY 0x01
-#define GAMEPAD_AXIS_RX 0x02
-#define GAMEPAD_AXIS_RY 0x03
-#define GAMEPAD_AXIS_LTRIGGER 0x04
-#define GAMEPAD_AXIS_RTRIGGER 0x05
-
-	//---------------------------------------------------------------------------
-	// MOSUE 
-	//---------------------------------------------------------------------------
-#define MOUSE_LBUTTON     0x00
-#define MOUSE_RBUTTON     0x01
-#define MOUSE_MBUTTON     0x02
-#define MOUSE_X1BUTTON    0x03
-#define MOUSE_X2BUTTON    0x04
 
 	//---------------------------------------------------------------------------
 	// KEYBOARD 
@@ -174,5 +128,5 @@ namespace ldk
 #define LDK_KEY_F23           0x86
 #define LDK_KEY_F24           0x87
 
-}
-#endif	// _LDK_INPUT_H_
+
+#endif	// _LDK_KEYBOARD_H_

@@ -5,14 +5,14 @@
 #include "ldk_renderer.h"
 #include "ldk_renderer_buffer.h"
 // implementations
-#include "ldk_memory.cpp"
-#include "ldk_keyboard.cpp"
-#include "ldk_gamepad.cpp"
-#include "ldk_ini.cpp"
-#include "ldk_asset.cpp"
-// Opengl renderer dependencies
-#include "ldk_renderer_gl.cpp"
-#include "ldk_renderer_buffer_gl.cpp"
+//#include "ldk_memory.cpp"
+//#include "ldk_keyboard.cpp"
+//#include "ldk_gamepad.cpp"
+//#include "ldk_ini.cpp"
+//#include "ldk_asset.cpp"
+//// Opengl renderer dependencies
+//#include "ldk_renderer_gl.cpp"
+//#include "ldk_renderer_buffer_gl.cpp"
 
 
 //TODO: use a higher level renderer interface here
@@ -137,8 +137,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 	ldk::platform::setWindowCloseCallback(window, windowCloseCallback);
 	ldk::platform::setWindowResizeCallback(window, windowResizeCallback);
 	ldk::platform::toggleFullScreen(window, gameConfig.fullscreen);
-	ldk::ldk_keyboard_initApi(&core.keyboard);
-	ldk::ldk_gamepad_initApi(&core.gamepad);
+	//ldk::ldk_keyboard_initApi(&core.keyboard);
+	//ldk::ldk_gamepad_initApi(&core.gamepad);
 
 	game.init(&core);
 
@@ -146,8 +146,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 	while (!ldk::platform::windowShouldClose(window))
 	{
 		ldk::platform::pollEvents();
-		ldk::ldk_keyboard_update();
-		ldk::ldk_gamepad_update();
+		ldk::input::keyboardUpdate();
+		ldk::input::joystickUpdate();
 
 		ldkHandleKeyboardInput(window, core.keyboard);
 

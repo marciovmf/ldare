@@ -1,7 +1,7 @@
 #ifdef _LDK_WINDOWS_
 #define WIN32
 #endif // _LDK_WINDOWS_
-
+#include "../ldk_platform.h"
 #include "../include/ldk/ldk_types.h"
 #include "../include/ldk/ldk_debug.h"
 
@@ -33,7 +33,7 @@ namespace ldk
 			LDKPlatformErrorFunc	errorCallback;
 			KeyboardState					keyboardState;
 			MouseState						mouseState;
-			GamepadState					gamepadState[LDK_MAX_GAMEPADS];
+			JoystickState					gamepadState[LDK_MAX_JOYSTICKS];
 
 			//TODO: add window data to the win32 window instance so there is no need for this map
 			std::map<HWND, LDKWindow*> 	windowList;
@@ -352,10 +352,10 @@ namespace ldk
 		void ldk_win32_updateGamePad()
 		{
 			// get gamepad input
-			for(int32 gamepadIndex = 0; gamepadIndex < LDK_MAX_GAMEPADS; gamepadIndex++)
+			for(int32 gamepadIndex = 0; gamepadIndex < LDK_MAX_JOYSTICKS; gamepadIndex++)
 			{
 				ldk::platform::XINPUT_STATE gamepadState;
-				GamepadState& gamepad = _platform.gamepadState[gamepadIndex];
+				JoystickState& gamepad = _platform.gamepadState[gamepadIndex];
 
 				// ignore unconnected controllers
 				if ( platform::XInputGetState(gamepadIndex, &gamepadState) == ERROR_DEVICE_NOT_CONNECTED )
@@ -374,24 +374,24 @@ namespace ldk
 				uint8 wasDown=0;
 
 #define GET_GAMEPAD_BUTTON(btn) do {\
-	isDown = (buttons & XINPUT_##btn) > 0;\
-	wasDown = gamepad.button[btn] & LDK_KEYSTATE_PRESSED;\
-	gamepad.button[btn] = ((isDown != wasDown) << 0x01) | isDown;\
+	isDown = (buttons & XINPUT_GAMEPAD_##btn) > 0;\
+	wasDown = gamepad.button[LDK_JOYSTICK_##btn] & LDK_KEYSTATE_PRESSED;\
+	gamepad.button[LDK_JOYSTICK_##btn] = ((isDown != wasDown) << 0x01) | isDown;\
 } while(0)
-				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_UP);			
-				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_DOWN);
-				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_LEFT);
-				GET_GAMEPAD_BUTTON(GAMEPAD_DPAD_RIGHT);
-				GET_GAMEPAD_BUTTON(GAMEPAD_START);
-				GET_GAMEPAD_BUTTON(GAMEPAD_BACK);
-				GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_THUMB);
-				GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_THUMB);
-				GET_GAMEPAD_BUTTON(GAMEPAD_LEFT_SHOULDER);
-				GET_GAMEPAD_BUTTON(GAMEPAD_RIGHT_SHOULDER);
-				GET_GAMEPAD_BUTTON(GAMEPAD_A);
-				GET_GAMEPAD_BUTTON(GAMEPAD_B);
-				GET_GAMEPAD_BUTTON(GAMEPAD_X);
-				GET_GAMEPAD_BUTTON(GAMEPAD_Y);
+				GET_GAMEPAD_BUTTON(DPAD_UP);			
+				GET_GAMEPAD_BUTTON(DPAD_DOWN);
+				GET_GAMEPAD_BUTTON(DPAD_LEFT);
+				GET_GAMEPAD_BUTTON(DPAD_RIGHT);
+				GET_GAMEPAD_BUTTON(START);
+				GET_GAMEPAD_BUTTON(BACK);
+				GET_GAMEPAD_BUTTON(LEFT_THUMB);
+				GET_GAMEPAD_BUTTON(RIGHT_THUMB);
+				GET_GAMEPAD_BUTTON(LEFT_SHOULDER);
+				GET_GAMEPAD_BUTTON(RIGHT_SHOULDER);
+				GET_GAMEPAD_BUTTON(A);
+				GET_GAMEPAD_BUTTON(B);
+				GET_GAMEPAD_BUTTON(X);
+				GET_GAMEPAD_BUTTON(Y);
 #undef SET_GAMEPAD_BUTTON
 
 				//TODO: Make these calculations directly in assembly to make it faster
@@ -403,10 +403,10 @@ namespace ldk
 				int32 axisY = gamepadState.Gamepad.sThumbLY;
 				int32 deadZone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
 
-				gamepad.axis[GAMEPAD_AXIS_LX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+				gamepad.axis[LDK_JOYSTICK_AXIS_LX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
 				GAMEPAD_AXIS_VALUE(axisX);
 
-				gamepad.axis[GAMEPAD_AXIS_LY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+				gamepad.axis[LDK_JOYSTICK_AXIS_LY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
 				GAMEPAD_AXIS_VALUE(axisY);
 
 				// Right thumb axis
@@ -414,10 +414,10 @@ namespace ldk
 				axisY = gamepadState.Gamepad.sThumbRY;
 				deadZone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
 
-				gamepad.axis[GAMEPAD_AXIS_RX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+				gamepad.axis[LDK_JOYSTICK_AXIS_RX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
 				GAMEPAD_AXIS_VALUE(axisX);
 
-				gamepad.axis[GAMEPAD_AXIS_RY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+				gamepad.axis[LDK_JOYSTICK_AXIS_RY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
 				GAMEPAD_AXIS_VALUE(axisY);
 
 
@@ -426,10 +426,10 @@ namespace ldk
 				axisY = gamepadState.Gamepad.bRightTrigger;
 				deadZone = XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
 
-				gamepad.axis[GAMEPAD_AXIS_LTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :	
+				gamepad.axis[LDK_JOYSTICK_AXIS_LTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :	
 				axisX/(float) XINPUT_MAX_TRIGGER_VALUE;
 
-				gamepad.axis[GAMEPAD_AXIS_RTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+				gamepad.axis[LDK_JOYSTICK_AXIS_RTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
 				axisY/(float) XINPUT_MAX_TRIGGER_VALUE;
 
 #undef GAMEPAD_AXIS_IS_DEADZONE
@@ -729,9 +729,9 @@ const ldk::platform::KeyboardState*	getKeyboardState()
 }
 
 // Get the state of a gamepad.
-const ldk::platform::GamepadState* getGamepadState(uint32 gamepadId)
+const ldk::platform::JoystickState* getJoystickState(uint32 gamepadId)
 {
-	LDK_ASSERT(( gamepadId >=0 && gamepadId < LDK_MAX_GAMEPADS),"Gamepad id is out of range");
+	LDK_ASSERT(( gamepadId >=0 && gamepadId < LDK_MAX_JOYSTICKS),"Gamepad id is out of range");
 	return &_platform.gamepadState[gamepadId];
 }
 
@@ -745,10 +745,10 @@ void pollEvents()
 	}
 
 	// clear 'changed' bit from gamepads buttons state
-	for (uint32 id=0; id < LDK_MAX_GAMEPADS; id++)
+	for (uint32 id=0; id < LDK_MAX_JOYSTICKS; id++)
 	{
 		// clear 'changed' bit from input key state
-		for(uint32 i=0; i < LDK_GAMEPAD_MAX_DIGITAL_BUTTONS ; i++)
+		for(uint32 i=0; i < LDK_JOYSTICK_MAX_DIGITAL_BUTTONS ; i++)
 		{
 			_platform.gamepadState[id].button[i] &= ~LDK_KEYSTATE_CHANGED;
 		}

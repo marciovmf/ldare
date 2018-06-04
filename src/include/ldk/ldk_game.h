@@ -37,7 +37,7 @@ namespace ldk
 	typedef int8 (*LDK_PFN_GETKEYUP)(uint16 key);
 	typedef int8 (*LDK_PFN_GETKEY)(uint16 key);
 
-	// gamepad input functions
+	// joystick input functions
 	typedef int8  (*LDK_PFN_GETBUTTONDOWN)(uint16 key, uint16 index);
 	typedef int8  (*LDK_PFN_GETBUTTONUP)(uint16 key, uint16 index);
 	typedef int8  (*LDK_PFN_GETBUTTON)(uint16 key, uint16 index);

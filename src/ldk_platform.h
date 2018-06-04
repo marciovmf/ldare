@@ -7,8 +7,13 @@
 
 #include <ldk/ldk.h>
 
+#define LDK_MAX_KBD_KEYS 255
+#define LDK_KEYSTATE_PRESSED  0x01
+#define LDK_KEYSTATE_CHANGED  0x02
+
 namespace ldk 
 {
+	typedef int8 KeyState;
 	namespace platform 
 	{
 		// platform specific window 
@@ -24,15 +29,15 @@ namespace ldk
 
 		struct MouseState
 		{
-			KeyState button[LDK_GAMEPAD_MAX_DIGITAL_BUTTONS];
-			float axis[LDK_GAMEPAD_MAX_AXIS];
+			KeyState button[LDK_JOYSTICK_MAX_DIGITAL_BUTTONS];
+			float axis[LDK_JOYSTICK_MAX_AXIS];
 			uint8 connected;
 		};
 
-		struct GamepadState
+		struct JoystickState
 		{
-			KeyState button[LDK_GAMEPAD_MAX_DIGITAL_BUTTONS];
-			float axis[LDK_GAMEPAD_MAX_AXIS];
+			KeyState button[LDK_JOYSTICK_MAX_DIGITAL_BUTTONS];
+			float axis[LDK_JOYSTICK_MAX_AXIS];
 			uint8 connected;
 		};
 
@@ -102,7 +107,7 @@ namespace ldk
 		const ldk::platform::KeyboardState* getKeyboardState();
 
 		// Get the state of a gamepad.
-		const ldk::platform::GamepadState* getGamepadState(uint32 gamepadId);
+		const ldk::platform::JoystickState* getJoystickState(uint32 gamepadId);
 
 		// Updates all windows and OS dependent events
 		void pollEvents();
@@ -118,18 +123,14 @@ namespace ldk
 		const	void* getFunctionFromSharedLib(const ldk::platform::SharedLib*, const char* function);
 
 		//---------------------------------------------------------------------------
-		// Loads an entire file to memory
+		// File and filesystem api
 		//---------------------------------------------------------------------------
 		void* loadFileToBuffer(const char8* filename, size_t* bufferSize);
 
 		//---------------------------------------------------------------------------
-		// Requests allocation of size bytes of virtual memory
+		// Memory allocation
 		//---------------------------------------------------------------------------
 		void* memoryAlloc(size_t size);
-	
-		//---------------------------------------------------------------------------
-		// releases allocated virtual memory
-		//---------------------------------------------------------------------------
 		void memoryFree(void* memory);
 		
 		//---------------------------------------------------------------------------
