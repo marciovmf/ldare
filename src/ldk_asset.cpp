@@ -54,16 +54,8 @@ struct BITMAP_FILE_HEADER
 	//---------------------------------------------------------------------------
 	// Material functions
 	//---------------------------------------------------------------------------
-	ldk::Material loadMaterial(const char* vertex, const char* fragment, const char* textureFile)
-	{
-		ldk::Material material;
-		ldk::Bitmap bitmap;
-		material.shader = ldk::loadShader(vertex, fragment);
-		material.texture = ldk::loadTexture(textureFile);
-		return material;
-	}
 
-	bool loadBitmap(const char* file, ldk::Bitmap* bitmap)
+	bool loadBitmap(const char8* file, ldk::Bitmap* bitmap)
 	{	
 		LogInfo("Loading texture: %s", file);
 		bitmap->bmpFileMemoryToRelease_ = ldk::platform::loadFileToBuffer(file, &bitmap->bmpMemorySize_);
@@ -114,7 +106,7 @@ struct BITMAP_FILE_HEADER
 		return true;
 	}
 
-	bool loadFont(const char* file, ldk::FontAsset** font)
+	bool loadFont(const char8* file, ldk::FontAsset** font)
 	{
 		size_t fontAssetSize;
 		ldk::FontAsset* fontAsset = (ldk::FontAsset*) ldk::platform::loadFileToBuffer(file, &fontAssetSize);
@@ -131,12 +123,13 @@ struct BITMAP_FILE_HEADER
 	void freeAsset(void* memory, size_t size)
 	{
 		//TODO: This is a bit hacky. I do not whant to free knwo static memory
-		ldk::platform::memoryFree(memory, size);
+		ldk::platform::memoryFree(memory);
 	}
 
 	//---------------------------------------------------------------------------
 	// Audio functions
 	//---------------------------------------------------------------------------
+#if 0 // TODO: Add audio functions into he platform layer
 	static void* findAudioChunk(void* riffFileData, uint32 riffDataSize, uint32 fourcc, uint32* outSize)
 	{
 		*outSize = 0;
@@ -156,7 +149,7 @@ struct BITMAP_FILE_HEADER
 		return nullptr;
 	}
 
-	bool loadAudio(const char* file, ldk::Audio* audio)
+	bool loadAudio(const char8* file, ldk::Audio* audio)
 	{
 		audio->audioFileMemoryToRelease_ = ldk::platform::loadFileToBuffer(file, (size_t*) &audio->audioMemorySize_);
 
@@ -198,5 +191,5 @@ struct BITMAP_FILE_HEADER
 	{
 		ldk::platform::playAudio(audio->id);
 	}
-
+#endif
 } // namespace ldk

@@ -2,10 +2,18 @@
 #include <ldk/ldk.h>
 #include "ldk_platform.h"
 #include "ldk_memory.h"
+#include "ldk_renderer.h"
+#include "ldk_renderer_buffer.h"
+// implementations
 #include "ldk_memory.cpp"
 #include "ldk_keyboard.cpp"
 #include "ldk_gamepad.cpp"
 #include "ldk_ini.cpp"
+#include "ldk_asset.cpp"
+// Opengl renderer dependencies
+#include "ldk_renderer_gl.cpp"
+#include "ldk_renderer_buffer_gl.cpp"
+
 
 //TODO: use a higher level renderer interface here
 //#include "ldk_renderer_gl.cpp"
@@ -144,6 +152,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 		ldkHandleKeyboardInput(window, core.keyboard);
 
 		game.update(0);
+		ldk::render::updateRenderer(0);
 
 		ldk::platform::swapWindowBuffer(window);
 	}

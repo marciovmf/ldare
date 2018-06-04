@@ -7,15 +7,15 @@ namespace ldk
 		{
 				switch(type)
 				{
-					case Buffer::Type::VERTEX:
-					case Buffer::Type::VERTEX_DYNAMIC:
-					case Buffer::Type::VERTEX_STREAM:
+					case GpuBuffer::Type::VERTEX:
+					case GpuBuffer::Type::VERTEX_DYNAMIC:
+					case GpuBuffer::Type::VERTEX_STREAM:
 						return GL_ARRAY_BUFFER;
 
-					case Buffer::Type::INDEX:
+					case GpuBuffer::Type::INDEX:
 						return GL_ELEMENT_ARRAY_BUFFER;
 
-					case Buffer::Type::UNIFORM:
+					case GpuBuffer::Type::UNIFORM:
 						return GL_UNIFORM_BUFFER;
 						break;
 					default:
@@ -47,15 +47,15 @@ namespace ldk
 		{
 			switch(type)
 				{
-					case Buffer::Type::INDEX:
-					case Buffer::Type::VERTEX:
+					case GpuBuffer::Type::INDEX:
+					case GpuBuffer::Type::VERTEX:
 						return GL_STATIC_DRAW;
 					
-					case Buffer::Type::UNIFORM:
-					case Buffer::Type::VERTEX_DYNAMIC:
+					case GpuBuffer::Type::UNIFORM:
+					case GpuBuffer::Type::VERTEX_DYNAMIC:
 						return GL_DYNAMIC_DRAW;
 					
-					case Buffer::Type::VERTEX_STREAM:
+					case GpuBuffer::Type::VERTEX_STREAM:
 						return GL_STREAM_DRAW;
 					
 					default:
@@ -69,16 +69,16 @@ namespace ldk
 		{
 			// find ideal buffer target and memory strategy for the given buffer type
 			renderer::GpuBuffer buffer;
-			buffer.GL.target = getGlEnum(type);
-			buffer.GL.usage = getGlBufferUsage(type);
+			buffer.target = getGlEnum(type);
+			buffer.usage = getGlBufferUsage(type);
 			
-			glGenBuffers(1, &buffer.GL.id);
-			glBindBuffer(buffer.GL.target, buffer.GL.id);
+			glGenBuffers(1, &buffer.id);
+			glBindBuffer(buffer.target, buffer.id);
 
 			// set buffer layout
 			for (uint32 i = 0; i < layoutCount; i++)
 			{
-				const BufferLayout& attrib = layout[i];
+				const renderer::GpuBufferLayout& attrib = layout[i];
 				LogInfo("Enabling attrib #%d" , attrib.index);
 				glEnableVertexAttribArray(attrib.index);
 
@@ -93,35 +93,35 @@ namespace ldk
 						(const GLvoid*) attrib.start);
 			}
 			
-			glBufferData(buffer.GL.target, size, (const GLvoid*) data, buffer.GL.usage);
-			glBindBuffer(buffer.GL.target, 0);
+			glBufferData(buffer.target, size, (const GLvoid*) data, buffer.usage);
+			glBindBuffer(buffer.target, 0);
 			return buffer;
 		}
 
 		void setBufferData(const renderer::GpuBuffer& buffer, void* data, size_t dataSize, uint32 offset)
 		{
-			glBufferSubData(buffer.GL.target, offset, dataSize, (const GLvoid*) data);
+			glBufferSubData(buffer.target, offset, dataSize, (const GLvoid*) data);
 		}
 
 		void setBufferData(const renderer::GpuBuffer& buffer, void* data, size_t dataSize)
 		{
-			glBufferData(buffer.GL.target, dataSize, (const GLvoid*) data, buffer.GL.usage);
+			glBufferData(buffer.target, dataSize, (const GLvoid*) data, buffer.usage);
 		}
 
 		inline void bindBuffer(const renderer::GpuBuffer& buffer)
 		{
-			glBindBuffer(buffer.GL.target, buffer.GL.id);
+			glBindBuffer(buffer.target, buffer.id);
 		}
 
 		inline void unbindBuffer(const renderer::GpuBuffer& buffer)
 		{
-			glBindBuffer(buffer.GL.target, 0);
+			glBindBuffer(buffer.target, 0);
 		}
 
 		void deleteBuffer(renderer::GpuBuffer& buffer)
 		{
-			glDeleteBuffers(1, &buffer.GL.id);
-			buffer.GL.id = -1;
+			glDeleteBuffers(1, &buffer.id);
+			buffer.id = -1;
 		}
 	}
 }

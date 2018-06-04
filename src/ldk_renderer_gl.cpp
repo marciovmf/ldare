@@ -1,13 +1,12 @@
-/**
- * win32_renderer_gl.h
- * Win32 implementation for ldare platform functions
- */
 
+#define LDK_EXTERN_GL_FUNCTIONS
+#include "ldk_gl.h"
+#undef LDK_EXTERN_GL_FUNCTIONS
 #include <ldk/ldk_asset.h>
 
 // Sprite batch data
 #define SPRITE_BATCH_MAX_SPRITES 10000
-#define SPRITE_BATCH_VERTEX_DATA_SIZE sizeof(ldare::SpriteVertexData)
+#define SPRITE_BATCH_VERTEX_DATA_SIZE sizeof(ldk::SpriteVertexData)
 #define SPRITE_BATCH_SPRITE_SIZE SPRITE_BATCH_VERTEX_DATA_SIZE * 4 // 4 vetices per sprite
 #define SPRITE_BATCH_BUFFER_SIZE SPRITE_BATCH_MAX_SPRITES * SPRITE_BATCH_SPRITE_SIZE
 #define SPRITE_BATCH_INDICES_SIZE SPRITE_BATCH_MAX_SPRITES * 6		//6 indices per quad
@@ -17,7 +16,7 @@
 #define SPRITE_ATTRIB_UV 2
 #define SPRITE_ATTRIB_ZROTATION 3
 
-#define checkGlError() checkNoGlError(__FILE__,__LINE__)
+#define checkGlError() checkNoGlError(__FILE__, __LINE__)
 static int32 checkNoGlError(const char* file, uint32 line)
 {
 	const char* error = "UNKNOWN ERROR CODE";
@@ -51,21 +50,50 @@ static void clearGlError()
 	}while (err != GL_NO_ERROR);
 }
 
-namespace ldare 
+namespace ldk 
 {
+	struct Sprite
+	{
+		Vec3 position;
+		Vec4 color;
+		float width;
+		float height;
+		float angle;
+		Rectangle srcRect;
+	};
+
+#ifdef _MSC_VER
+#pragma pack(push,1)
+#endif
+	struct SpriteVertexData
+	{
+		Vec4 color;
+		Vec3 position;
+		Vec2 uv;
+		float zRotation;
+	};
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
+
+	static struct GlobalShaderData
+	{
+		Mat4 projectionMatrix;
+		Mat4 baseModelMatrix;
+		Vec2 time; // (deltaTime, time)
+	} globalShaderData;
 
 	static bool updateGlobalShaderData = false;
-	static GlobalShaderData globalShaderData = {};
-	static ldare::FontAsset fontAsset; // For text batching
+	static ldk::FontAsset fontAsset; // For text batching
 	static struct GL_SpriteBatchData
 	{
-		ldare::Material material; 					// Current bound material
+		ldk::Material material; 					// Current bound material
 		GLuint vao;
-		renderer::Buffer vertexBuffer;
-		renderer::Buffer indexBuffer;
-		renderer::Buffer uniformBuffer;
+		renderer::GpuBuffer vertexBuffer;
+		renderer::GpuBuffer indexBuffer;
+		renderer::GpuBuffer uniformBuffer;
 		uint32 spriteCount; 								// number of sprites pushed int the current batch
-		ldare::Bitmap fallbackBitmap;
+		ldk::Bitmap fallbackBitmap;
 		uint32 fallbackBitmapData;
 	} spriteBatchData;
 
@@ -116,7 +144,7 @@ namespace ldare
 
 	static GLuint compileShader(const char* source, GLenum shaderType)
 	{
-		ASSERT(shaderType == GL_VERTEX_SHADER || shaderType == GL_FRAGMENT_SHADER,
+		LDK_ASSERT(shaderType == GL_VERTEX_SHADER || shaderType == GL_FRAGMENT_SHADER,
 				"Invalid shader type");
 
 		// Setup default vertex shader
@@ -128,47 +156,149 @@ namespace ldare
 
 		return shader;
 	}
-
-	static GLuint createShaderProgram(const char* vertex, const char* fragment)
+	namespace render
 	{
-		GLuint vertexShader = compileShader(vertex, GL_VERTEX_SHADER);
-		GLuint fragmentShader = compileShader(fragment, GL_FRAGMENT_SHADER);
-		GLuint shaderProgram = glCreateProgram();
+		static GLuint createShaderProgram(const char8* vertex, const char8* fragment)
+		{
+			GLuint vertexShader = compileShader((const char*)vertex, GL_VERTEX_SHADER);
+			GLuint fragmentShader = compileShader((const char*)fragment, GL_FRAGMENT_SHADER);
+			GLuint shaderProgram = glCreateProgram();
 
-		glAttachShader(shaderProgram, vertexShader);	
-		glAttachShader(shaderProgram, fragmentShader);
+			glAttachShader(shaderProgram, vertexShader);	
+			glAttachShader(shaderProgram, fragmentShader);
 
-		// Link shader program
-		glLinkProgram(shaderProgram);
-		if (!checkShaderProgramLink(shaderProgram))
-			return GL_FALSE;
+			// Link shader program
+			glLinkProgram(shaderProgram);
+			if (!checkShaderProgramLink(shaderProgram))
+				return GL_FALSE;
 
-		glDeleteShader(vertexShader);
-		glDeleteShader(fragmentShader);
+			glDeleteShader(vertexShader);
+			glDeleteShader(fragmentShader);
 
-		return shaderProgram;
-	}
+			return shaderProgram;
+		}
 
-	Shader loadShader(const char* vertex, const char* fragment)
-	{
-		size_t vertShaderFileSize;
-		size_t fragShaderFileSize;
-		const char* vertexSource = (const char*)platform::loadFileToBuffer(vertex, &vertShaderFileSize);
-		const char* fragmentSource = (const char*) platform::loadFileToBuffer(fragment, &fragShaderFileSize);
-		Shader shader = createShaderProgram(vertexSource, fragmentSource);
+		Shader loadShader(const char8* vertex, const char8* fragment)
+		{
+			size_t vertShaderFileSize;
+			size_t fragShaderFileSize;
+			const char8* vertexSource = (const char8*)platform::loadFileToBuffer((const char8*)vertex, &vertShaderFileSize);
+			const char8* fragmentSource = (const char8*) platform::loadFileToBuffer((const char8*)fragment, &fragShaderFileSize);
+			Shader shader = createShaderProgram(vertexSource, fragmentSource);
 
-		//TODO: remove this when we have a proper way to reuse file I/O memory
-		platform::memoryFree((void*)vertexSource, vertShaderFileSize);			
-		platform::memoryFree((void*)fragmentSource, fragShaderFileSize);			
+			//TODO: remove this when we have a proper way to reuse file I/O memory
+			platform::memoryFree((void*)vertexSource);			
+			platform::memoryFree((void*)fragmentSource);			
 
-		return shader;
-	}
+			return shader;
+		}
+
+		//TODO: make filtering paremetrizable when importing texture
+		//TODO: Pass texture import settings as an argument to loadTexture
+		ldk::Texture loadTexture(const char8* bitmapFile)
+		{
+			clearGlError();
+			ldk::Bitmap bitmap;
+
+			if (!ldk::loadBitmap(bitmapFile, &bitmap))
+			{
+				LogWarning("Using fallback bitmap");
+				// we could not load the bitmap. Lets provide a dummy texture
+				bitmap = spriteBatchData.fallbackBitmap;
+			}
+
+			GLuint textureId;
+			glGenTextures(1, &textureId);
+			glBindTexture(GL_TEXTURE_2D, textureId);
+
+			// handle correct pixel data format
+			GLenum pixelDataType = (bitmap.bitsPerPixel == 32) ? GL_UNSIGNED_BYTE : 
+				GL_UNSIGNED_SHORT_4_4_4_4;
+
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.width, bitmap.height, 0, 
+					GL_RGBA, pixelDataType, bitmap.pixels);
+
+			checkGlError();
+
+			glGenerateMipmap(GL_TEXTURE_2D);
+			//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_CLAMP_TO_EDGE);
+			//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_CLAMP_TO_EDGE);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+			ldk::freeAsset(bitmap.bmpFileMemoryToRelease_, bitmap.bmpMemorySize_);
+
+			ldk::Texture texture = {};
+			texture.width = bitmap.width;
+			texture.height = bitmap.height;
+			texture.id = textureId;
+			return texture;
+		}
+
+		ldk::Material loadMaterial(const char8* vertex, const char8* fragment, const char8* textureFile)
+		{
+			ldk::Material material;
+			ldk::Bitmap bitmap;
+			material.shader = ldk::render::loadShader(vertex, fragment);
+			material.texture = ldk::render::loadTexture(textureFile);
+			return material;
+		}
+
+		void updateRenderer(float deltaTime)
+		{
+			globalShaderData.time.x = deltaTime;
+			globalShaderData.time.y += deltaTime;
+			updateGlobalShaderData = true;
+		}
+
+		void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight)
+		{
+			float targetAspectRatio = virtualWidth / (float) virtualHeight;
+			// Try full viewport width with cropped, height if necessary
+			int32 viewportWidth = windowWidth;
+			int32 viewportHeight = (int)(viewportWidth / targetAspectRatio + 0.5f);
+
+			// if calculated viewport height does not fit the window width,
+			// switch to pillar box to preserve the aspect ratio
+			if (viewportHeight > windowHeight)
+			{
+				viewportHeight = windowHeight;
+				viewportWidth = (int)(viewportHeight* targetAspectRatio + 0.5f);
+			}
+
+			// center viewport
+			int32 viewportX = (windowWidth / 2) - (viewportWidth / 2);
+			int32 viewportY = (windowHeight / 2) - (viewportHeight / 2);
+			setViewport(viewportX, viewportY, viewportWidth, viewportHeight);
+
+			globalShaderData.baseModelMatrix = Mat4();
+			globalShaderData.baseModelMatrix.scale(
+					viewportWidth / (float)virtualWidth, 
+					viewportHeight / (float)virtualHeight, 1.0f);
+		}
+
+		void setViewport(uint32 x, uint32 y, uint32 width, uint32 height)
+		{
+			globalShaderData.projectionMatrix.orthographic(0, width, 0, height, -1, 1);
+			glViewport(x, y, width, height);
+			updateGlobalShaderData = true;
+		}
+
+	} // namespace render
 
 	int32 initSpriteBatch()
 	{
 		clearGlError();
 		// initialize fallback bitmap
-		ldare::Bitmap fallbackBitmap = {};
+		ldk::Bitmap fallbackBitmap = {};
 		fallbackBitmap.bitsPerPixel = 32;
 		fallbackBitmap.width = fallbackBitmap.height = 1;
 		fallbackBitmap.bmpMemorySize_ = 4;
@@ -184,36 +314,36 @@ namespace ldare
 		glBindVertexArray(spriteBatchData.vao);
 
 		// VERTEX buffer ---------------------------------------------
-			renderer::BufferLayout layout[] = {
-				{SPRITE_ATTRIB_COLOR, 																					 // index
-					renderer::BufferLayout::Type::FLOAT32,  											 // type
-					renderer::BufferLayout::Size::X4,       											 // size
-					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-					0},  										                 											 // start
+		renderer::GpuBufferLayout layout[] = {
+			{SPRITE_ATTRIB_COLOR, 																					 // index
+				renderer::GpuBufferLayout::Type::FLOAT32,  											 // type
+				renderer::GpuBufferLayout::Size::X4,       											 // size
+				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+				0},  										                 											 // start
 
-				{SPRITE_ATTRIB_VERTEX, 																					 // index
-					renderer::BufferLayout::Type::FLOAT32,												 // type
-					renderer::BufferLayout::Size::X3, 														 // size
-					SPRITE_BATCH_VERTEX_DATA_SIZE, 																 // stride
-					4 * sizeof(float)}, 																					 // start
+			{SPRITE_ATTRIB_VERTEX, 																					 // index
+				renderer::GpuBufferLayout::Type::FLOAT32,												 // type
+				renderer::GpuBufferLayout::Size::X3, 														 // size
+				SPRITE_BATCH_VERTEX_DATA_SIZE, 																 // stride
+				4 * sizeof(float)}, 																					 // start
 
-				{SPRITE_ATTRIB_UV, 																							 // index
-					renderer::BufferLayout::Type::FLOAT32,  											 // type
-					renderer::BufferLayout::Size::X2,       											 // size
-					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-					(7 * sizeof(float))}, 																				 // start
-		
-				{SPRITE_ATTRIB_ZROTATION, 																			 // index
-					renderer::BufferLayout::Type::FLOAT32,  											 // type
-					renderer::BufferLayout::Size::X1,       											 // size
-					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-					(9 * sizeof(float))}};                  											 // start
+			{SPRITE_ATTRIB_UV, 																							 // index
+				renderer::GpuBufferLayout::Type::FLOAT32,  											 // type
+				renderer::GpuBufferLayout::Size::X2,       											 // size
+				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+				(7 * sizeof(float))}, 																				 // start
 
-			spriteBatchData.vertexBuffer = 
-				renderer::createBuffer(renderer::Buffer::Type::VERTEX_DYNAMIC, 	 // buffer type
-						SPRITE_BATCH_MAX_SPRITES * sizeof(SpriteVertexData), 				 // buffer size
-						layout, 																										 // buffer layout
-						sizeof(layout)/sizeof(renderer::BufferLayout));
+			{SPRITE_ATTRIB_ZROTATION, 																			 // index
+				renderer::GpuBufferLayout::Type::FLOAT32,  											 // type
+				renderer::GpuBufferLayout::Size::X1,       											 // size
+				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+				(9 * sizeof(float))}};                  											 // start
+
+		spriteBatchData.vertexBuffer = 
+			renderer::createBuffer(renderer::GpuBuffer::Type::VERTEX_DYNAMIC, 	 // buffer type
+					SPRITE_BATCH_MAX_SPRITES * sizeof(SpriteVertexData), 				 // buffer size
+					layout, 																										 // buffer layout
+					sizeof(layout)/sizeof(renderer::GpuBufferLayout));
 		checkGlError();
 
 		// INDEX buffer ---------------------------------------------
@@ -234,7 +364,7 @@ namespace ldare
 		}
 
 		spriteBatchData.indexBuffer = 
-			renderer::createBuffer(renderer::Buffer::Type::INDEX, 					 // buffer type
+			renderer::createBuffer(renderer::GpuBuffer::Type::INDEX, 					 // buffer type
 					SPRITE_BATCH_INDICES_SIZE * sizeof(uint16), 								 // buffer size
 					nullptr, 																										 // buffer layout
 					0, 																													 // layout count
@@ -242,7 +372,7 @@ namespace ldare
 		checkGlError();
 
 		spriteBatchData.uniformBuffer = 
-			renderer::createBuffer(renderer::Buffer::Type::UNIFORM,					 // buffer type
+			renderer::createBuffer(renderer::GpuBuffer::Type::UNIFORM,					 // buffer type
 					sizeof(globalShaderData), 																	 // buffer size
 					nullptr, 																										 // buffer layout
 					0, 																													 // layout count
@@ -259,13 +389,13 @@ namespace ldare
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_DEBUG_OUTPUT);
-	//	glLineWidth(1.0);
-	//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	//	glPolygonOffset(-1,-1);
+		//	glLineWidth(1.0);
+		//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//	glPolygonOffset(-1,-1);
 		return 1;
 	}
 
-	void begin(const ldare::Material& material)
+	void begin(const ldk::Material& material)
 	{
 		clearGlError();
 		spriteBatchData.material = material;
@@ -279,23 +409,23 @@ namespace ldare
 				renderer::bindBuffer(spriteBatchData.uniformBuffer);
 				renderer::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
 
-				// Bind the global uniform buffer to the 'ldare' global struct
-				unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldare");
+				// Bind the global uniform buffer to the 'ldk' global struct
+				unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldk");
 				const GLuint bindingPointIndex = 0;
-				glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.GL.id);
+				glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.id);
 
 				renderer::unbindBuffer(spriteBatchData.uniformBuffer);
 				updateGlobalShaderData = false;
 			}
 		}
-		
-		ASSERT(checkGlError(), "GL ERROR!");
+
+		LDK_ASSERT(checkGlError(), "GL ERROR!");
 		renderer::bindBuffer(spriteBatchData.vertexBuffer);
 	}
 
 	void submit(const Sprite& sprite)
 	{
-		
+
 		clearGlError();
 		Material& material = spriteBatchData.material;
 		// sprite vertex order 0,1,2,2,3,0
@@ -390,101 +520,11 @@ namespace ldare
 		//TODO: sort draw calls per material 
 	}
 
-	//TODO: make filtering paremetrizable when importing texture
-	//TODO: Pass texture import settings as an argument to loadTexture
-	ldare::Texture loadTexture(const char* bitmapFile)
-	{
-		clearGlError();
-		ldare::Bitmap bitmap;
-
-		if (!ldare::loadBitmap(bitmapFile, &bitmap))
-		{
-			LogWarning("Using fallback bitmap");
-			// we could not load the bitmap. Lets provide a dummy texture
-			bitmap = spriteBatchData.fallbackBitmap;
-		}
-
-		GLuint textureId;
-		glGenTextures(1, &textureId);
-		glBindTexture(GL_TEXTURE_2D, textureId);
-
-		// handle correct pixel data format
-		GLenum pixelDataType = (bitmap.bitsPerPixel == 32) ? GL_UNSIGNED_BYTE : 
-			GL_UNSIGNED_SHORT_4_4_4_4;
-
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.width, bitmap.height, 0, 
-				GL_RGBA, pixelDataType, bitmap.pixels);
-
-		checkGlError();
-
-		glGenerateMipmap(GL_TEXTURE_2D);
-		//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_CLAMP_TO_EDGE);
-		//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_CLAMP_TO_EDGE);
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-		glBindTexture(GL_TEXTURE_2D, 0);
-		ldare::freeAsset(bitmap.bmpFileMemoryToRelease_, bitmap.bmpMemorySize_);
-
-		ldare::Texture texture = {};
-		texture.width = bitmap.width;
-		texture.height = bitmap.height;
-		texture.id = textureId;
-		return texture;
-	}
-
-	void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight)
-	{
-		float targetAspectRatio = virtualWidth / (float) virtualHeight;
-		// Try full viewport width with cropped, height if necessary
-		int32 viewportWidth = windowWidth;
-		int32 viewportHeight = (int)(viewportWidth / targetAspectRatio + 0.5f);
-
-		// if calculated viewport height does not fit the window width,
-		// switch to pillar box to preserve the aspect ratio
-		if (viewportHeight > windowHeight)
-		{
-			viewportHeight = windowHeight;
-			viewportWidth = (int)(viewportHeight* targetAspectRatio + 0.5f);
-		}
-
-		// center viewport
-		int32 viewportX = (windowWidth / 2) - (viewportWidth / 2);
-		int32 viewportY = (windowHeight / 2) - (viewportHeight / 2);
-		setViewport(viewportX, viewportY, viewportWidth, viewportHeight);
-
-		globalShaderData.baseModelMatrix = Mat4();
-		globalShaderData.baseModelMatrix.scale(
-				viewportWidth / (float)virtualWidth, 
-				viewportHeight / (float)virtualHeight, 1.0f);
-	}
-
-	void setViewport(uint32 x, uint32 y, uint32 width, uint32 height)
-	{
-		globalShaderData.projectionMatrix.orthographic(0, width, 0, height, -1, 1);
-		glViewport(x, y, width, height);
-		updateGlobalShaderData = true;
-	}
-
-	void updateRenderer(float deltaTime)
-	{
-		globalShaderData.time.x = deltaTime;
-		globalShaderData.time.y += deltaTime;
-		updateGlobalShaderData = true;
-	}
-
 	//
 	// Text Rendering functions. 
 	// I still don't know if this is the best place or way to do it.
 	//
-	void beginText(const ldare::FontAsset& font, const ldare::Material& material)
+	void beginText(const ldk::FontAsset& font, const ldk::Material& material)
 	{
 		// copy font localy
 		fontAsset = font;
@@ -503,7 +543,7 @@ namespace ldare
 		Sprite sprite;
 		sprite.color = color;
 
-		ldare::FontGliphRect* gliphList = fontAsset.gliphData;
+		ldk::FontGliphRect* gliphList = fontAsset.gliphData;
 		uint32 advance = 0;
 
 		if ( scale < 0 ) scale = 1.0f;
@@ -534,17 +574,18 @@ namespace ldare
 			sprite.srcRect = {gliph->x, gliph->y, gliph->w, gliph->h};
 			++ptrChar;
 			submit(sprite);
-		
+
 			//TODO: account for multi line text
 			textSize.x += sprite.width;
 			textSize.y = MAX(textSize.y, sprite.height); 	
 		}
-			return textSize;
+		return textSize;
 	}
 
 	void flushText()
 	{
 		flush();
 	}
+} // namespace ldk
 
-} // namespace ldare
+

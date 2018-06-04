@@ -1,12 +1,11 @@
-#ifndef __LDK_ASSET__
-#define __LDK_ASSET__
+#ifndef __LDK_ASSET_H_
+#define __LDK_ASSET_H_
 
 #define BITMAP_FILE_HEADER_SIGNATURE 0x4D42
 
 namespace ldk
 {
 	typedef uint32 Shader;
-
 	struct Texture
 	{
 		uint32 id;
@@ -104,7 +103,6 @@ namespace ldk
 
 	struct AssetApi
 	{
-		loadMaterialFunc* loadMaterial;
 		loadAudioFunc* loadAudio;
 		loadFontFunc* loadFont;
 	};
@@ -114,11 +112,11 @@ namespace ldk
 		playAudioFunc* playAudio;
 	};
 
-	bool loadBitmap(const char* file, ldk::Bitmap* bitmap);
-	bool loadAudio(const char* file, ldk::Audio* audio);
-	bool loadFont(const char* file, ldk::FontAsset** fontAsset);
+	bool loadBitmap(const char8* file, ldk::Bitmap* bitmap);
+	bool loadAudio(const char8* file, ldk::Audio* audio);
+	bool loadFont(const char8* file, ldk::FontAsset** fontAsset);
 	void playAudio(const ldk::Audio* audio);
 	void freeAsset(void* memory, size_t size);
 } // namespace ldk
 
-#endif // __LDK_ASSET__
+#endif // __LDK_ASSET_H_

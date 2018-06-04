@@ -2,7 +2,9 @@
 #define WIN32
 #endif // _LDK_WINDOWS_
 
-#include <ldk/ldk.h>
+#include "../include/ldk/ldk_types.h"
+#include "../include/ldk/ldk_debug.h"
+
 #include "../ldk_platform.h"
 #include "../ldk_gl.h"
 #include "ldk_xinput_win32.h"
@@ -110,10 +112,10 @@ namespace ldk
 
 		static bool ldk_win32_makeContextCurrent(ldk::platform::LDKWindow* window)
 		{
-			wglMakeCurrent(wglGetCurrentDC(), NULL);
+			//wglMakeCurrent(window->dc, NULL);
 			if (!wglMakeCurrent(window->dc, window->rc))
 			{
-				//LogError("Could not mmake render context current for window");
+				LogError("Could not make render context current for window");
 				return false;
 			}
 
@@ -694,12 +696,16 @@ void setWindowCloseFlag(LDKWindow* window, bool flag)
 // Update the window framebuffer
 void swapWindowBuffer(LDKWindow* window)
 {
-	ldk_win32_makeContextCurrent(window);
-	bool result = SwapBuffers(window->dc);
-	//			if (!result)
-	//			{
-	//				LogInfo("SwapBuffer error %x", GetLastError());
-	//			}
+	//TODO: Enable this when implementing gl context sharing
+	//ldk_win32_makeContextCurrent(window);
+	if (window->closeFlag)
+		return;
+	
+	if (!SwapBuffers(window->dc))
+	{
+		LogInfo("SwapBuffer error %x", GetLastError());
+		return;
+	}
 
 	glClearColor(0, 0, 1.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);

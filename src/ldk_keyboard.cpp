@@ -1,7 +1,7 @@
 
 namespace ldk
 {
-	static const ldk::platform::KeyboardState* _keyboardState;
+	static const platform::KeyboardState* _keyboardState;
 
 	static int8 ldk_keyboard_getKey(uint16 key)
 	{

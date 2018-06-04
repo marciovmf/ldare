@@ -1,48 +1,17 @@
-#ifndef __LDARE_RENDER__
-#define __LDARE_RENDER__
-
-namespace ldare
+#ifndef __LDK_RENDER__
+#define __LDK_RENDER__
+namespace ldk
 {
-	typedef uint32 Shader;
 
-	struct GlobalShaderData
-	{
-		Mat4 projectionMatrix;
-		Mat4 baseModelMatrix;
-		Vec2 time; // (deltaTime, time)
-	};
 
-	struct Sprite
-	{
-		Vec3 position;
-		Vec4 color;
-		float width;
-		float height;
-		float angle;
-		Rectangle srcRect;
-	};
-
-#ifdef _MSC_VER
-#pragma pack(push,1)
-#endif
-	struct SpriteVertexData
-	{
-		Vec4 color;
-		Vec3 position;
-		Vec2 uv;
-		float zRotation;
-	};
-#ifdef _MSC_VER
-#pragma pack(pop)
-#endif
-
-#define SPRITE_BATCH_BEGIN_FUNC(name) void name(const ldare::Material& material)
+#if 0
+#define SPRITE_BATCH_BEGIN_FUNC(name) void name(const ldk::Material& material)
 	typedef SPRITE_BATCH_BEGIN_FUNC(SpriteBatchBeginFunc);
 
 #define SPRITE_BATCH_END_FUNC(name) void name()
 	typedef SPRITE_BATCH_END_FUNC(SpriteBatchEndFunc);
 
-#define SPRITE_BATCH_SUBMIT_FUNC(name) void name(const ldare::Sprite& sprite)
+#define SPRITE_BATCH_SUBMIT_FUNC(name) void name(const ldk::Sprite& sprite)
 	typedef SPRITE_BATCH_SUBMIT_FUNC(SpriteBatchSubmitFunc);
 
 #define SPRITE_BATCH_FLUSH_FUNC(name) void name()
@@ -60,7 +29,7 @@ namespace ldare
 		SpriteBatchLoadShaderFunc *loadShader;
 	};
 
-#define TEXT_BATCH_BEGIN_FUNC(name) void name(const ldare::FontAsset&, const ldare::Material& material)
+#define TEXT_BATCH_BEGIN_FUNC(name) void name(const ldk::FontAsset&, const ldk::Material& material)
 	typedef TEXT_BATCH_BEGIN_FUNC(TextBatchBeginFunc);
 
 #define TEXT_BATCH_END_FUNC(name) void name()
@@ -84,6 +53,7 @@ namespace ldare
 	void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight);
 	void setViewport(uint32 x, uint32 y, uint32 width, uint32 height);
 	void updateRenderer(float deltaTime);
-} // namespace ldare
+#endif // 0
 
-#endif 		// __LDARE_RENDER__
+} // namespace ldk
+#endif 		// __LDK_RENDER__
