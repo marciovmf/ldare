@@ -13,9 +13,9 @@ namespace ldk
 			enum Type{ INT8, UINT8, INT16, UINT16, FLOAT32 };
 			enum Size{ X1=1, X2, X3, X4};
 
-			uint32 index;  
 			Type type;
 			Size size;
+			uint32 index;  
 			uint32 stride;
 			uint32 start;
 		};
@@ -27,17 +27,17 @@ namespace ldk
 		{
 				enum Type{ VERTEX, VERTEX_DYNAMIC, VERTEX_STREAM, INDEX, UNIFORM };
 
-				Type type;
-				uint32 id; 
-				uint32 target;
-				uint32 usage;
+				Type		type;
+				uint32	id; 
+				uint32	target;
+				uint32	usage;
 		};
 
 		//
 		// Creates a buffer with the given size and layout
 		// return a GPU buffer identifier
 		//
-		render::GpuBuffer createBuffer(render::GpuBuffer::Type, 
+		LDK_API render::GpuBuffer createBuffer(render::GpuBuffer::Type, 
 				size_t size, 
 				const render::GpuBufferLayout* layout, 
 				uint32 layoutCount, 
@@ -71,7 +71,7 @@ namespace ldk
 		//
 		// Deletes a GPU buffer and release its GPU resources 
 		//
-		void deleteBuffer(render::GpuBuffer& buffer);
+		LDK_API void deleteBuffer(render::GpuBuffer& buffer);
 
 		LDK_API	void updateRenderer(float deltaTime);
 
