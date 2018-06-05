@@ -11,13 +11,6 @@
 #define LDK_KEYSTATE_PRESSED  0x01
 #define LDK_KEYSTATE_CHANGED  0x02
 
-#if defined(_LDK_WINDOWS_)
-#		define LDK_GAME_MODULE_NAME "ldk_game.dll"
-#elif defined(_LDK_MAC_) 
-#		define LDK_GAME_MODULE_NAME "ldk_game.dll"
-#else
-#		error "Undefined platform"
-#endif
 
 namespace ldk 
 {
