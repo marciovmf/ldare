@@ -8,8 +8,6 @@
 
 #if defined(_LDK_WINDOWS_)
 #		define LDK_GAME_MODULE_NAME "ldk_game.dll"
-#elif defined(_LDK_MAC_) 
-#		define LDK_GAME_MODULE_NAME "ldk_game.dll"
 #else
 #		error "Undefined platform"
 #endif
@@ -17,7 +15,6 @@
 // API exposed to the game
 namespace ldk
 {
-	struct Core;
 	//---------------------------------------------------------------------------
 	// Game Interface
 	// This interface is used by the engine to communicate with the game
