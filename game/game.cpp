@@ -1,6 +1,5 @@
 #include <ldk/ldk.h>
 
-
 void gameInit()
 {
 	LogInfo("Game initialized");
@@ -17,7 +16,6 @@ void gameUpdate(float deltaTime)
 		LogInfo("A pressed");	
 	else if (ldk::input::isKeyUp(LDK_KEY_A))
 		LogInfo("A released");
-
 }
 
 void gameStop()

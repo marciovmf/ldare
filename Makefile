@@ -28,13 +28,12 @@ game: assets
 
 game: ldk
 	@echo Building game dll...
-	cl game\game.cpp /Fo$(OUTDIR)\ /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /EXPORT:gameInit /EXPORT:gameStart /EXPORT:gameUpdate /EXPORT:gameStop /PDB:$(OUTDIR)\ldare_game_%random%.pdb $(OUTDIR)/ldk.lib
+	cl game\game.cpp /Fo$(OUTDIR)\ /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /PDB:$(OUTDIR)\ldare_game_%random%.pdb $(OUTDIR)/ldk.lib
 
 assets:
-	@echo copying game assets ...
-	xcopy game\assets $(OUTDIR)\assets /Y /I /E /F > NUL
-	@echo copying standard assets ...
-	xcopy assets $(OUTDIR)\assets /Y /I /E /F > NUL
+	@echo copying assets ...
+	@xcopy game\assets $(OUTDIR)\assets /Y /I /E /F > NUL
+	@xcopy assets $(OUTDIR)\assets /Y /I /E /F > NUL
 
 ldk:
 	@echo Building ldk...
@@ -42,12 +41,13 @@ ldk:
 
 editor: ldk game
 	cl src\ldk_editor.cpp /Fe$(OUTDIR)/ $(CFLAGS) $(LINKFLAGS) $(OUTDIR)/ldk.lib
+	@echo SUCCESS
 
 tool: src\win32\tools\ldk_tool_font.cpp
 	cl src\win32\tools\ldk_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
 
 outdirfolder:
-	IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR)
+	@IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR)
 
 clean:
 	@IF EXIST "$(OUTDIR)" del /S /Q .\$(OUTDIR)\* > NUL

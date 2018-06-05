@@ -9,8 +9,10 @@
 
 #ifdef _LDK_ENGINE_
 #	define LDK_API extern "C" __declspec(dllexport) 
+#	define LDK_GAME_CALLBACK extern "C" __declspec(dllimport) 
 #else
 #	define LDK_API extern "C" __declspec(dllimport)
+#	define LDK_GAME_CALLBACK extern "C" __declspec(dllexport) 
 #endif
 
 #include "ldk_types.h"

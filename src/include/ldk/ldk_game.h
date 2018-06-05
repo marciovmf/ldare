@@ -4,21 +4,11 @@
  */
 #ifndef _LDK_GAME_H_
 #define _LDK_GAME_H_
-#include <ldk/ldk.h>
-
-#if defined(_LDK_WINDOWS_)
-#		define LDK_GAME_MODULE_NAME "ldk_game.dll"
-#else
-#		error "Undefined platform"
-#endif
 
 // API exposed to the game
 namespace ldk
 {
-	//---------------------------------------------------------------------------
-	// Game Interface
-	// This interface is used by the engine to communicate with the game
-	//---------------------------------------------------------------------------
+
 #define LDK_GAME_FUNCTION_INIT "gameInit"
 #define LDK_GAME_FUNCTION_START "gameStart"
 #define LDK_GAME_FUNCTION_UPDATE "gameUpdate"
@@ -39,5 +29,18 @@ namespace ldk
 
 }
 
+#if defined(_LDK_WINDOWS_)
+#	define LDK_GAME_MODULE_NAME "ldk_game.dll"
+#else
+#		error "Undefined platform"
+#endif
+
+extern "C"
+{
+	LDK_GAME_CALLBACK void gameInit();
+	LDK_GAME_CALLBACK void gameStart();
+	LDK_GAME_CALLBACK void gameUpdate(float deltaTime);
+	LDK_GAME_CALLBACK void gameStop();
+}
 
 #endif // _LDK_GAME_H_

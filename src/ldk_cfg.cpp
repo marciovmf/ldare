@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #define LogUnexpectedToken(expected, line, column)	LogError("Expecting letter while parsing identifier but found %c at %d,%d", (expected), (line), (column));
-#define LDK_MAX_IDENTIFIER_SIZE 63
+#define LDK_CFG_MAX_IDENTIFIER_SIZE 63
 #define LDK_CFG_MAX_IDENTIFIER 128
 #define LDK_CFG_DEFAULT_BUFFER_SIZE 512
 namespace ldk
@@ -20,7 +20,7 @@ namespace ldk
 
 	struct Variant
 	{
-		char8 key[LDK_MAX_IDENTIFIER_SIZE + 1];
+		char8 key[LDK_CFG_MAX_IDENTIFIER_SIZE + 1];
 		uint32 size;
 		VariantType type;
 		int32 hash;
@@ -31,7 +31,7 @@ namespace ldk
 		int32 hash;
 		uint32 variantCount;
 		uint32 totalSize; //total size of variant section, including this header
-		char8 name[LDK_MAX_IDENTIFIER_SIZE + 1];
+		char8 name[LDK_CFG_MAX_IDENTIFIER_SIZE + 1];
 	};
 
 	struct VariantSectionRoot
@@ -650,7 +650,7 @@ namespace ldk
 
 		for (int i = 0; i < rootSection->sectionCount; i++) 
 		{
-			if (section->hash == hash && strncmp((char*)section->name, (char*) name, LDK_MAX_IDENTIFIER_SIZE) == 0)
+			if (section->hash == hash && strncmp((char*)section->name, (char*) name, LDK_CFG_MAX_IDENTIFIER_SIZE) == 0)
 			{
 				return section;
 			}
@@ -668,7 +668,7 @@ namespace ldk
 
 		for (int i = 0; i < section->variantCount; i++)
 		{
-			if ((v->hash == hash) && (strncmp((const char*)key, (const char*)v->key, LDK_MAX_IDENTIFIER_SIZE) == 0))
+			if ((v->hash == hash) && (strncmp((const char*)key, (const char*)v->key, LDK_CFG_MAX_IDENTIFIER_SIZE) == 0))
 					return v;
 
 			v = (Variant*)((char*)v + v->size);
