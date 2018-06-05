@@ -92,7 +92,6 @@ GameConfig loadGameConfig()
 
 uint32 ldkMain(uint32 argc, char** argv)
 {
-	ldk::Core core = {};
 	ldk::Game game = {};
 	ldk::platform::SharedLib* gameSharedLib;
 	GameConfig gameConfig;
@@ -128,10 +127,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 	ldk::platform::setWindowCloseCallback(window, windowCloseCallback);
 	ldk::platform::setWindowResizeCallback(window, windowResizeCallback);
 	ldk::platform::toggleFullScreen(window, gameConfig.fullscreen);
-	//ldk::ldk_keyboard_initApi(&core.keyboard);
-	//ldk::ldk_gamepad_initApi(&core.gamepad);
 
-	game.init(&core);
+	game.init();
 
 	game.start();
 	while (!ldk::platform::windowShouldClose(window))

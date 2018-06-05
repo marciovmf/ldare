@@ -27,42 +27,10 @@ namespace ldk
 #define LDK_GAME_FUNCTION_UPDATE "gameUpdate"
 #define LDK_GAME_FUNCTION_STOP "gameStop"
 
-	typedef void (*LDK_PFN_GAME_INIT)(ldk::Core* core);
+	typedef void (*LDK_PFN_GAME_INIT)();
 	typedef void (*LDK_PFN_GAME_START)();
 	typedef void (*LDK_PFN_GAME_UPDATE)(float deltaTime);
 	typedef void (*LDK_PFN_GAME_STOP)();
-
-	// Keyboard input functions
-	typedef int8 (*LDK_PFN_GETKEYDOWN)(uint16 key);
-	typedef int8 (*LDK_PFN_GETKEYUP)(uint16 key);
-	typedef int8 (*LDK_PFN_GETKEY)(uint16 key);
-
-	// joystick input functions
-	typedef int8  (*LDK_PFN_GETBUTTONDOWN)(uint16 key, uint16 index);
-	typedef int8  (*LDK_PFN_GETBUTTONUP)(uint16 key, uint16 index);
-	typedef int8  (*LDK_PFN_GETBUTTON)(uint16 key, uint16 index);
-	typedef float (*LDK_PFN_GETAXIS)(uint16 axis, uint16 index);
-
-	struct KeyboardApi
-	{
-		LDK_PFN_GETKEYDOWN	getKeyDown;
-		LDK_PFN_GETKEYUP 		getKeyUp;
-		LDK_PFN_GETKEY			getKey;
-	};
-
-	struct GamepadApi
-	{
-		LDK_PFN_GETBUTTONDOWN getButtonDown;
-		LDK_PFN_GETBUTTONUP 	getButtonUp;
-		LDK_PFN_GETBUTTON 		getButton;
-		LDK_PFN_GETAXIS 			getAxis;
-	};
-
-	struct Core
-	{
-		ldk::KeyboardApi	keyboard;
-		ldk::GamepadApi		gamepad;
-	};
 
 	struct Game
 	{
@@ -73,5 +41,6 @@ namespace ldk
 	};
 
 }
+
 
 #endif // _LDK_GAME_H_

@@ -1,11 +1,9 @@
 #include <ldk/ldk.h>
 
-static ldk::Core* core;
 
-void gameInit(ldk::Core* ldkCore)
+void gameInit()
 {
 	LogInfo("Game initialized");
-	core = ldkCore;
 }
 
 void gameStart()
@@ -15,10 +13,10 @@ void gameStart()
 
 void gameUpdate(float deltaTime)
 {
-//	if (core->keyboard.getKeyDown(LDK_KEY_A))
-//		LogInfo("A pressed");	
-//	else if (core->keyboard.getKeyUp(LDK_KEY_A))
-//		LogInfo("A released");
+	if (ldk::input::isKeyDown(LDK_KEY_A))
+		LogInfo("A pressed");	
+	else if (ldk::input::isKeyUp(LDK_KEY_A))
+		LogInfo("A released");
 
 }
 
