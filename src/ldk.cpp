@@ -6,8 +6,6 @@
 
 #include "ldk_memory.h"
 #include "ldk_platform.h"
-#include "ldk_renderer.h"
-#include "ldk_renderer_buffer.h"
 // implementations
 #include "ldk_memory.cpp"
 #include "ldk_keyboard.cpp"

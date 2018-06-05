@@ -1,9 +1,9 @@
 
 namespace ldk
 {
-	namespace renderer
+	namespace render
 	{
-		static inline GLenum getGlEnum(renderer::GpuBuffer::Type type)
+		static inline GLenum getGlEnum(render::GpuBuffer::Type type)
 		{
 				switch(type)
 				{
@@ -24,26 +24,26 @@ namespace ldk
 
 		}
 
-		static inline GLenum getGlEnum(renderer::GpuBufferLayout::Type type)
+		static inline GLenum getGlEnum(render::GpuBufferLayout::Type type)
 		{
 			switch(type)
 			{
-				case renderer::GpuBufferLayout::Type::INT8:
+				case render::GpuBufferLayout::Type::INT8:
 					return GL_BYTE;
-				case renderer::GpuBufferLayout::Type::UINT8:
+				case render::GpuBufferLayout::Type::UINT8:
 					return GL_UNSIGNED_BYTE;
-				case renderer::GpuBufferLayout::Type::INT16:
+				case render::GpuBufferLayout::Type::INT16:
 					return GL_SHORT;
-				case renderer::GpuBufferLayout::Type::UINT16:
+				case render::GpuBufferLayout::Type::UINT16:
 					return GL_UNSIGNED_SHORT;
-				case renderer::GpuBufferLayout::Type::FLOAT32:
+				case render::GpuBufferLayout::Type::FLOAT32:
 					return GL_FLOAT;
 				default:
 						return GL_INVALID_ENUM;
 			}
 		}
 
-		static inline GLenum getGlBufferUsage(renderer::GpuBuffer::Type type)
+		static inline GLenum getGlBufferUsage(render::GpuBuffer::Type type)
 		{
 			switch(type)
 				{
@@ -64,11 +64,11 @@ namespace ldk
 
 		}
 
-		renderer::GpuBuffer createBuffer(renderer::GpuBuffer::Type type, 
-				size_t size, const renderer::GpuBufferLayout* layout, uint32 layoutCount, void* data)
+		render::GpuBuffer createBuffer(render::GpuBuffer::Type type, 
+				size_t size, const render::GpuBufferLayout* layout, uint32 layoutCount, void* data)
 		{
 			// find ideal buffer target and memory strategy for the given buffer type
-			renderer::GpuBuffer buffer;
+			render::GpuBuffer buffer;
 			buffer.target = getGlEnum(type);
 			buffer.usage = getGlBufferUsage(type);
 			
@@ -78,7 +78,7 @@ namespace ldk
 			// set buffer layout
 			for (uint32 i = 0; i < layoutCount; i++)
 			{
-				const renderer::GpuBufferLayout& attrib = layout[i];
+				const render::GpuBufferLayout& attrib = layout[i];
 				LogInfo("Enabling attrib #%d" , attrib.index);
 				glEnableVertexAttribArray(attrib.index);
 
@@ -98,27 +98,27 @@ namespace ldk
 			return buffer;
 		}
 
-		void setBufferData(const renderer::GpuBuffer& buffer, void* data, size_t dataSize, uint32 offset)
+		void setBufferSubData(const render::GpuBuffer& buffer, void* data, size_t dataSize, uint32 offset)
 		{
 			glBufferSubData(buffer.target, offset, dataSize, (const GLvoid*) data);
 		}
 
-		void setBufferData(const renderer::GpuBuffer& buffer, void* data, size_t dataSize)
+		void setBufferData(const render::GpuBuffer& buffer, void* data, size_t dataSize)
 		{
 			glBufferData(buffer.target, dataSize, (const GLvoid*) data, buffer.usage);
 		}
 
-		inline void bindBuffer(const renderer::GpuBuffer& buffer)
+		inline void bindBuffer(const render::GpuBuffer& buffer)
 		{
 			glBindBuffer(buffer.target, buffer.id);
 		}
 
-		inline void unbindBuffer(const renderer::GpuBuffer& buffer)
+		inline void unbindBuffer(const render::GpuBuffer& buffer)
 		{
 			glBindBuffer(buffer.target, 0);
 		}
 
-		void deleteBuffer(renderer::GpuBuffer& buffer)
+		void deleteBuffer(render::GpuBuffer& buffer)
 		{
 			glDeleteBuffers(1, &buffer.id);
 			buffer.id = -1;

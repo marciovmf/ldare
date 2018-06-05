@@ -88,9 +88,9 @@ namespace ldk
 	{
 		ldk::Material material; 					// Current bound material
 		GLuint vao;
-		renderer::GpuBuffer vertexBuffer;
-		renderer::GpuBuffer indexBuffer;
-		renderer::GpuBuffer uniformBuffer;
+		render::GpuBuffer vertexBuffer;
+		render::GpuBuffer indexBuffer;
+		render::GpuBuffer uniformBuffer;
 		uint32 spriteCount; 								// number of sprites pushed int the current batch
 		ldk::Bitmap fallbackBitmap;
 		uint32 fallbackBitmapData;
@@ -313,36 +313,36 @@ namespace ldk
 		glBindVertexArray(spriteBatchData.vao);
 
 		// VERTEX buffer ---------------------------------------------
-		renderer::GpuBufferLayout layout[] = {
+		render::GpuBufferLayout layout[] = {
 			{SPRITE_ATTRIB_COLOR, 																					 // index
-				renderer::GpuBufferLayout::Type::FLOAT32,  											 // type
-				renderer::GpuBufferLayout::Size::X4,       											 // size
+				render::GpuBufferLayout::Type::FLOAT32,  											 // type
+				render::GpuBufferLayout::Size::X4,       											 // size
 				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
 				0},  										                 											 // start
 
 			{SPRITE_ATTRIB_VERTEX, 																					 // index
-				renderer::GpuBufferLayout::Type::FLOAT32,												 // type
-				renderer::GpuBufferLayout::Size::X3, 														 // size
+				render::GpuBufferLayout::Type::FLOAT32,												 // type
+				render::GpuBufferLayout::Size::X3, 														 // size
 				SPRITE_BATCH_VERTEX_DATA_SIZE, 																 // stride
 				4 * sizeof(float)}, 																					 // start
 
 			{SPRITE_ATTRIB_UV, 																							 // index
-				renderer::GpuBufferLayout::Type::FLOAT32,  											 // type
-				renderer::GpuBufferLayout::Size::X2,       											 // size
+				render::GpuBufferLayout::Type::FLOAT32,  											 // type
+				render::GpuBufferLayout::Size::X2,       											 // size
 				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
 				(7 * sizeof(float))}, 																				 // start
 
 			{SPRITE_ATTRIB_ZROTATION, 																			 // index
-				renderer::GpuBufferLayout::Type::FLOAT32,  											 // type
-				renderer::GpuBufferLayout::Size::X1,       											 // size
+				render::GpuBufferLayout::Type::FLOAT32,  											 // type
+				render::GpuBufferLayout::Size::X1,       											 // size
 				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
 				(9 * sizeof(float))}};                  											 // start
 
 		spriteBatchData.vertexBuffer = 
-			renderer::createBuffer(renderer::GpuBuffer::Type::VERTEX_DYNAMIC, 	 // buffer type
+			render::createBuffer(render::GpuBuffer::Type::VERTEX_DYNAMIC, 	 // buffer type
 					SPRITE_BATCH_MAX_SPRITES * sizeof(SpriteVertexData), 				 // buffer size
 					layout, 																										 // buffer layout
-					sizeof(layout)/sizeof(renderer::GpuBufferLayout));
+					sizeof(layout)/sizeof(render::GpuBufferLayout));
 		checkGlError();
 
 		// INDEX buffer ---------------------------------------------
@@ -363,7 +363,7 @@ namespace ldk
 		}
 
 		spriteBatchData.indexBuffer = 
-			renderer::createBuffer(renderer::GpuBuffer::Type::INDEX, 					 // buffer type
+			render::createBuffer(render::GpuBuffer::Type::INDEX, 					 // buffer type
 					SPRITE_BATCH_INDICES_SIZE * sizeof(uint16), 								 // buffer size
 					nullptr, 																										 // buffer layout
 					0, 																													 // layout count
@@ -371,7 +371,7 @@ namespace ldk
 		checkGlError();
 
 		spriteBatchData.uniformBuffer = 
-			renderer::createBuffer(renderer::GpuBuffer::Type::UNIFORM,					 // buffer type
+			render::createBuffer(render::GpuBuffer::Type::UNIFORM,					 // buffer type
 					sizeof(globalShaderData), 																	 // buffer size
 					nullptr, 																										 // buffer layout
 					0, 																													 // layout count
@@ -405,21 +405,21 @@ namespace ldk
 			if (updateGlobalShaderData)
 			{
 				// Set global uniform data
-				renderer::bindBuffer(spriteBatchData.uniformBuffer);
-				renderer::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
+				render::bindBuffer(spriteBatchData.uniformBuffer);
+				render::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
 
 				// Bind the global uniform buffer to the 'ldk' global struct
 				unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldk");
 				const GLuint bindingPointIndex = 0;
 				glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.id);
 
-				renderer::unbindBuffer(spriteBatchData.uniformBuffer);
+				render::unbindBuffer(spriteBatchData.uniformBuffer);
 				updateGlobalShaderData = false;
 			}
 		}
 
 		LDK_ASSERT(checkGlError(), "GL ERROR!");
-		renderer::bindBuffer(spriteBatchData.vertexBuffer);
+		render::bindBuffer(spriteBatchData.vertexBuffer);
 	}
 
 	void submit(const Sprite& sprite)
@@ -487,7 +487,7 @@ namespace ldk
 		vertexData->position = 
 			Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y,	z};
 
-		renderer::setBufferData(spriteBatchData.vertexBuffer,
+		render::setBufferSubData(spriteBatchData.vertexBuffer,
 				(void*)vertices, 
 				sizeof(vertices),
 				spriteBatchData.spriteCount * sizeof(vertices));
@@ -507,7 +507,7 @@ namespace ldk
 		glBindTexture(GL_TEXTURE_2D, spriteBatchData.material.texture.id);
 		glUseProgram(spriteBatchData.material.shader);
 		glBindVertexArray(spriteBatchData.vao);
-		renderer::bindBuffer(spriteBatchData.indexBuffer);
+		render::bindBuffer(spriteBatchData.indexBuffer);
 		// Draw
 		glDrawElements(GL_TRIANGLES, 6 * spriteBatchData.spriteCount, GL_UNSIGNED_SHORT, 0);
 

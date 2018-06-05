@@ -2,8 +2,6 @@
 #include <ldk/ldk.h>
 #include "ldk_platform.h"
 #include "ldk_memory.h"
-#include "ldk_renderer.h"
-#include "ldk_renderer_buffer.h"
 
 
 //TODO: use a higher level renderer interface here

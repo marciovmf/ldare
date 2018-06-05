@@ -22,7 +22,7 @@
 #include "ldk_joystick.h"
 #include "ldk_game.h"
 #include "ldk_asset.h"
-#include "ldk_render.h"
+#include "ldk_renderer.h"
 #include "ldk_cfg.h"
 //#include "ldk_random.h"
 #endif //_LDK_H_
