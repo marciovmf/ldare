@@ -15,10 +15,10 @@ void gameStart()
 
 void gameUpdate(float deltaTime)
 {
-	if (core->keyboard.getKeyDown(LDK_KEY_A))
-		LogInfo("A pressed");	
-	else if (core->keyboard.getKeyUp(LDK_KEY_A))
-		LogInfo("A released");
+//	if (core->keyboard.getKeyDown(LDK_KEY_A))
+//		LogInfo("A pressed");	
+//	else if (core->keyboard.getKeyUp(LDK_KEY_A))
+//		LogInfo("A released");
 
 }
 

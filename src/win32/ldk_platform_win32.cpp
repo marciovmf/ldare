@@ -1,6 +1,8 @@
-#ifdef _LDK_WINDOWS_
-#define WIN32
-#endif // _LDK_WINDOWS_
+
+#ifndef _LDK_ENGINE_
+#define _LDK_ENGINE_
+#endif // _LDK_ENGINE_
+
 #include "../ldk_platform.h"
 #include "../include/ldk/ldk_types.h"
 #include "../include/ldk/ldk_debug.h"

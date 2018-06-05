@@ -4,15 +4,6 @@
 #include "ldk_memory.h"
 #include "ldk_renderer.h"
 #include "ldk_renderer_buffer.h"
-// implementations
-//#include "ldk_memory.cpp"
-//#include "ldk_keyboard.cpp"
-//#include "ldk_gamepad.cpp"
-//#include "ldk_ini.cpp"
-//#include "ldk_asset.cpp"
-//// Opengl renderer dependencies
-//#include "ldk_renderer_gl.cpp"
-//#include "ldk_renderer_buffer_gl.cpp"
 
 
 //TODO: use a higher level renderer interface here
@@ -40,14 +31,14 @@ void windowResizeCallback(ldk::platform::LDKWindow* window, int32 width, int32 h
 	return;
 }
 
-static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window, const ldk::KeyboardApi& keyboard)
+static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window)
 {
-	if (keyboard.getKeyDown(LDK_KEY_ESCAPE))
+	if (ldk::input::isKeyDown(LDK_KEY_ESCAPE))
 	{
 		ldk::platform::setWindowCloseFlag(window, true);
 	}
 	
-	if (keyboard.getKeyDown(LDK_KEY_F12))
+	if (ldk::input::isKeyDown(LDK_KEY_F12))
 	{
 		ldk::platform::toggleFullScreen(window, !ldk::platform::isFullScreen(window));
 	}
@@ -149,7 +140,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 		ldk::input::keyboardUpdate();
 		ldk::input::joystickUpdate();
 
-		ldkHandleKeyboardInput(window, core.keyboard);
+		ldkHandleKeyboardInput(window);
 
 		game.update(0);
 		ldk::render::updateRenderer(0);

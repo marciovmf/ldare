@@ -3,8 +3,9 @@
 #include <stdlib.h>
 
 #define LogUnexpectedToken(expected, line, column)	LogError("Expecting letter while parsing identifier but found %c at %d,%d", (expected), (line), (column));
-#define LDK_INI_MAX_IDENTIFIER 128
-#define LDK_INI_DEFAULT_BUFFER_SIZE 512
+#define LDK_MAX_IDENTIFIER_SIZE 63
+#define LDK_CFG_MAX_IDENTIFIER 128
+#define LDK_CFG_DEFAULT_BUFFER_SIZE 512
 namespace ldk
 {
 	enum VariantType
@@ -586,7 +587,7 @@ namespace ldk
 	{
 		_IniBufferStream stream(buffer, size);
 		Heap heap;
-		ldk_memory_allocHeap(&heap, LDK_INI_DEFAULT_BUFFER_SIZE);
+		ldk_memory_allocHeap(&heap, LDK_CFG_DEFAULT_BUFFER_SIZE);
 
 		int32 currentSectionOffset = pushRootSection(heap);
 

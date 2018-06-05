@@ -2,7 +2,6 @@
 #define LDK_EXTERN_GL_FUNCTIONS
 #include "ldk_gl.h"
 #undef LDK_EXTERN_GL_FUNCTIONS
-#include <ldk/ldk_asset.h>
 
 // Sprite batch data
 #define SPRITE_BATCH_MAX_SPRITES 10000
