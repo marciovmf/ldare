@@ -403,20 +403,19 @@ namespace ldk
 
 			if (updateGlobalShaderData)
 			{
-				if (updateGlobalShaderData)
-				{
-					// Set global uniform data
-					render::bindBuffer(spriteBatchData.uniformBuffer);
-					render::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
+				// Set global uniform data
+				render::bindBuffer(spriteBatchData.uniformBuffer);
+				render::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
 
-					// Bind the global uniform buffer to the 'ldk' global struct
-					unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldk");
-					const GLuint bindingPointIndex = 0;
-					glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.id);
+				// Bind the global uniform buffer to the 'ldk' global struct
+				unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldk");
+				const GLuint bindingPointIndex = 0;
 
-					render::unbindBuffer(spriteBatchData.uniformBuffer);
-					updateGlobalShaderData = false;
-				}
+				glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.id);
+				checkGlError();
+
+				render::unbindBuffer(spriteBatchData.uniformBuffer);
+				updateGlobalShaderData = false;
 			}
 
 			LDK_ASSERT(checkGlError(), "GL ERROR!");

@@ -141,9 +141,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 		ldkHandleKeyboardInput(window);
 
-		game.update(0);
 		ldk::render::updateRenderer(0);
-
+		game.update(0);
 		ldk::platform::swapWindowBuffer(window);
 	}
 

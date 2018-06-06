@@ -714,9 +714,6 @@ void swapWindowBuffer(LDKWindow* window)
 		LogInfo("SwapBuffer error %x", GetLastError());
 		return;
 	}
-
-	glClearColor(0, 0, 1.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void showWindow(LDKWindow* window)

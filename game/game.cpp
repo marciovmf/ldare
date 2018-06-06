@@ -17,10 +17,10 @@ void gameStart()
 			(const char8*)"./assets/sprites.bmp");
 
 	ldk::render::spriteBatchInit();
-	sprite.position = {100, 100, 1};
-	sprite.color = {1.0, 0, 0, 1.0};
-	sprite.width = sprite.height = 100;
-	sprite.srcRect = {0,0,100,100};
+	sprite.position = {400, 400, 1};
+	sprite.color = { 1.0, 1.0, 1.0, 1.0 };
+	sprite.width = sprite.height = 200;
+	sprite.srcRect = {100,100,100,100};
 }
 
 void gameUpdate(float deltaTime)
@@ -33,7 +33,7 @@ void gameUpdate(float deltaTime)
 	ldk::render::spriteBatchBegin(material);
 		ldk::render::spriteBatchSubmit(sprite);
 	ldk::render::spriteBatchEnd();
-	ldk::render::spriteBatchFlush();
+	//ldk::render::spriteBatchFlush();
 }
 
 void gameStop()
