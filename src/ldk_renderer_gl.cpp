@@ -51,15 +51,15 @@ static void clearGlError()
 
 namespace ldk 
 {
-	struct Sprite
-	{
-		Vec3 position;
-		Vec4 color;
-		float width;
-		float height;
-		float angle;
-		Rectangle srcRect;
-	};
+	//struct Sprite
+	//{
+	//Vec3 position;
+	//Vec4 color;
+	//float width;
+	//float height;
+	//float angle;
+	//Rectangle srcRect;
+	//};
 
 #ifdef _MSC_VER
 #pragma pack(push,1)
@@ -155,6 +155,7 @@ namespace ldk
 
 		return shader;
 	}
+
 	namespace render
 	{
 		static GLuint createShaderProgram(const char8* vertex, const char8* fragment)
@@ -291,234 +292,234 @@ namespace ldk
 			updateGlobalShaderData = true;
 		}
 
-	} // namespace render
 
-	int32 initSpriteBatch()
-	{
-		clearGlError();
-		// initialize fallback bitmap
-		ldk::Bitmap fallbackBitmap = {};
-		fallbackBitmap.bitsPerPixel = 32;
-		fallbackBitmap.width = fallbackBitmap.height = 1;
-		fallbackBitmap.bmpMemorySize_ = 4;
-		//TODO: is it possible that at some poit someone try to release this memory ?
 
-		spriteBatchData.fallbackBitmapData = 0xFFFF000FF; // ugly hell magenta! ABRG
-		spriteBatchData.fallbackBitmap = fallbackBitmap;
-		spriteBatchData.fallbackBitmap.pixels = (uchar8*) &spriteBatchData.fallbackBitmapData;
-
-		glGenVertexArrays(1, &spriteBatchData.vao);
-
-		// ARRAY buffer ---------------------------------------------
-		glBindVertexArray(spriteBatchData.vao);
-
-		// VERTEX buffer ---------------------------------------------
-		render::GpuBufferLayout layout[] = {
-			{SPRITE_ATTRIB_COLOR, 																					 // index
-				render::GpuBufferLayout::Type::FLOAT32,  											 // type
-				render::GpuBufferLayout::Size::X4,       											 // size
-				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-				0},  										                 											 // start
-
-			{SPRITE_ATTRIB_VERTEX, 																					 // index
-				render::GpuBufferLayout::Type::FLOAT32,												 // type
-				render::GpuBufferLayout::Size::X3, 														 // size
-				SPRITE_BATCH_VERTEX_DATA_SIZE, 																 // stride
-				4 * sizeof(float)}, 																					 // start
-
-			{SPRITE_ATTRIB_UV, 																							 // index
-				render::GpuBufferLayout::Type::FLOAT32,  											 // type
-				render::GpuBufferLayout::Size::X2,       											 // size
-				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-				(7 * sizeof(float))}, 																				 // start
-
-			{SPRITE_ATTRIB_ZROTATION, 																			 // index
-				render::GpuBufferLayout::Type::FLOAT32,  											 // type
-				render::GpuBufferLayout::Size::X1,       											 // size
-				SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
-				(9 * sizeof(float))}};                  											 // start
-
-		spriteBatchData.vertexBuffer = 
-			render::createBuffer(render::GpuBuffer::Type::VERTEX_DYNAMIC, 	 // buffer type
-					SPRITE_BATCH_MAX_SPRITES * sizeof(SpriteVertexData), 				 // buffer size
-					layout, 																										 // buffer layout
-					sizeof(layout)/sizeof(render::GpuBufferLayout));
-		checkGlError();
-
-		// INDEX buffer ---------------------------------------------
-		// Precompute indices for every sprite
-		GLushort indices[SPRITE_BATCH_INDICES_SIZE]={};
-		int32 offset = 0;
-
-		for(int32 i=0; i < SPRITE_BATCH_INDICES_SIZE; i+=6)
+		int32 spriteBatchInit()
 		{
-			indices[i] 	 = offset;
-			indices[i+1] = offset +1;
-			indices[i+2] = offset +2;
-			indices[i+3] = offset +2;
-			indices[i+4] = offset +3;
-			indices[i+5] = offset +0;
+			clearGlError();
+			// initialize fallback bitmap
+			ldk::Bitmap fallbackBitmap = {};
+			fallbackBitmap.bitsPerPixel = 32;
+			fallbackBitmap.width = fallbackBitmap.height = 1;
+			fallbackBitmap.bmpMemorySize_ = 4;
+			//TODO: is it possible that at some poit someone try to release this memory ?
 
-			offset+=4; // 4 offsets per sprite
+			spriteBatchData.fallbackBitmapData = 0xFFFF000FF; // ugly hell magenta! ABRG
+			spriteBatchData.fallbackBitmap = fallbackBitmap;
+			spriteBatchData.fallbackBitmap.pixels = (uchar8*) &spriteBatchData.fallbackBitmapData;
+
+			glGenVertexArrays(1, &spriteBatchData.vao);
+
+			// ARRAY buffer ---------------------------------------------
+			glBindVertexArray(spriteBatchData.vao);
+
+			// VERTEX buffer ---------------------------------------------
+			render::GpuBufferLayout layout[] = {
+				{SPRITE_ATTRIB_COLOR, 																					 // index
+					render::GpuBufferLayout::Type::FLOAT32,  											 // type
+					render::GpuBufferLayout::Size::X4,       											 // size
+					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+					0},  										                 											 // start
+
+				{SPRITE_ATTRIB_VERTEX, 																					 // index
+					render::GpuBufferLayout::Type::FLOAT32,												 // type
+					render::GpuBufferLayout::Size::X3, 														 // size
+					SPRITE_BATCH_VERTEX_DATA_SIZE, 																 // stride
+					4 * sizeof(float)}, 																					 // start
+
+				{SPRITE_ATTRIB_UV, 																							 // index
+					render::GpuBufferLayout::Type::FLOAT32,  											 // type
+					render::GpuBufferLayout::Size::X2,       											 // size
+					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+					(7 * sizeof(float))}, 																				 // start
+
+				{SPRITE_ATTRIB_ZROTATION, 																			 // index
+					render::GpuBufferLayout::Type::FLOAT32,  											 // type
+					render::GpuBufferLayout::Size::X1,       											 // size
+					SPRITE_BATCH_VERTEX_DATA_SIZE,          											 // stride
+					(9 * sizeof(float))}};                  											 // start
+
+			spriteBatchData.vertexBuffer = 
+				render::createBuffer(render::GpuBuffer::Type::VERTEX_DYNAMIC, 	 // buffer type
+						SPRITE_BATCH_MAX_SPRITES * sizeof(SpriteVertexData), 				 // buffer size
+						layout, 																										 // buffer layout
+						sizeof(layout)/sizeof(render::GpuBufferLayout));
+			checkGlError();
+
+			// INDEX buffer ---------------------------------------------
+			// Precompute indices for every sprite
+			GLushort indices[SPRITE_BATCH_INDICES_SIZE]={};
+			int32 offset = 0;
+
+			for(int32 i=0; i < SPRITE_BATCH_INDICES_SIZE; i+=6)
+			{
+				indices[i] 	 = offset;
+				indices[i+1] = offset +1;
+				indices[i+2] = offset +2;
+				indices[i+3] = offset +2;
+				indices[i+4] = offset +3;
+				indices[i+5] = offset +0;
+
+				offset+=4; // 4 offsets per sprite
+			}
+
+			spriteBatchData.indexBuffer = 
+				render::createBuffer(render::GpuBuffer::Type::INDEX, 					 // buffer type
+						SPRITE_BATCH_INDICES_SIZE * sizeof(uint16), 								 // buffer size
+						nullptr, 																										 // buffer layout
+						0, 																													 // layout count
+						(void*)indices); 																						 // buffer data
+			checkGlError();
+
+			spriteBatchData.uniformBuffer = 
+				render::createBuffer(render::GpuBuffer::Type::UNIFORM,					 // buffer type
+						sizeof(globalShaderData), 																	 // buffer size
+						nullptr, 																										 // buffer layout
+						0, 																													 // layout count
+						(void*)indices); 																						 // buffer data
+			checkGlError();
+			glBindVertexArray(0);
+
+			//TODO: Marcio, this is a hack for testing stuff in 2D. Move this to material state
+			glClearColor(1, 1, 1, 1);
+			glEnable(GL_DEPTH_TEST);
+			glDepthFunc(GL_LESS);
+			glDepthMask(GL_TRUE);
+			glEnable(GL_CULL_FACE);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glEnable(GL_DEBUG_OUTPUT);
+			//	glLineWidth(1.0);
+			//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			//	glPolygonOffset(-1,-1);
+			return 1;
 		}
 
-		spriteBatchData.indexBuffer = 
-			render::createBuffer(render::GpuBuffer::Type::INDEX, 					 // buffer type
-					SPRITE_BATCH_INDICES_SIZE * sizeof(uint16), 								 // buffer size
-					nullptr, 																										 // buffer layout
-					0, 																													 // layout count
-					(void*)indices); 																						 // buffer data
-		checkGlError();
+		void spriteBatchBegin(const ldk::Material& material)
+		{ 
+			clearGlError();
+			spriteBatchData.material = material;
+			spriteBatchData.spriteCount = 0;
 
-		spriteBatchData.uniformBuffer = 
-			render::createBuffer(render::GpuBuffer::Type::UNIFORM,					 // buffer type
-					sizeof(globalShaderData), 																	 // buffer size
-					nullptr, 																										 // buffer layout
-					0, 																													 // layout count
-					(void*)indices); 																						 // buffer data
-		checkGlError();
-		glBindVertexArray(0);
-
-		//TODO: Marcio, this is a hack for testing stuff in 2D. Move this to material state
-		glClearColor(1, 1, 1, 1);
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
-		glDepthMask(GL_TRUE);
-		glEnable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glEnable(GL_DEBUG_OUTPUT);
-		//	glLineWidth(1.0);
-		//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		//	glPolygonOffset(-1,-1);
-		return 1;
-	}
-
-	void begin(const ldk::Material& material)
-	{
-		clearGlError();
-		spriteBatchData.material = material;
-		spriteBatchData.spriteCount = 0;
-
-		if (updateGlobalShaderData)
-		{
 			if (updateGlobalShaderData)
 			{
-				// Set global uniform data
-				render::bindBuffer(spriteBatchData.uniformBuffer);
-				render::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
+				if (updateGlobalShaderData)
+				{
+					// Set global uniform data
+					render::bindBuffer(spriteBatchData.uniformBuffer);
+					render::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
 
-				// Bind the global uniform buffer to the 'ldk' global struct
-				unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldk");
-				const GLuint bindingPointIndex = 0;
-				glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.id);
+					// Bind the global uniform buffer to the 'ldk' global struct
+					unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldk");
+					const GLuint bindingPointIndex = 0;
+					glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.id);
 
-				render::unbindBuffer(spriteBatchData.uniformBuffer);
-				updateGlobalShaderData = false;
+					render::unbindBuffer(spriteBatchData.uniformBuffer);
+					updateGlobalShaderData = false;
+				}
 			}
+
+			LDK_ASSERT(checkGlError(), "GL ERROR!");
+			render::bindBuffer(spriteBatchData.vertexBuffer);
 		}
 
-		LDK_ASSERT(checkGlError(), "GL ERROR!");
-		render::bindBuffer(spriteBatchData.vertexBuffer);
-	}
+		void spriteBatchSubmit(const Sprite& sprite)
+		{
+			clearGlError();
+			Material& material = spriteBatchData.material;
+			// sprite vertex order 0,1,2,2,3,0
+			// 1 -- 2
+			// |    |
+			// 0 -- 3
 
-	void submit(const Sprite& sprite)
-	{
+			// map pixel coord to texture space
+			Rectangle uvRect = sprite.srcRect;
+			uvRect.x = uvRect.x / material.texture.width;
+			uvRect.y = uvRect.y / material.texture.height;
+			uvRect.w = uvRect.w / material.texture.width;
+			uvRect.h = uvRect.h / material.texture.height;
+			float angle = sprite.angle;
+			float halfWidth = sprite.width/2;
+			float halfHeight = sprite.height/2;
+			float s = sin(sprite.angle);
+			float c = cos(sprite.angle);
+			float z = sprite.position.z;
 
-		clearGlError();
-		Material& material = spriteBatchData.material;
-		// sprite vertex order 0,1,2,2,3,0
-		// 1 -- 2
-		// |    |
-		// 0 -- 3
+			SpriteVertexData vertices[4];
+			SpriteVertexData* vertexData = vertices;
 
-		// map pixel coord to texture space
-		Rectangle uvRect = sprite.srcRect;
-		uvRect.x = uvRect.x / material.texture.width;
-		uvRect.y = uvRect.y / material.texture.height;
-		uvRect.w = uvRect.w / material.texture.width;
-		uvRect.h = uvRect.h / material.texture.height;
-		float angle = sprite.angle;
-		float halfWidth = sprite.width/2;
-		float halfHeight = sprite.height/2;
-		float s = sin(sprite.angle);
-		float c = cos(sprite.angle);
-		float z = sprite.position.z;
+			// top left
+			vertexData->color = sprite.color;
+			vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
+			vertexData->zRotation = angle;	
+			float x = -halfWidth;
+			float y = halfHeight;
+			vertexData->position = 
+				Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y,	z};
+			vertexData++;
 
-		SpriteVertexData vertices[4];
-		SpriteVertexData* vertexData = vertices;
+			// bottom left
+			vertexData->color = sprite.color;
+			vertexData->uv = { uvRect.x, uvRect.y};
+			vertexData->zRotation = angle;	
+			x = -halfWidth;
+			y = -halfHeight;
+			vertexData->position = 
+				Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y, z};
+			vertexData++;
 
-		// top left
-		vertexData->color = sprite.color;
-		vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
-		vertexData->zRotation = angle;	
-		float x = -halfWidth;
-		float y = halfHeight;
-		vertexData->position = 
-			Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y,	z};
-		vertexData++;
+			// bottom right
+			vertexData->color = sprite.color;
+			vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
+			vertexData->zRotation = angle;
+			x = halfWidth;
+			y = -halfHeight;
+			vertexData->position = 	
+				Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y,	z};
+			vertexData++;
 
-		// bottom left
-		vertexData->color = sprite.color;
-		vertexData->uv = { uvRect.x, uvRect.y};
-		vertexData->zRotation = angle;	
-		x = -halfWidth;
-		y = -halfHeight;
-		vertexData->position = 
-			Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y, z};
-		vertexData++;
+			// top right
+			vertexData->color = sprite.color;
+			vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
+			vertexData->zRotation = angle;
+			x = halfWidth;
+			y = halfHeight;
+			vertexData->position = 
+				Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y,	z};
 
-		// bottom right
-		vertexData->color = sprite.color;
-		vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
-		vertexData->zRotation = angle;
-		x = halfWidth;
-		y = -halfHeight;
-		vertexData->position = 	
-			Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y,	z};
-		vertexData++;
+			render::setBufferSubData(spriteBatchData.vertexBuffer,
+					(void*)vertices, 
+					sizeof(vertices),
+					spriteBatchData.spriteCount * sizeof(vertices));
 
-		// top right
-		vertexData->color = sprite.color;
-		vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
-		vertexData->zRotation = angle;
-		x = halfWidth;
-		y = halfHeight;
-		vertexData->position = 
-			Vec3{(x * c - y * s) + sprite.position.x, (x * s + y * c) + sprite.position.y,	z};
+			checkGlError();
+			spriteBatchData.spriteCount++;
+		}
 
-		render::setBufferSubData(spriteBatchData.vertexBuffer,
-				(void*)vertices, 
-				sizeof(vertices),
-				spriteBatchData.spriteCount * sizeof(vertices));
+		void spriteBatchFlush()
+		{
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		}
 
-		checkGlError();
-		spriteBatchData.spriteCount++;
-	}
+		void spriteBatchEnd()
+		{
+			clearGlError();
+			glBindTexture(GL_TEXTURE_2D, spriteBatchData.material.texture.id);
+			glUseProgram(spriteBatchData.material.shader);
+			glBindVertexArray(spriteBatchData.vao);
+			render::bindBuffer(spriteBatchData.indexBuffer);
+			// Draw
+			glDrawElements(GL_TRIANGLES, 6 * spriteBatchData.spriteCount, GL_UNSIGNED_SHORT, 0);
 
-	void flush()
-	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	}
+			checkGlError();
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glBindVertexArray(0);
 
-	void end()
-	{
-		clearGlError();
-		glBindTexture(GL_TEXTURE_2D, spriteBatchData.material.texture.id);
-		glUseProgram(spriteBatchData.material.shader);
-		glBindVertexArray(spriteBatchData.vao);
-		render::bindBuffer(spriteBatchData.indexBuffer);
-		// Draw
-		glDrawElements(GL_TRIANGLES, 6 * spriteBatchData.spriteCount, GL_UNSIGNED_SHORT, 0);
+			checkGlError();
+			//TODO: sort draw calls per material 
+		}
 
-		checkGlError();
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-
-		checkGlError();
-		//TODO: sort draw calls per material 
-	}
-
+	} // namespace render
 	//
 	// Text Rendering functions. 
 	// I still don't know if this is the best place or way to do it.
@@ -527,12 +528,12 @@ namespace ldk
 	{
 		// copy font localy
 		fontAsset = font;
-		begin(material);
+		render::spriteBatchBegin(material);
 	}
 
 	void endText()
 	{
-		end();
+		render::spriteBatchEnd();
 	}
 
 	Vec2 drawText(Vec3& position, float scale, Vec4& color, const char* text)
@@ -572,7 +573,7 @@ namespace ldk
 			sprite.height = gliph->h * scale;
 			sprite.srcRect = {gliph->x, gliph->y, gliph->w, gliph->h};
 			++ptrChar;
-			submit(sprite);
+			render::spriteBatchSubmit(sprite);
 
 			//TODO: account for multi line text
 			textSize.x += sprite.width;
@@ -583,7 +584,7 @@ namespace ldk
 
 	void flushText()
 	{
-		flush();
+		render::spriteBatchFlush();
 	}
 } // namespace ldk
 

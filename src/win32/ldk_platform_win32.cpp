@@ -227,6 +227,7 @@ namespace ldk
 
 #define FETCH_GL_FUNC(type, name) success = success &&\
 			(name = (type) ldk::platform::ldk_win32_getGlFunctionPointer((const char*)#name))
+			FETCH_GL_FUNC(PFNGLGETSTRINGPROC, glGetString);
 			FETCH_GL_FUNC(PFNGLENABLEPROC, glEnable);
 			FETCH_GL_FUNC(PFNGLDISABLEPROC, glDisable);
 			FETCH_GL_FUNC(PFNGLCLEARPROC, glClear);
@@ -554,7 +555,7 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
 	uint32 colorBits = 32;
 	uint32 depthBits = 24;
 	uint32 glVersionMajor = 3;
-	uint32 glVersionMinor = 0;
+	uint32 glVersionMinor = 2;
 	bool success = true;
 
 	while ( pAttribute != 0 && *pAttribute != 0 )
@@ -626,6 +627,11 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
 		delete window;
 		return nullptr;
 	}
+
+	LogInfo("Initialized OpenGL %s\n%s\n%s", 
+			glGetString(GL_VERSION),
+			glGetString(GL_VENDOR),
+			glGetString(GL_RENDERER));
 
 	//_platform.windowList.insert(std::make_pair(window->hwnd, window));
 	_platform.windowList[window->hwnd] = window;

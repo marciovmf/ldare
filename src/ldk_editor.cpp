@@ -26,6 +26,8 @@ void windowCloseCallback(ldk::platform::LDKWindow* window)
 void windowResizeCallback(ldk::platform::LDKWindow* window, int32 width, int32 height)
 {
 	// Recalculate projection matrix here.
+	LogInfo("setting viewport");
+	ldk::render::setViewportAspectRatio(width, height, 800, 600);
 	return;
 }
 
@@ -125,6 +127,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 	ldk::platform::setWindowCloseCallback(window, windowCloseCallback);
 	ldk::platform::setWindowResizeCallback(window, windowResizeCallback);
 	ldk::platform::toggleFullScreen(window, gameConfig.fullscreen);
+
+	ldk::render::setViewportAspectRatio(gameConfig.width, gameConfig.height, 800, 600);
 
 	game.init();
 

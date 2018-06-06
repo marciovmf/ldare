@@ -5,6 +5,7 @@
 #include "../GL/wglext.h"
 
 	// OpenGL function pointers
+	  PFNGLGETSTRINGPROC glGetString;
 	  PFNGLENABLEPROC glEnable;
 	  PFNGLDISABLEPROC glDisable;
 	  PFNGLCLEARPROC glClear;
