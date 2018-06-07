@@ -17,23 +17,47 @@ void gameStart()
 			(const char8*)"./assets/sprites.bmp");
 
 	ldk::render::spriteBatchInit();
-	sprite.position = {400, 400, 1};
+	sprite.position = {0, 100, 1};
 	sprite.color = { 1.0, 1.0, 1.0, 1.0 };
-	sprite.width = sprite.height = 200;
-	sprite.srcRect = {100,100,100,100};
+	sprite.width = 100;
+	sprite.height = 100;
+	sprite.srcRect = {0,0,90,100};
+}
+
+void printRect(ldk::Rectangle& rect)
+{
+		LogInfo("%f, %f, %f, %f", rect.x, rect.y, rect.w, rect.h);
 }
 
 void gameUpdate(float deltaTime)
 {
-	if (ldk::input::isKeyDown(LDK_KEY_A))
-		LogInfo("A pressed");	
-	else if (ldk::input::isKeyUp(LDK_KEY_A))
-		LogInfo("A released");
+	if (ldk::input::getKey(LDK_KEY_W))
+		sprite.position.y +=0.1;
+
+	if (ldk::input::getKey(LDK_KEY_S))
+		sprite.position.y -=0.1;
+
+	if (ldk::input::getKey(LDK_KEY_A))
+		sprite.position.x -=0.1;
+
+	if (ldk::input::getKey(LDK_KEY_D))
+		sprite.position.x +=0.1;
+
+	if (ldk::input::isKeyDown(LDK_KEY_J))
+	{
+		sprite.srcRect.y -=100;
+		printRect(sprite.srcRect);
+	}
+
+	if (ldk::input::isKeyDown(LDK_KEY_K))
+	{
+		sprite.srcRect.y +=100;
+		printRect(sprite.srcRect);
+	}
 
 	ldk::render::spriteBatchBegin(material);
 		ldk::render::spriteBatchSubmit(sprite);
 	ldk::render::spriteBatchEnd();
-	//ldk::render::spriteBatchFlush();
 }
 
 void gameStop()

@@ -262,6 +262,7 @@ namespace ldk
 			globalShaderData.time.x = deltaTime;
 			globalShaderData.time.y += deltaTime;
 			updateGlobalShaderData = true;
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
 		void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight)
@@ -443,9 +444,9 @@ namespace ldk
 			// map pixel coord to texture space
 			Rectangle uvRect = sprite.srcRect;
 			uvRect.x = uvRect.x / material.texture.width;
-			uvRect.y = uvRect.y / material.texture.height;
+			uvRect.y = (material.texture.height - sprite.srcRect.y) / material.texture.height;
 			uvRect.w = uvRect.w / material.texture.width;
-			uvRect.h = uvRect.h / material.texture.height;
+			uvRect.h = (material.texture.height - sprite.srcRect.y - sprite.srcRect.h) / material.texture.height;
 			float angle = sprite.angle;
 			float halfWidth = sprite.width/2;
 			float halfHeight = sprite.height/2;
@@ -506,7 +507,7 @@ namespace ldk
 
 		void spriteBatchFlush()
 		{
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
 		void spriteBatchEnd()
