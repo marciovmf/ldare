@@ -4,19 +4,19 @@ layout (location = 1) in vec3 vPos;
 layout (location = 2) in vec2 vTexCoord;
 layout (location = 3) in float vZRotation;
 
-layout (std140) uniform ldare_t
+layout (std140) uniform ldk
 { 
 	mat4 projectionMatrix;
 	mat4 baseModelMatrix;
-	vec2 time;
-} ldare;
+	vec4 time;
+};
 
 out vec4 fragColor;
 out vec2 texCoord;
 void main()
 {
 	fragColor = vColor;
-	gl_Position = ldare.projectionMatrix * ldare.baseModelMatrix * vec4(vPos.xyz, 1.0);
-	texCoord = vTexCoord ;
+	//gl_Position = projectionMatrix * baseModelMatrix * vec4(vPos.xyz, 1.0);
+	gl_Position = projectionMatrix * vec4(vPos.xyz, 1.0);
+	texCoord = vTexCoord;
 }
-

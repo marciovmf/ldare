@@ -34,6 +34,7 @@ assets:
 	@echo copying assets ...
 	@xcopy game\assets $(OUTDIR)\assets /Y /I /E /F > NUL
 	@xcopy assets $(OUTDIR)\assets /Y /I /E /F > NUL
+	@copy /Y ldk.cfg $(OUTDIR) > NUL
 
 ldk:
 	@echo Building ldk...

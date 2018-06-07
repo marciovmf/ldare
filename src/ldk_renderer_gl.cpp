@@ -15,7 +15,12 @@
 #define SPRITE_ATTRIB_UV 2
 #define SPRITE_ATTRIB_ZROTATION 3
 
+#ifdef _LDK_DEBUG_
 #define checkGlError() checkNoGlError(__FILE__, __LINE__)
+#else
+#define checkGlError() 
+#endif
+
 static int32 checkNoGlError(const char* file, uint32 line)
 {
 	const char* error = "UNKNOWN ERROR CODE";
@@ -79,7 +84,7 @@ namespace ldk
 	{
 		Mat4 projectionMatrix;
 		Mat4 baseModelMatrix;
-		Vec2 time; // (deltaTime, time)
+		Vec4 time; // (deltaTime, time)
 	} globalShaderData;
 
 	static bool updateGlobalShaderData = false;
@@ -370,13 +375,14 @@ namespace ldk
 						0, 																													 // layout count
 						(void*)indices); 																						 // buffer data
 			checkGlError();
-
+		
+			// Uniform buffer
 			spriteBatchData.uniformBuffer = 
 				render::createBuffer(render::GpuBuffer::Type::UNIFORM,					 // buffer type
 						sizeof(globalShaderData), 																	 // buffer size
 						nullptr, 																										 // buffer layout
 						0, 																													 // layout count
-						(void*)indices); 																						 // buffer data
+						nullptr); 																						 // buffer data
 			checkGlError();
 			glBindVertexArray(0);
 
@@ -407,16 +413,19 @@ namespace ldk
 				render::bindBuffer(spriteBatchData.uniformBuffer);
 				render::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
 
-				// Bind the global uniform buffer to the 'ldk' global struct
+				// Bind the global uniform buffer to the 'ldk' global 
 				unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldk");
 				const GLuint bindingPointIndex = 0;
+				glUniformBlockBinding(material.shader, block_index, bindingPointIndex);
+				checkGlError();
 
 				glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.id);
 				checkGlError();
 
-				render::unbindBuffer(spriteBatchData.uniformBuffer);
+				//render::unbindBuffer(spriteBatchData.uniformBuffer);
 				updateGlobalShaderData = false;
 			}
+
 
 			LDK_ASSERT(checkGlError(), "GL ERROR!");
 			render::bindBuffer(spriteBatchData.vertexBuffer);

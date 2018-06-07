@@ -631,7 +631,7 @@ namespace ldk
 	{
 		size_t fileSize;
 		void* buffer = platform::loadFileToBuffer(fileName, &fileSize);
-
+		LogInfo("Loading config file '%s'", fileName);
 		if (!buffer)
 		{
 			return nullptr;

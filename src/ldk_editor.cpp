@@ -69,7 +69,7 @@ GameConfig loadGameConfig()
 	defaultConfig.width = defaultConfig.height = 600;
 	defaultConfig.aspect = 1.777;
 	defaultConfig.title = LDK_DEFAULT_GAME_WINDOW_TITLE;
-	
+
 	ldk::VariantSectionRoot* root = ldk::ldk_config_parseFile((const char8*) LDK_DEFAULT_CONFIG_FILE);
 
 	if (root)

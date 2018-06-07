@@ -277,7 +277,7 @@ namespace ldk
 			FETCH_GL_FUNC(PFNGLPOLYGONMODEPROC, glPolygonMode);
 			FETCH_GL_FUNC(PFNGLPOLYGONOFFSETPROC, glPolygonOffset);
 			FETCH_GL_FUNC(PFNGLLINEWIDTHPROC, glLineWidth);
-
+			FETCH_GL_FUNC(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding);
 #undef FETCH_GL_FUNC
 
 			if (!success)
@@ -517,7 +517,20 @@ void ldk_win32_playAudio(uint32 audioBufferId)
 uint32 initialize()
 {
 	CoInitialize(NULL);
+
 	_appInstance = GetModuleHandle(NULL);
+
+	// Set working directory
+	char path[MAX_PATH];
+	DWORD pathLen = GetModuleFileName(_appInstance, path, MAX_PATH);
+	char*c = path + pathLen;
+	do{
+		--c;
+	}while (*c != '\\' && c > path);
+	*++c=0;
+
+	LogInfo("Running from: '%s'", path);
+	SetCurrentDirectory(path);
 
 	ldk_win32_initXInput();
 	ldk_win32_initXAudio();
@@ -555,7 +568,7 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
 	uint32 colorBits = 32;
 	uint32 depthBits = 24;
 	uint32 glVersionMajor = 3;
-	uint32 glVersionMinor = 2;
+	uint32 glVersionMinor = 3;
 	bool success = true;
 
 	while ( pAttribute != 0 && *pAttribute != 0 )
@@ -628,7 +641,8 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
 		return nullptr;
 	}
 
-	LogInfo("Initialized OpenGL %s\n%s\n%s", 
+	//LogInfo("Initialized OpenGL %s\n\t%s\n\t%s", 
+	LogInfo("Initialized OpenGL\n\tVERSION: %s\n\tVENDOR: %s\n\tRENDERER: %s", 
 			glGetString(GL_VERSION),
 			glGetString(GL_VENDOR),
 			glGetString(GL_RENDERER));
@@ -641,39 +655,39 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
 // Toggles the window fullscreen/windowed
 void toggleFullScreen(LDKWindow* window, bool fullScreen)
 {
- if (fullScreen == window->fullscreenFlag)
-	 return;
+	if (fullScreen == window->fullscreenFlag)
+		return;
 
- LONG newStyle = 0;
- RECT newRect;
+	LONG newStyle = 0;
+	RECT newRect;
 
- if (fullScreen)
- {
-	 // save current rect and style
-	 GetWindowRect(window->hwnd, &window->defaultRect);
-	 window->defaultStyle = GetWindowLong(window->hwnd, GWL_STYLE);
+	if (fullScreen)
+	{
+		// save current rect and style
+		GetWindowRect(window->hwnd, &window->defaultRect);
+		window->defaultStyle = GetWindowLong(window->hwnd, GWL_STYLE);
 
-	 LogInfo("SAVING WINDOW SIZE = %dx%d %dx%d",
-			 window->defaultRect.top,
-			 window->defaultRect.left,
-			 window->defaultRect.right,
-			 window->defaultRect.bottom);
-	 newStyle = WS_POPUP;
-	 GetWindowRect(GetDesktopWindow(), &newRect);
- }
- else
- {
+		LogInfo("SAVING WINDOW SIZE = %dx%d %dx%d",
+				window->defaultRect.top,
+				window->defaultRect.left,
+				window->defaultRect.right,
+				window->defaultRect.bottom);
+		newStyle = WS_POPUP;
+		GetWindowRect(GetDesktopWindow(), &newRect);
+	}
+	else
+	{
 		newStyle = window->defaultStyle;
 		newRect = window->defaultRect;
- }
+	}
 
- window->fullscreenFlag = fullScreen;
- SetWindowLong(window->hwnd, GWL_STYLE, newStyle);
- SetWindowPos(window->hwnd, HWND_TOP, 
-		 0, 0,
-		 newRect.right - newRect.left, 
-		 newRect.bottom - newRect.top, 
-		 SWP_SHOWWINDOW);
+	window->fullscreenFlag = fullScreen;
+	SetWindowLong(window->hwnd, GWL_STYLE, newStyle);
+	SetWindowPos(window->hwnd, HWND_TOP, 
+			0, 0,
+			newRect.right - newRect.left, 
+			newRect.bottom - newRect.top, 
+			SWP_SHOWWINDOW);
 }
 
 bool isFullScreen(LDKWindow* window)
@@ -708,7 +722,7 @@ void swapWindowBuffer(LDKWindow* window)
 	//ldk_win32_makeContextCurrent(window);
 	if (window->closeFlag)
 		return;
-	
+
 	if (!SwapBuffers(window->dc))
 	{
 		LogInfo("SwapBuffer error %x", GetLastError());
@@ -836,7 +850,7 @@ void* memoryAlloc(size_t size)
 void memoryFree(void* memory)
 {
 	//TODO: Do proper memory management here
-		free(memory);
+	free(memory);
 }
 
 void* loadFileToBuffer(const char8* fileName, size_t* bufferSize)
@@ -857,20 +871,24 @@ void* loadFileToBuffer(const char8* fileName, size_t* bufferSize)
 		return nullptr;
 	}
 
-	int32 fileSize;
-	fileSize = GetFileSize(hFile, 0);
+	int32 fileSize = GetFileSize(hFile, 0);
 
 	if ( bufferSize != nullptr) { *bufferSize = fileSize; }
 	//TODO: alloc memory from the proper Heap
-	void *buffer = memoryAlloc(fileSize);
+	//Alloc one extra byte for null terminating the buffer.
+	void *buffer = memoryAlloc(fileSize + 1);
 	uint32 bytesRead;
+
 	if (!buffer || ReadFile(hFile, buffer, fileSize, (LPDWORD)&bytesRead, 0) == 0)
 	{
+		CloseHandle(hFile);
 		err = GetLastError();
 		LogError("%d Could not read file '%s'", err, fileName);
 		return nullptr;
 	}
 
+	// Null terminate the buffer
+	*(((char*)buffer)+fileSize) = 0;
 	CloseHandle(hFile);
 	return buffer;
 }
