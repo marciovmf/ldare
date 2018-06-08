@@ -21,12 +21,7 @@ void gameStart()
 	sprite.color = { 1.0, 1.0, 1.0, 1.0 };
 	sprite.width = 100;
 	sprite.height = 100;
-	sprite.srcRect = {0,0,90,100};
-}
-
-void printRect(ldk::Rectangle& rect)
-{
-		LogInfo("%f, %f, %f, %f", rect.x, rect.y, rect.w, rect.h);
+	sprite.srcRect = {0,0,100,75};
 }
 
 void gameUpdate(float deltaTime)
@@ -46,13 +41,11 @@ void gameUpdate(float deltaTime)
 	if (ldk::input::isKeyDown(LDK_KEY_J))
 	{
 		sprite.srcRect.y -=100;
-		printRect(sprite.srcRect);
 	}
 
 	if (ldk::input::isKeyDown(LDK_KEY_K))
 	{
 		sprite.srcRect.y +=100;
-		printRect(sprite.srcRect);
 	}
 
 	ldk::render::spriteBatchBegin(material);

@@ -56,16 +56,6 @@ static void clearGlError()
 
 namespace ldk 
 {
-	//struct Sprite
-	//{
-	//Vec3 position;
-	//Vec4 color;
-	//float width;
-	//float height;
-	//float angle;
-	//Rectangle srcRect;
-	//};
-
 #ifdef _MSC_VER
 #pragma pack(push,1)
 #endif
@@ -76,6 +66,7 @@ namespace ldk
 		Vec2 uv;
 		float zRotation;
 	};
+
 #ifdef _MSC_VER
 #pragma pack(pop)
 #endif
@@ -298,8 +289,6 @@ namespace ldk
 			updateGlobalShaderData = true;
 		}
 
-
-
 		int32 spriteBatchInit()
 		{
 			clearGlError();
@@ -423,7 +412,6 @@ namespace ldk
 				glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.id);
 				checkGlError();
 
-				//render::unbindBuffer(spriteBatchData.uniformBuffer);
 				updateGlobalShaderData = false;
 			}
 
@@ -442,11 +430,12 @@ namespace ldk
 			// 0 -- 3
 
 			// map pixel coord to texture space
-			Rectangle uvRect = sprite.srcRect;
-			uvRect.x = uvRect.x / material.texture.width;
-			uvRect.y = (material.texture.height - sprite.srcRect.y) / material.texture.height;
-			uvRect.w = uvRect.w / material.texture.width;
-			uvRect.h = (material.texture.height - sprite.srcRect.y - sprite.srcRect.h) / material.texture.height;
+			Rectangle uvRect;
+			uvRect.x = sprite.srcRect.x / material.texture.width;
+			uvRect.w = sprite.srcRect.w / material.texture.width;
+			uvRect.y = 1 - (sprite.srcRect.y / material.texture.height); // origin is top-left corner
+			uvRect.h = sprite.srcRect.h / material.texture.height;
+
 			float angle = sprite.angle;
 			float halfWidth = sprite.width/2;
 			float halfHeight = sprite.height/2;
@@ -459,7 +448,7 @@ namespace ldk
 
 			// top left
 			vertexData->color = sprite.color;
-			vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
+			vertexData->uv = { uvRect.x, uvRect.y};
 			vertexData->zRotation = angle;	
 			float x = -halfWidth;
 			float y = halfHeight;
@@ -469,7 +458,7 @@ namespace ldk
 
 			// bottom left
 			vertexData->color = sprite.color;
-			vertexData->uv = { uvRect.x, uvRect.y};
+			vertexData->uv = { uvRect.x, uvRect.y - uvRect.h};
 			vertexData->zRotation = angle;	
 			x = -halfWidth;
 			y = -halfHeight;
@@ -479,7 +468,7 @@ namespace ldk
 
 			// bottom right
 			vertexData->color = sprite.color;
-			vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
+			vertexData->uv = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};
 			vertexData->zRotation = angle;
 			x = halfWidth;
 			y = -halfHeight;
@@ -489,7 +478,7 @@ namespace ldk
 
 			// top right
 			vertexData->color = sprite.color;
-			vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
+			vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
 			vertexData->zRotation = angle;
 			x = halfWidth;
 			y = halfHeight;
@@ -507,7 +496,7 @@ namespace ldk
 
 		void spriteBatchFlush()
 		{
-			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			//TODO(marcio): Flush buffer when sprite buffer is full and game is still pushing sprites
 		}
 
 		void spriteBatchEnd()
@@ -529,6 +518,7 @@ namespace ldk
 		}
 
 	} // namespace render
+
 	//
 	// Text Rendering functions. 
 	// I still don't know if this is the best place or way to do it.
