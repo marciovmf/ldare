@@ -13,6 +13,10 @@ namespace ldk
 	LDK_API bool ldk_config_getBool(VariantSection* section, const char* key, bool* boolValue);
 	LDK_API bool ldk_config_getFloat(VariantSection* section, const char* key, float* floatValue);
 	LDK_API const bool ldk_config_getString(VariantSection* section, const char* key, char** stringValue);
+	LDK_API int32 ldk_config_getIntArray(VariantSection* section, const char* key, int32** array);
+	LDK_API int32 ldk_config_getFloatArray(VariantSection* section, const char* key, float** array);
+	LDK_API int32 ldk_config_getBoolArray(VariantSection* section, const char* key, bool** array);
+	LDK_API int32 ldk_config_getIntlArray(VariantSection* section, const char* key, float** array);
 }
 
 #endif// _LDK_CFG_H_

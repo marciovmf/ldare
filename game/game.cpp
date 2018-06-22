@@ -15,7 +15,7 @@ void gameStart()
 			(const char8*)"./assets/sprite.vert",
 			(const char8*) "./assets/sprite.frag", 
 			(const char8*)"./assets/sprites.bmp");
-
+	
 	ldk::render::spriteBatchInit();
 	sprite.position = {0, 100, 1};
 	sprite.color = { 1.0, 1.0, 1.0, 1.0 };

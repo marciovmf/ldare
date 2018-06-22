@@ -15,7 +15,6 @@
 
 namespace ldk
 {
-
 	struct Heap
 	{
 		void* memory;

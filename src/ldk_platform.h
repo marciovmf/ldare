@@ -4,13 +4,10 @@
  */
 #ifndef _LDK_PLATFORM_H_
 #define _LDK_PLATFORM_H_
-
 #include <ldk/ldk.h>
-
 #define LDK_MAX_KBD_KEYS 255
 #define LDK_KEYSTATE_PRESSED  0x01
 #define LDK_KEYSTATE_CHANGED  0x02
-
 
 namespace ldk 
 {

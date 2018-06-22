@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define LogUnexpectedToken(expected, line, column)	LogError("Expecting letter while parsing identifier but found %c at %d,%d", (expected), (line), (column));
+#define LogUnexpectedToken(expected, line, column)	LogError("Unexpected token '%c' at %d,%d", (expected), (line), (column));
 #define LDK_CFG_MAX_IDENTIFIER_SIZE 63
 #define LDK_CFG_MAX_IDENTIFIER 128
 #define LDK_CFG_DEFAULT_BUFFER_SIZE 512
@@ -10,12 +10,10 @@ namespace ldk
 {
 	enum VariantType
 	{
+		INT = 0,
 		BOOL,
-		INT,
 		FLOAT,
 		STRING,
-		VEC3,
-		VEC4
 	};
 
 	struct Variant
@@ -24,6 +22,7 @@ namespace ldk
 		uint32 size;
 		VariantType type;
 		int32 hash;
+		int32 arrayCount;
 	};
 
 	struct VariantSection
@@ -96,7 +95,7 @@ namespace ldk
 			column = lastColumn;
 		}
 
-	}; 
+	};
 
 	enum StatementType
 	{
@@ -113,16 +112,16 @@ namespace ldk
 	struct SectionDeclarationStatement
 	{
 		Identifier sectionName;
+		int32 sectionOffset; // where in the final buffer, this section begins.
 	};
 
 	struct Literal
 	{
 		VariantType type;
+		bool isArray;
 		union 
 		{
 			Identifier stringValue;
-			Vec4 vec4Value;
-			Vec3 vec3Value;
 			float floatValue;
 			uint32 intValue;
 			uint8 boolValue;
@@ -151,6 +150,10 @@ namespace ldk
 
 	};
 
+	uint32 pushVariantSection(Heap& heap, Identifier& identifier);
+	int32 pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal);
+	int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, Literal& literal);
+
 	int32 stringToHash(char8* str)
 	{
 		uint32 stringLen = strlen((const char*)str);
@@ -162,7 +165,7 @@ namespace ldk
 
 		return hash;
 	}
-	
+
 	inline bool isLetter(char8 c)
 	{
 		return (c >= 64 && c <= 90) || (c >= 97 && c <= 122);
@@ -183,6 +186,19 @@ namespace ldk
 		}
 	}
 
+	static void skipEmptyLines(_IniBufferStream& stream)
+	{
+		char8 c;
+		do
+		{
+			skipWhiteSpace(stream);
+			c = stream.getc();
+		} while (c == '\n');
+
+		if (c != EOF)
+			stream.ungetc();
+	}
+
 	static bool parseIdentifier(_IniBufferStream& stream, Identifier* identifier)
 	{
 		char8* identifierText = stream.pos;
@@ -191,7 +207,7 @@ namespace ldk
 
 		size_t usedData;
 
-		if (isLetter(c))
+		if (isLetter(c) || c == '_')
 		{
 			do
 			{
@@ -204,7 +220,7 @@ namespace ldk
 
 			stream.ungetc();
 			//TODO: Make sure identifier names are 127bytes or less
-			
+
 			if (identifierLength < 128)
 			{
 				//strncpy((char*)&(identifier->name[0]),(const char*) identifierText, identifierLength);
@@ -240,7 +256,7 @@ namespace ldk
 		return false;
 	}
 
-	static bool parseNumericLiteral(_IniBufferStream& stream, Literal* variant)
+	static bool parseNumericLiteral(_IniBufferStream& stream, Literal* literal)
 	{
 		int32 signal;
 		parseUnarySignal(stream, &signal);
@@ -271,23 +287,15 @@ namespace ldk
 
 		if (dotCount > 0)
 		{
-			variant->type = VariantType::FLOAT;
-			variant->floatValue = atof(buff) * signal;
+			literal->type = VariantType::FLOAT;
+			literal->floatValue = atof(buff) * signal;
 		}
 		else
 		{
-			variant->type = VariantType::INT;
-			variant->intValue = atoi(buff) * signal;
+			literal->type = VariantType::INT;
+			literal->intValue = atoi(buff) * signal;
 		}
 		return true;
-	}
-
-	static bool parseRValue(_IniBufferStream& stream, Variant* variant)
-	{
-		skipWhiteSpace(stream);
-		int32 signal;
-		parseUnarySignal(stream, &signal);
-		return false;
 	}
 
 	static bool identifierCompare(Identifier& identifier, const char* str)
@@ -324,8 +332,170 @@ namespace ldk
 		return false;
 	}
 
-	// parse identifier + = + rvalue
-	bool parseAssignment(_IniBufferStream& stream, Statement* statement)
+	inline bool parseStringLiteral(_IniBufferStream& stream, Literal& literal)
+	{
+		uint32 stringLen = 0;
+		char8* stringStart = stream.pos+1;
+		char8 c = stream.peek();
+
+		if (c != '"')
+		{
+			LogUnexpectedToken(c, stream.line, stream.column);
+			return false;
+		}
+
+		stream.getc();
+		do
+		{
+			++stringLen;
+			c = stream.getc();
+
+		}while(c != '"' && c != EOF);
+		--stringLen;
+
+		if ( c == '"')
+		{
+			literal.type = VariantType::STRING;
+			literal.stringValue.start = stringStart;
+			literal.stringValue.length = stringLen;
+			//return true;
+		}
+		else
+		{
+			LogError("Unexpected EOF at %d,%d while parsing string", stream.line, stream.column);
+			return false; // maybe file terminated before string gets closed
+		}
+
+		return true;
+	}
+
+	//
+	// Parse single RValue, except Arrays
+	// It does NOT persist the parsed value
+	//
+	static bool parseSingleRValue(Heap& parsedDataBuffer,
+			_IniBufferStream& stream, Identifier& identifier, Literal& literal)
+	{
+		skipWhiteSpace(stream);
+		char8 c = stream.peek();
+		// Bool literal
+		if (isLetter(c))
+		{
+			Identifier tempIdentifier = {};
+			if (parseIdentifier(stream, &tempIdentifier))
+			{
+				bool boolValue;
+				if (toBooValue(tempIdentifier, &boolValue))
+				{
+					literal.type = VariantType::BOOL;
+					literal.boolValue = (uint8)boolValue;
+				}
+				else
+				{
+					LogError("Unexpected identifier '%.*s' at %d,%d while parsing assignment", 
+							tempIdentifier.length, tempIdentifier.start, stream.line, stream.column);
+					return false;
+				}
+			}
+		}
+		// String literal
+		else if (c == '"')
+		{
+			parseStringLiteral(stream, literal);
+		}
+		// Nuneric literal
+		else if (isDigit(c) || c == '+' || c == '-' || c == '.')
+		{
+			parseNumericLiteral(stream, &literal);
+		}
+		else
+		{
+			// unknown
+			LogUnexpectedToken(c, stream.line, stream.column);
+			return false;
+		}
+
+		return true;
+	}
+
+	static bool parseRValue(Heap& parsedDataBuffer,
+			_IniBufferStream& stream, Identifier& identifier, Literal& literal, int32 currentSectionOffset)
+	{
+		skipEmptyLines(stream);
+		char8 c = stream.peek();
+
+		int32 variantOffset;
+
+		// is it an array ?
+		if (c == '[')
+		{
+			c = stream.getc();
+			ldk::VariantType arrayType;
+			int32 elementCount = 0;
+
+			do 
+			{
+				skipEmptyLines(stream);
+
+				if (parseSingleRValue(parsedDataBuffer, stream, identifier, literal))
+				{
+					// fist element sets the array type
+					if (elementCount == 0)
+					{
+						arrayType = literal.type;
+						literal.isArray = true;
+						variantOffset = pushVariant(parsedDataBuffer, currentSectionOffset, identifier, literal); 
+					}
+					else 
+					{
+						if ( arrayType != literal.type)
+						{
+							LogError("Invalid mixed type array at %d,%d", stream.line, stream.column);
+							return false;
+						}
+						// save the new element into the final array
+						pushVariantArrayElement(parsedDataBuffer, currentSectionOffset, variantOffset, literal);
+					}
+
+					//update array count on variant
+					++elementCount;
+					skipEmptyLines(stream);
+					c = stream.getc(); // Get the ',' separating the next element
+				}
+				else
+				{
+					return false;
+				}
+			} while (c == ',');
+
+			if (c == EOF)
+			{
+				LogError("Unexpected EOF while parsing array at %d,%d", stream.line, stream.column);
+				return false;
+			}
+
+			if (c != ']')
+			{
+				LogError("Unexpected token '%c' while looking for array termination at %d, %d", 
+						c, stream.line, stream.column);
+
+				return false;
+			}
+			
+			return true;
+		}
+		// is it a single variant ?
+		else 
+		{
+			if (parseSingleRValue(parsedDataBuffer, stream, identifier, literal))
+				return pushVariant(parsedDataBuffer, currentSectionOffset, identifier, literal) > 0;
+			else
+				return false;
+		}
+	}
+
+	// parse identifier + '=' + rvalue
+	bool parseAssignment(Heap& parsedDataBuffer, _IniBufferStream& stream, Statement* statement, int32 currentSectionOffset)
 	{
 		char8 c;
 		statement->type = StatementType::ASSIGNMENT;
@@ -336,69 +506,20 @@ namespace ldk
 			skipWhiteSpace(stream);
 			c = stream.getc();
 			if ( c == '=')
-			{
-				skipWhiteSpace(stream);
-				c = stream.peek();
-
-				// Bool literal
-				if (isLetter(c))
-				{
-					if (parseIdentifier(stream, &tempIdentifier))
-					{
-						bool boolValue;
-						if (toBooValue(tempIdentifier, &boolValue))
-						{
-							statement->assignment.value.type = VariantType::BOOL;
-							statement->assignment.value.boolValue = (uint8)boolValue;
-							return true;
-						}
-
-						LogError("Unexpected identifier '%.*s' at %d,%d while parsing assignment", 
-								tempIdentifier.length, tempIdentifier.start, stream.line, stream.column);
-						return false;
-					}
-				}
-
-				// string literal
-				else if (c == '"')
-				{
-					uint32 stringLen =0;
-					char8* stringStart = stream.pos+1;
-
-					stream.getc();
-					do
-					{
-						++stringLen;
-						c = stream.getc();
-
-					}while(c != '"' && c != EOF);
-					--stringLen;
-
-					if ( c == '"')
-					{
-						statement->assignment.value.type = VariantType::STRING;
-						statement->assignment.value.stringValue.start = stringStart;
-						statement->assignment.value.stringValue.length = stringLen;
-						return true;
-					}
-
-					LogError("Unexpected EOF at %d,%d while parsing string", stream.line, stream.column);
-					return false; // maybe file terminated before string gets closed
-				}
-
-				// Nuneric literal
-				else if (parseNumericLiteral(stream, &statement->assignment.value))
-				{
-					return true;
-				}
+			{ 
+				return parseRValue(parsedDataBuffer, 
+						stream, 
+						statement->assignment.identifier,
+						statement->assignment.value,
+						currentSectionOffset);
 			}
+			LogUnexpectedToken(c, stream.line, stream.column);
 		}
-		LogError("Unexpected token '%c' at %d,%d while parsing assignment", c, stream.line, stream.column);
 		return false;
 	}
 
 	// parse [ + identifier + ]
-	static bool parseSectionDeclaration(_IniBufferStream& stream, Statement* statement)
+	static bool parseSectionDeclaration(Heap& parsedDataBuffer, _IniBufferStream& stream, Statement* statement)
 	{
 		char8 c = stream.getc();
 
@@ -412,6 +533,11 @@ namespace ldk
 				if ( c == ']')
 				{
 					statement->type = StatementType::SECTION_DECLARATION;
+
+					// save the section data into the final buffer
+					statement->sectionDeclaration.sectionOffset = 
+						pushVariantSection(parsedDataBuffer, statement->sectionDeclaration.sectionName);
+
 					return true;
 				}
 			}
@@ -421,7 +547,7 @@ namespace ldk
 		return false;
 	}
 
-	static bool parseStatement(_IniBufferStream& stream, Statement* statement)
+	static bool parseStatement(Heap& parsedDataBuffer, _IniBufferStream& stream, Statement* statement, int32 currentSectionOffset)
 	{
 		skipWhiteSpace(stream);
 		*statement = {};
@@ -431,9 +557,9 @@ namespace ldk
 
 		char8 c = stream.peek();
 		if (c == '[')
-			success = parseSectionDeclaration(stream, statement);
+			success = parseSectionDeclaration(parsedDataBuffer, stream, statement);
 		else if (isLetter(c))
-			success = parseAssignment(stream, statement);
+			success = parseAssignment(parsedDataBuffer, stream, statement, currentSectionOffset);
 		else
 			LogUnexpectedToken(c, stream.line, stream.column);
 
@@ -451,21 +577,10 @@ namespace ldk
 		return false;
 	}
 
-	static void skipEmptyLines(_IniBufferStream& stream)
-	{
-		char8 c;
-		do
-		{
-			skipWhiteSpace(stream);
-			c = stream.getc();
-		} while (c == '\n');
-
-		if (c != EOF)
-			stream.ungetc();
-	}
 
 	static uint32 variantDataSize(Literal& literal)
 	{
+		// ignore the array bit
 		switch (literal.type)
 		{
 			case ldk::VariantType::BOOL:
@@ -491,10 +606,10 @@ namespace ldk
 	{
 		uint32 necessarySize = sizeof(VariantSection);
 		int32 availableSize = heap.size - heap.used;
-		
+
 		if(availableSize < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
 		{
-				return -1;
+			return -1;
 		}
 
 		VariantSection* section = (VariantSection*)((char*)heap.memory + heap.used);
@@ -506,7 +621,7 @@ namespace ldk
 		section->hash = stringToHash(section->name);
 		section->totalSize = sizeof(VariantSection);
 		section->variantCount = 0;
-		
+
 		// Increment the number of section on the section root
 		VariantSectionRoot* sectionRoot = (VariantSectionRoot*) heap.memory;
 		++sectionRoot->sectionCount;
@@ -515,18 +630,74 @@ namespace ldk
 		return offset;
 	}
 
-	static bool pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal)
+	static int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, Literal& literal)
+	{
+	 // adds a new array element
+		uint32 necessarySize = variantDataSize(literal);
+		int32 availableSize = heap.size - heap.used;
+
+		if(availableSize < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
+		{
+			return -1;
+		}
+
+		heap.used += necessarySize;
+
+		VariantSection* section = (VariantSection*) ((char*) heap.memory + sectionOffset);
+		Variant* variant = (Variant*)((char*)heap.memory + variantOffset);
+
+		LDK_ASSERT((variant->arrayCount > 0 ),
+				"Can not add element to a non array variant");
+
+		LDK_ASSERT((variant->type == literal.type),
+				"Can not add element to array of different type");
+
+		char* elementPosition = ((char*) variant) + variant->size;
+		switch (variant->type)
+		{
+			case ldk::VariantType::BOOL:
+				*(bool*)elementPosition = (bool)literal.boolValue;
+				break;
+			case ldk::VariantType::INT:
+				*(int32*)elementPosition = (int32)literal.intValue;
+				break;
+			case ldk::VariantType::FLOAT:
+				*(float*)elementPosition = (float)literal.floatValue;
+				break;
+			case ldk::VariantType::STRING:
+				//*elementPosition = (char*)literal.stringValue;
+				//TODO: we must store a list of string offsets before all strings. Probably as a post processing step.
+				//For this to work, I must add an extra sizeof(char*) to each string and then relocate them to the end
+				LDK_ASSERT(false,"string array is not implemented yet");
+				break;
+			default:
+				LogError("Can not persist unknow array element type");
+				return -1;
+				break;
+		}
+		
+		// updates the section total size
+		section->totalSize += necessarySize;
+		// increments the variant array element count
+		variant->size += necessarySize;
+		variant->arrayCount++;
+		return variantOffset;
+	}
+
+	// Saves a variant parsed data and returns the offset of the variant
+	static int32 pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal)
 	{
 		uint32 necessarySize = sizeof(Variant) + variantDataSize(literal);
 		int32 availableSize = heap.size - heap.used;
 
 		if(availableSize < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
 		{
-			return false;
+			return -1;
 		}
-		
+
 		Variant* variant = (Variant*)((char*)heap.memory + heap.used );
 		heap.used += necessarySize;
+		int32 variantOffset = (int32)((char*) variant - (char*)heap.memory);
 
 		// update section info
 		VariantSection* section = (VariantSection*)(((char*)heap.memory) + sectionOffset);
@@ -539,8 +710,9 @@ namespace ldk
 		variant->hash = stringToHash(variant->key);
 		variant->type = literal.type;
 		variant->size = necessarySize;
+		variant->arrayCount = literal.isArray ? 1 : -1; // -1 means it is not an array
 
-		char* dataStart = (char*)++variant;
+		char* dataStart = (char*)(++variant);
 
 		switch (literal.type)
 		{
@@ -558,11 +730,12 @@ namespace ldk
 				dataStart[literal.stringValue.length] = 0;
 				break;
 			default:
-				return false;
+				return -1;
 				break;
 		}
 
-		return true;
+		// return offset of variant
+		return variantOffset;
 	}
 
 	// returns the offset of the root section
@@ -597,23 +770,21 @@ namespace ldk
 		while (!stream.eof() && noError)
 		{
 			skipEmptyLines(stream);
-			
+
 			if (stream.peek() == EOF)
 				continue;
 
-			if (parseStatement(stream, &statement))
+			if (parseStatement(heap, stream, &statement, currentSectionOffset))
 			{
 				if ( statement.type == StatementType::SECTION_DECLARATION)
 				{
-					currentSectionOffset = pushVariantSection(heap, statement.sectionDeclaration.sectionName);
+					currentSectionOffset = statement.sectionDeclaration.sectionOffset;
 				}
-				else if ( statement.type == StatementType::ASSIGNMENT)
-				{
-					bool isStringAssignment = false;
-
-					pushVariant(heap, currentSectionOffset, 
-							statement.assignment.identifier, statement.assignment.value);
-				}
+				//else if ( statement.type == StatementType::ASSIGNMENT)
+				//{
+				//pushVariant(heap, currentSectionOffset, 
+				//statement.assignment.identifier, statement.assignment.value);
+				//}
 			}
 			else
 			{
@@ -669,7 +840,7 @@ namespace ldk
 		for (int i = 0; i < section->variantCount; i++)
 		{
 			if ((v->hash == hash) && (strncmp((const char*)key, (const char*)v->key, LDK_CFG_MAX_IDENTIFIER_SIZE) == 0))
-					return v;
+				return v;
 
 			v = (Variant*)((char*)v + v->size);
 		}
@@ -677,6 +848,18 @@ namespace ldk
 		return nullptr;
 	}
 
+	int32 ldk_config_getArray(VariantSection* section, const char* key, void** array, VariantType type)
+	{
+		Variant* v = ldk_config_getVariant(section, key);
+		int32 arraySize = v->arrayCount;
+		if (v != nullptr && arraySize >= 0)
+		{
+			*array = ++v; // array data 
+			return arraySize;
+		}
+		return -1;
+	}
+	
 	bool ldk_config_getInt(VariantSection* section, const char* key, int32* intValue)
 	{
 		Variant* v = ldk_config_getVariant(section, key);
@@ -725,4 +908,23 @@ namespace ldk
 		return false;
 	}
 
+	LDK_API int32 ldk_config_getIntArray(VariantSection* section, const char* key, int32** array)
+	{
+		return ldk_config_getArray(section, key,(void**) array, VariantType::INT);
+	}
+
+	LDK_API int32 ldk_config_getFloatArray(VariantSection* section, const char* key, float** array)
+	{
+		return ldk_config_getArray(section, key,(void**) array, VariantType::FLOAT);
+	}
+
+	LDK_API int32 ldk_config_getBoolArray(VariantSection* section, const char* key, bool** array)
+	{
+		return ldk_config_getArray(section, key,(void**) array, VariantType::BOOL);
+	}
+
+	LDK_API int32 ldk_config_getIntlArray(VariantSection* section, const char* key, float** array)
+	{
+		return ldk_config_getArray(section, key, (void**)array, VariantType::STRING);
+	}
 }
