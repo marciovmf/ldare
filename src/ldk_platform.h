@@ -126,6 +126,10 @@ namespace ldk
 		LDK_API void* loadFileToBuffer(const char8* filename, size_t* bufferSize);
 
 		LDK_API int64 getFileWriteTime(const char* fileName);
+		
+		LDK_API bool copyFile(const char* sourceFileName, const char* destFileName);
+
+		LDK_API bool moveFile(const char* sourceFileName, const char* destFileName);
 		//---------------------------------------------------------------------------
 		// Memory allocation
 		//---------------------------------------------------------------------------

@@ -912,6 +912,17 @@ LDK_API int64 getFileWriteTime(const char* fileName)
 	return ((((int64) writeTime.dwHighDateTime) << 32) + writeTime.dwLowDateTime);
 }
 
+
+LDK_API bool copyFile(const char* sourceFileName, const char* destFileName)
+{
+	return CopyFileA(sourceFileName, destFileName, false);
+}
+
+LDK_API bool moveFile(const char* sourceFileName, const char* destFileName)
+{
+	return MoveFile(sourceFileName, destFileName);
+}
+
 uint64 getTicks()
 { 
 	LARGE_INTEGER value;
