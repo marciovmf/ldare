@@ -125,6 +125,7 @@ namespace ldk
 		//---------------------------------------------------------------------------
 		LDK_API void* loadFileToBuffer(const char8* filename, size_t* bufferSize);
 
+		LDK_API int64 getFileWriteTime(const char* fileName);
 		//---------------------------------------------------------------------------
 		// Memory allocation
 		//---------------------------------------------------------------------------
@@ -134,13 +135,12 @@ namespace ldk
 		//---------------------------------------------------------------------------
 		// Get the number of ticks since engine initialization
 		//---------------------------------------------------------------------------
-		//uint64 getTicks(); 
+		LDK_API uint64 getTicks(); 
 
 		//---------------------------------------------------------------------------
 		// Get the time in seconds between 2 tick intervals
 		//---------------------------------------------------------------------------
-		//float getTimeBetweenTicks(uint64 start, uint64 end); 
+		LDK_API float getTimeBetweenTicks(uint64 start, uint64 end); 
 	}
 }
-
-#endif	// _LDK_PLATFORM_H_
+#endif // _LDK_PLATFORM_H_

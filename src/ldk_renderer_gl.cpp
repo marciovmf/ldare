@@ -252,15 +252,15 @@ namespace ldk
 			char* vertexSource = "";
 			char* textureFile = "";
 
-			ldk::VariantSectionRoot* root = ldk::ldk_config_parseFile((const char8*)materialFile);
+			ldk::VariantSectionRoot* root = ldk::config_parseFile((const char8*)materialFile);
 			if (root)
 			{
-				ldk::VariantSection* section = ldk::ldk_config_getSection(root, (const char*) "material");
+				ldk::VariantSection* section = ldk::config_getSection(root, (const char*) "material");
 				if (section)
 				{
-					ldk::ldk_config_getString(section, "vertex-shader", &vertexSource);
-					ldk::ldk_config_getString(section, "fragment-shader", &fragmentSource);
-					ldk::ldk_config_getString(section, "main-texture", &textureFile);
+					ldk::config_getString(section, "vertex-shader", &vertexSource);
+					ldk::config_getString(section, "fragment-shader", &fragmentSource);
+					ldk::config_getString(section, "main-texture", &textureFile);
 				}
 			}
 
@@ -270,7 +270,7 @@ namespace ldk
 			material.texture = ldk::render::loadTexture(textureFile);
 
 			// dispose of the parsed material memory
-			ldk::ldk_config_dispose(root);
+			ldk::config_dispose(root);
 
 			return material;
 		}

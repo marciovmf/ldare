@@ -21,30 +21,26 @@ void gameStart()
 	sprite.srcRect = {0,0,100,75};
 }
 
-const float speed = 5.0f;
+const float speed = 100.0f;
 void gameUpdate(float deltaTime)
 {
 	if (ldk::input::getKey(LDK_KEY_W))
-		sprite.position.y +=0.1 * speed;
+		sprite.position.y += speed * deltaTime;
 
 	if (ldk::input::getKey(LDK_KEY_S))
-		sprite.position.y -=0.1 * speed;
+		sprite.position.y -= speed * deltaTime;
 
 	if (ldk::input::getKey(LDK_KEY_A))
-		sprite.position.x -=0.1 * speed;
+		sprite.position.x -= speed * deltaTime;
 
 	if (ldk::input::getKey(LDK_KEY_D))
-		sprite.position.x +=0.1 * speed;
+		sprite.position.x += speed * deltaTime;
 
 	if (ldk::input::isKeyDown(LDK_KEY_J))
-	{
-		sprite.srcRect.y -=100 * speed;
-	}
+		sprite.srcRect.y -= speed * deltaTime;
 
 	if (ldk::input::isKeyDown(LDK_KEY_K))
-	{
-		sprite.srcRect.y +=100 * speed;
-	}
+		sprite.srcRect.y += speed * deltaTime;
 
 	ldk::render::spriteBatchBegin(material);
 		ldk::render::spriteBatchSubmit(sprite);

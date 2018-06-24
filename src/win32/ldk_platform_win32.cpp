@@ -45,6 +45,10 @@ namespace ldk
 			uint8 superKeyState;
 			BoundAudio boundBufferList[LDK_MAX_AUDIO_BUFFER];
 			uint32 boundBufferCount = 0;
+
+			// timer data
+			LARGE_INTEGER ticksPerSecond;
+			LARGE_INTEGER ticksSinceEngineStartup;
 		} _platform;
 
 		struct SharedLib
@@ -529,6 +533,11 @@ uint32 initialize()
 	}while (*c != '\\' && c > path);
 	*++c=0;
 
+	// initialize timer data
+	QueryPerformanceFrequency(&_platform.ticksPerSecond);
+	QueryPerformanceCounter(&_platform.ticksSinceEngineStartup);
+
+
 	LogInfo("Running from: '%s'", path);
 	SetCurrentDirectory(path);
 
@@ -715,6 +724,7 @@ void setWindowCloseFlag(LDKWindow* window, bool flag)
 	if (window->windowCloseCallback)
 		window->windowCloseCallback(window);
 }
+
 // Update the window framebuffer
 void swapWindowBuffer(LDKWindow* window)
 {
@@ -891,6 +901,36 @@ void* loadFileToBuffer(const char8* fileName, size_t* bufferSize)
 	*(((char*)buffer)+fileSize) = 0;
 	CloseHandle(hFile);
 	return buffer;
+}
+
+LDK_API int64 getFileWriteTime(const char* fileName)
+{
+	FILETIME writeTime;
+	HANDLE handle = CreateFileA(fileName, GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	GetFileTime(handle, 0, 0, &writeTime);
+	CloseHandle(handle);
+	return ((((int64) writeTime.dwHighDateTime) << 32) + writeTime.dwLowDateTime);
+}
+
+uint64 getTicks()
+{ 
+	LARGE_INTEGER value;
+	QueryPerformanceCounter(&value);
+	return value.QuadPart;
+}
+
+float getTimeBetweenTicks(uint64 start, uint64 end)
+{
+	end -= _platform.ticksSinceEngineStartup.QuadPart;
+	start -= _platform.ticksSinceEngineStartup.QuadPart;
+
+	float deltaTime = (( end - start))/ (float)_platform.ticksPerSecond.QuadPart;
+#ifdef _LDK_DEBUG_
+	// if we stopped on a breakpoint, make things behave mor natural
+	if ( deltaTime > 0.05f)
+		deltaTime = 0.016f;
+#endif
+	return deltaTime;
 }
 
 } // namespace platform

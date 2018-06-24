@@ -756,7 +756,7 @@ namespace ldk
 		return pushVariantSection(heap, rootSectionIdentifier);
 	}
 
-	VariantSectionRoot* ldk_config_parseBuffer(void* buffer, size_t size)
+	VariantSectionRoot* config_parseBuffer(void* buffer, size_t size)
 	{
 		_IniBufferStream stream(buffer, size);
 		Heap heap;
@@ -798,7 +798,7 @@ namespace ldk
 			return nullptr;
 	}
 
-	VariantSectionRoot* ldk_config_parseFile(const char8* fileName)
+	VariantSectionRoot* config_parseFile(const char8* fileName)
 	{
 		size_t fileSize;
 		void* buffer = platform::loadFileToBuffer(fileName, &fileSize);
@@ -808,12 +808,12 @@ namespace ldk
 			return nullptr;
 		}
 
-		VariantSectionRoot* root = ldk_config_parseBuffer(buffer, fileSize);
+		VariantSectionRoot* root = config_parseBuffer(buffer, fileSize);
 		platform::memoryFree(buffer);
 		return root;
 	}
 
-	VariantSection* ldk_config_getSection(VariantSectionRoot* rootSection, const char* name)
+	VariantSection* config_getSection(VariantSectionRoot* rootSection, const char* name)
 	{
 		int32 hash = stringToHash((char8*)name);
 		//First section is ALWAYS after the section root
@@ -831,7 +831,7 @@ namespace ldk
 		return nullptr;
 	}
 
-	Variant* ldk_config_getVariant(const VariantSection* section, const char* key)
+	Variant* config_getVariant(const VariantSection* section, const char* key)
 	{
 		int32 hash = stringToHash((char8*)key);
 		//Variant* v = (ldk::Variant*) (((char*)section) + sizeof(ldk::VariantSection));
@@ -848,9 +848,9 @@ namespace ldk
 		return nullptr;
 	}
 
-	int32 ldk_config_getArray(VariantSection* section, const char* key, void** array, VariantType type)
+	int32 config_getArray(VariantSection* section, const char* key, void** array, VariantType type)
 	{
-		Variant* v = ldk_config_getVariant(section, key);
+		Variant* v = config_getVariant(section, key);
 		int32 arraySize = v->arrayCount;
 		if (v != nullptr && arraySize >= 0)
 		{
@@ -860,9 +860,9 @@ namespace ldk
 		return -1;
 	}
 	
-	bool ldk_config_getInt(VariantSection* section, const char* key, int32* intValue)
+	bool config_getInt(VariantSection* section, const char* key, int32* intValue)
 	{
-		Variant* v = ldk_config_getVariant(section, key);
+		Variant* v = config_getVariant(section, key);
 		if (v != nullptr && v->type == VariantType::INT)
 		{
 			*intValue = *(int*)(v+1);
@@ -872,9 +872,9 @@ namespace ldk
 		return false;
 	}
 
-	bool ldk_config_getBool(VariantSection* section, const char* key, bool* boolValue)
+	bool config_getBool(VariantSection* section, const char* key, bool* boolValue)
 	{
-		Variant* v = ldk_config_getVariant(section, key);
+		Variant* v = config_getVariant(section, key);
 		if (v != nullptr && v->type == VariantType::BOOL)
 		{
 			*boolValue = *(bool*)(v+1);
@@ -884,9 +884,9 @@ namespace ldk
 		return false;
 	}
 
-	bool ldk_config_getFloat(VariantSection* section, const char* key, float* floatValue)
+	bool config_getFloat(VariantSection* section, const char* key, float* floatValue)
 	{
-		Variant* v = ldk_config_getVariant(section, key);
+		Variant* v = config_getVariant(section, key);
 		if (v != nullptr && v->type == VariantType::FLOAT)
 		{
 			*floatValue = *(float*)(v+1);
@@ -896,9 +896,9 @@ namespace ldk
 		return false;
 	}
 
-	const bool ldk_config_getString(VariantSection* section, const char* key, char** stringValue)
+	const bool config_getString(VariantSection* section, const char* key, char** stringValue)
 	{
-		Variant* v = ldk_config_getVariant(section, key);
+		Variant* v = config_getVariant(section, key);
 		if (v != nullptr && v->type == VariantType::STRING)
 		{
 			*stringValue = ((char*)++v);
@@ -908,22 +908,22 @@ namespace ldk
 		return false;
 	}
 
-	LDK_API int32 ldk_config_getIntArray(VariantSection* section, const char* key, int32** array)
+	LDK_API int32 config_getIntArray(VariantSection* section, const char* key, int32** array)
 	{
-		return ldk_config_getArray(section, key,(void**) array, VariantType::INT);
+		return config_getArray(section, key,(void**) array, VariantType::INT);
 	}
 
-	LDK_API int32 ldk_config_getFloatArray(VariantSection* section, const char* key, float** array)
+	LDK_API int32 config_getFloatArray(VariantSection* section, const char* key, float** array)
 	{
-		return ldk_config_getArray(section, key,(void**) array, VariantType::FLOAT);
+		return config_getArray(section, key,(void**) array, VariantType::FLOAT);
 	}
 
-	LDK_API int32 ldk_config_getBoolArray(VariantSection* section, const char* key, bool** array)
+	LDK_API int32 config_getBoolArray(VariantSection* section, const char* key, bool** array)
 	{
-		return ldk_config_getArray(section, key,(void**) array, VariantType::BOOL);
+		return config_getArray(section, key,(void**) array, VariantType::BOOL);
 	}
 
-	LDK_API void ldk_config_dispose(VariantSectionRoot* root)
+	LDK_API void config_dispose(VariantSectionRoot* root)
 	{
 		ldk::ldk_memory_freeHeap((Heap*) root);
 	}

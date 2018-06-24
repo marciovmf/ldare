@@ -70,20 +70,20 @@ GameConfig loadGameConfig()
 	defaultConfig.aspect = 1.777;
 	defaultConfig.title = LDK_DEFAULT_GAME_WINDOW_TITLE;
 
-	ldk::VariantSectionRoot* root = ldk::ldk_config_parseFile((const char8*) LDK_DEFAULT_CONFIG_FILE);
+	ldk::VariantSectionRoot* root = ldk::config_parseFile((const char8*) LDK_DEFAULT_CONFIG_FILE);
 
 	if (root)
 	{
 		ldk::VariantSection* sectionDisplay =
-			ldk::ldk_config_getSection(root,"display");
+			ldk::config_getSection(root,"display");
 
 		if (sectionDisplay != nullptr)
 		{
-			ldk::ldk_config_getBool(sectionDisplay, "fullscreen", &defaultConfig.fullscreen);
-			ldk::ldk_config_getInt(sectionDisplay, "width", &defaultConfig.width);
-			ldk::ldk_config_getString(sectionDisplay, "title", &defaultConfig.title);
-			ldk::ldk_config_getInt(sectionDisplay, "height", &defaultConfig.height);
-			ldk::ldk_config_getFloat(sectionDisplay, "aspect", &defaultConfig.aspect);
+			ldk::config_getBool(sectionDisplay, "fullscreen", &defaultConfig.fullscreen);
+			ldk::config_getInt(sectionDisplay, "width", &defaultConfig.width);
+			ldk::config_getString(sectionDisplay, "title", &defaultConfig.title);
+			ldk::config_getInt(sectionDisplay, "height", &defaultConfig.height);
+			ldk::config_getFloat(sectionDisplay, "aspect", &defaultConfig.aspect);
 		}
 
 	}
@@ -131,19 +131,26 @@ uint32 ldkMain(uint32 argc, char** argv)
 	ldk::render::setViewportAspectRatio(gameConfig.width, gameConfig.height, 800, 600);
 
 	game.init();
-
 	game.start();
+	float deltaTime;
+	int64 startTime = 0;
+	int64 endTime = 0;
+
 	while (!ldk::platform::windowShouldClose(window))
 	{
+		deltaTime = ldk::platform::getTimeBetweenTicks(startTime, endTime);
+
+		startTime = ldk::platform::getTicks();
 		ldk::platform::pollEvents();
 		ldk::input::keyboardUpdate();
 		ldk::input::joystickUpdate();
 
 		ldkHandleKeyboardInput(window);
 
-		ldk::render::updateRenderer(0);
-		game.update(0);
+		ldk::render::updateRenderer(deltaTime);
+		game.update(deltaTime);
 		ldk::platform::swapWindowBuffer(window);
+		endTime = ldk::platform::getTicks();
 	}
 
 	game.stop();
