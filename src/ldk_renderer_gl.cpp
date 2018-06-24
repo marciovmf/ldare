@@ -154,7 +154,7 @@ namespace ldk
 
 	namespace render
 	{
-		static GLuint createShaderProgram(const char8* vertex, const char8* fragment)
+		static GLuint createShaderProgram(const char* vertex, const char* fragment)
 		{
 			GLuint vertexShader = compileShader((const char*)vertex, GL_VERTEX_SHADER);
 			GLuint fragmentShader = compileShader((const char*)fragment, GL_FRAGMENT_SHADER);
@@ -174,14 +174,21 @@ namespace ldk
 			return shaderProgram;
 		}
 
-		Shader loadShader(const char8* vertex, const char8* fragment)
+
+		Shader loadShader(const char* vertexSource, const char* fragmentSource)
+		{
+			Shader shader = createShaderProgram(vertexSource, fragmentSource);
+			return shader;
+		}
+
+		Shader loadShaderFromFile(const char8* vertexFile, const char8* fragmentFile)
 		{
 			size_t vertShaderFileSize;
 			size_t fragShaderFileSize;
-			const char8* vertexSource = (const char8*)platform::loadFileToBuffer((const char8*)vertex, &vertShaderFileSize);
-			const char8* fragmentSource = (const char8*) platform::loadFileToBuffer((const char8*)fragment, &fragShaderFileSize);
-			Shader shader = createShaderProgram(vertexSource, fragmentSource);
+			const char* vertexSource = (const char*)platform::loadFileToBuffer((const char8*)vertexFile, &vertShaderFileSize);
+			const char* fragmentSource = (const char*) platform::loadFileToBuffer((const char8*)fragmentFile, &fragShaderFileSize);
 
+			Shader shader = loadShader(vertexSource, fragmentSource);
 			//TODO: remove this when we have a proper way to reuse file I/O memory
 			platform::memoryFree((void*)vertexSource);			
 			platform::memoryFree((void*)fragmentSource);			
@@ -191,7 +198,7 @@ namespace ldk
 
 		//TODO: make filtering paremetrizable when importing texture
 		//TODO: Pass texture import settings as an argument to loadTexture
-		ldk::Texture loadTexture(const char8* bitmapFile)
+		ldk::Texture loadTexture(const char* bitmapFile)
 		{
 			clearGlError();
 			ldk::Bitmap bitmap;
@@ -239,12 +246,32 @@ namespace ldk
 			return texture;
 		}
 
-		ldk::Material loadMaterial(const char8* vertex, const char8* fragment, const char8* textureFile)
+		ldk::Material loadMaterial(const char* materialFile)
 		{
+			char* fragmentSource = "";
+			char* vertexSource = "";
+			char* textureFile = "";
+
+			ldk::VariantSectionRoot* root = ldk::ldk_config_parseFile((const char8*)materialFile);
+			if (root)
+			{
+				ldk::VariantSection* section = ldk::ldk_config_getSection(root, (const char*) "material");
+				if (section)
+				{
+					ldk::ldk_config_getString(section, "vertex-shader", &vertexSource);
+					ldk::ldk_config_getString(section, "fragment-shader", &fragmentSource);
+					ldk::ldk_config_getString(section, "main-texture", &textureFile);
+				}
+			}
+
 			ldk::Material material;
 			ldk::Bitmap bitmap;
-			material.shader = ldk::render::loadShader(vertex, fragment);
+			material.shader = ldk::render::loadShader(vertexSource, fragmentSource);
 			material.texture = ldk::render::loadTexture(textureFile);
+
+			// dispose of the parsed material memory
+			ldk::ldk_config_dispose(root);
+
 			return material;
 		}
 

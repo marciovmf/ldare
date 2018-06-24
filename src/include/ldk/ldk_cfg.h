@@ -16,7 +16,7 @@ namespace ldk
 	LDK_API int32 ldk_config_getIntArray(VariantSection* section, const char* key, int32** array);
 	LDK_API int32 ldk_config_getFloatArray(VariantSection* section, const char* key, float** array);
 	LDK_API int32 ldk_config_getBoolArray(VariantSection* section, const char* key, bool** array);
-	LDK_API int32 ldk_config_getIntlArray(VariantSection* section, const char* key, float** array);
+	LDK_API void ldk_config_dispose(VariantSectionRoot* root);
 }
 
 #endif// _LDK_CFG_H_

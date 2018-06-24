@@ -923,8 +923,8 @@ namespace ldk
 		return ldk_config_getArray(section, key,(void**) array, VariantType::BOOL);
 	}
 
-	LDK_API int32 ldk_config_getIntlArray(VariantSection* section, const char* key, float** array)
+	LDK_API void ldk_config_dispose(VariantSectionRoot* root)
 	{
-		return ldk_config_getArray(section, key, (void**)array, VariantType::STRING);
+		ldk::ldk_memory_freeHeap((Heap*) root);
 	}
 }

@@ -112,7 +112,7 @@ namespace ldk
 		playAudioFunc* playAudio;
 	};
 
-	bool loadBitmap(const char8* file, ldk::Bitmap* bitmap);
+	bool loadBitmap(const char* file, ldk::Bitmap* bitmap);
 	bool loadAudio(const char8* file, ldk::Audio* audio);
 	bool loadFont(const char8* file, ldk::FontAsset** fontAsset);
 	void playAudio(const ldk::Audio* audio);

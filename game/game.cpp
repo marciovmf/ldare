@@ -11,10 +11,7 @@ void gameInit()
 void gameStart()
 {
 	LogInfo("Game started");
-	material = ldk::render::loadMaterial(
-			(const char8*)"./assets/sprite.vert",
-			(const char8*) "./assets/sprite.frag", 
-			(const char8*)"./assets/sprites.bmp");
+	material = ldk::render::loadMaterial("./assets/sprite.cfg"); 
 	
 	ldk::render::spriteBatchInit();
 	sprite.position = {0, 100, 1};
@@ -24,28 +21,29 @@ void gameStart()
 	sprite.srcRect = {0,0,100,75};
 }
 
+const float speed = 5.0f;
 void gameUpdate(float deltaTime)
 {
 	if (ldk::input::getKey(LDK_KEY_W))
-		sprite.position.y +=0.1;
+		sprite.position.y +=0.1 * speed;
 
 	if (ldk::input::getKey(LDK_KEY_S))
-		sprite.position.y -=0.1;
+		sprite.position.y -=0.1 * speed;
 
 	if (ldk::input::getKey(LDK_KEY_A))
-		sprite.position.x -=0.1;
+		sprite.position.x -=0.1 * speed;
 
 	if (ldk::input::getKey(LDK_KEY_D))
-		sprite.position.x +=0.1;
+		sprite.position.x +=0.1 * speed;
 
 	if (ldk::input::isKeyDown(LDK_KEY_J))
 	{
-		sprite.srcRect.y -=100;
+		sprite.srcRect.y -=100 * speed;
 	}
 
 	if (ldk::input::isKeyDown(LDK_KEY_K))
 	{
-		sprite.srcRect.y +=100;
+		sprite.srcRect.y +=100 * speed;
 	}
 
 	ldk::render::spriteBatchBegin(material);

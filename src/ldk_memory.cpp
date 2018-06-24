@@ -30,4 +30,9 @@ namespace	ldk
 		}
 		return false;
 	}
+
+	void ldk_memory_freeHeap(Heap* heap)
+	{
+		free(heap);
+	}
 }

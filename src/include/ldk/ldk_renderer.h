@@ -90,14 +90,15 @@ namespace ldk
 
 		LDK_API	void setViewport(uint32 x, uint32 y, uint32 width, uint32 height);
 
-		LDK_API	Shader createShaderProgram(const char8* vertex, const char8* fragment);
+		LDK_API	Shader createShaderProgram(const char* vertex, const char* fragment);
 
-		LDK_API	Shader loadShader(const char8* vertex, const char8* fragment);
+		LDK_API	Shader loadShader(const char* vertexSource, const char* fragmentSource);
 
-		LDK_API	Texture loadTexture(const char8* bitmapFile);
+		LDK_API Shader loadShaderFromFile(const char* vertexFile, const char* fragmentFile);
 
-		LDK_API	Material loadMaterial(const char8* vertex, const char8* fragment, 
-				const char8* textureFile);
+		LDK_API	Texture loadTexture(const char* bitmapFile);
+
+		LDK_API	Material loadMaterial(const char* materialFile);
 
 		// Sprite batch api
 		LDK_API int32 spriteBatchInit();

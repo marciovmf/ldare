@@ -24,5 +24,6 @@ namespace ldk
 
 	bool ldk_memory_resizeHeap(Heap* heap, size_t minimum);
 	bool ldk_memory_allocHeap(Heap* heap, uint32 initialSize);
+	void ldk_memory_freeHeap(Heap* heap);
 }
 #endif		// _LDK_MEMORY_H_

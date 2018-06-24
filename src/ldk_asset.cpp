@@ -55,10 +55,10 @@ struct BITMAP_FILE_HEADER
 	// Material functions
 	//---------------------------------------------------------------------------
 
-	bool loadBitmap(const char8* file, ldk::Bitmap* bitmap)
+	bool loadBitmap(const char* file, ldk::Bitmap* bitmap)
 	{	
 		LogInfo("Loading texture: %s", file);
-		bitmap->bmpFileMemoryToRelease_ = ldk::platform::loadFileToBuffer(file, &bitmap->bmpMemorySize_);
+		bitmap->bmpFileMemoryToRelease_ = ldk::platform::loadFileToBuffer((const char8*)file, &bitmap->bmpMemorySize_);
 		if (!bitmap->bmpFileMemoryToRelease_ || bitmap->bmpMemorySize_ == 0) { return false; }
 
 		BITMAP_FILE_HEADER *bitmapHeader = (BITMAP_FILE_HEADER*)bitmap->bmpFileMemoryToRelease_;
