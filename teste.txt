@@ -1,6 +1,0 @@
-[display]
-	ratio-width = 16
-	ratio-height = 9
-	resolution-width = 1024
-	fullScreen = false
-	resolution-height = 768
