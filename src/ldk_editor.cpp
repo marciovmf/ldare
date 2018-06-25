@@ -16,7 +16,7 @@ struct GameConfig
 	bool fullscreen;
 	float aspect;
 	char* title;
-};
+} defaultConfig;
 
 void windowCloseCallback(ldk::platform::LDKWindow* window)
 {
@@ -26,8 +26,7 @@ void windowCloseCallback(ldk::platform::LDKWindow* window)
 void windowResizeCallback(ldk::platform::LDKWindow* window, int32 width, int32 height)
 {
 	// Recalculate projection matrix here.
-	LogInfo("setting viewport");
-	ldk::render::setViewportAspectRatio(width, height, 800, 600);
+	ldk::render::setViewportAspectRatio(width, height, defaultConfig.width, defaultConfig.height);
 	return;
 }
 
@@ -65,7 +64,6 @@ bool loadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
 
 GameConfig loadGameConfig()
 {
-	GameConfig defaultConfig = {};
 	defaultConfig.width = defaultConfig.height = 600;
 	defaultConfig.aspect = 1.777;
 	defaultConfig.title = LDK_DEFAULT_GAME_WINDOW_TITLE;
@@ -128,7 +126,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 	ldk::platform::setWindowResizeCallback(window, windowResizeCallback);
 	ldk::platform::toggleFullScreen(window, gameConfig.fullscreen);
 
-	ldk::render::setViewportAspectRatio(gameConfig.width, gameConfig.height, 800, 600);
+	ldk::render::setViewportAspectRatio(gameConfig.width, gameConfig.height, gameConfig.width, gameConfig.height);
 
 	game.init();
 	game.start();
@@ -189,4 +187,3 @@ int main(int argc, char** argv)
 	return ldkMain(argc, argv);
 }
 #endif
-

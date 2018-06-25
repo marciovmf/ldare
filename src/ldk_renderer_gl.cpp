@@ -311,6 +311,7 @@ namespace ldk
 
 		void setViewport(uint32 x, uint32 y, uint32 width, uint32 height)
 		{
+			globalShaderData.baseModelMatrix = Mat4();
 			globalShaderData.projectionMatrix.orthographic(0, width, 0, height, -1, 1);
 			glViewport(x, y, width, height);
 			updateGlobalShaderData = true;
