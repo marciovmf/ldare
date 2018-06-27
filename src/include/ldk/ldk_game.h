@@ -14,7 +14,7 @@ namespace ldk
 #define LDK_GAME_FUNCTION_UPDATE "gameUpdate"
 #define LDK_GAME_FUNCTION_STOP "gameStop"
 
-	typedef void (*LDK_PFN_GAME_INIT)();
+	typedef void (*LDK_PFN_GAME_INIT)(void* memory);
 	typedef void (*LDK_PFN_GAME_START)();
 	typedef void (*LDK_PFN_GAME_UPDATE)(float deltaTime);
 	typedef void (*LDK_PFN_GAME_STOP)();
@@ -26,7 +26,6 @@ namespace ldk
 		LDK_PFN_GAME_UPDATE update;
 		LDK_PFN_GAME_STOP stop;
 	};
-
 }
 
 #if defined(_LDK_WINDOWS_)
@@ -37,7 +36,7 @@ namespace ldk
 
 extern "C"
 {
-	LDK_GAME_CALLBACK void gameInit();
+	LDK_GAME_CALLBACK void gameInit(void* gameStateMemory);
 	LDK_GAME_CALLBACK void gameStart();
 	LDK_GAME_CALLBACK void gameUpdate(float deltaTime);
 	LDK_GAME_CALLBACK void gameStop();

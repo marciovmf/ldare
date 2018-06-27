@@ -26,7 +26,7 @@ all: outdirfolder editor
 
 game: assets
 
-game: ldk
+game:
 	@echo Building game dll...
 	cl game\game.cpp /Fo$(OUTDIR)\ /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /PDB:$(OUTDIR)\ldare_game_%random%.pdb $(OUTDIR)/ldk.lib
 

@@ -16,7 +16,10 @@ struct GameConfig
 	bool fullscreen;
 	float aspect;
 	char* title;
+	int32 preallocMemorySize;
 } defaultConfig;
+
+static int64 lastGameDllTime = 0;
 
 void windowCloseCallback(ldk::platform::LDKWindow* window)
 {
@@ -43,9 +46,9 @@ static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window)
 	}
 }
 
-bool loadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
+bool loadGameModule(char* gameModuleName, ldk::Game* game, ldk::platform::SharedLib** sharedLib)
 {
-	*sharedLib = ldk::platform::loadSharedLib(LDK_GAME_MODULE_NAME);
+	*sharedLib = ldk::platform::loadSharedLib(gameModuleName);
 
 	if (!*sharedLib)
 		return false;
@@ -62,11 +65,33 @@ bool loadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
 	return game->init && game->start && game->update && game->stop;
 }
 
+bool reloadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
+{
+	char* gameModuleCopyName = "_game_copy.dll";
+
+	int64 gameModuleTime = ldk::platform::getFileWriteTime(LDK_GAME_MODULE_NAME);
+
+	// new dll version ?
+	if (gameModuleTime != lastGameDllTime)
+	{
+		LogInfo("Game updated. Reloading ...");
+		if (lastGameDllTime != 0)
+			ldk::platform::unloadSharedLib(*sharedLib);
+
+		lastGameDllTime = gameModuleTime;
+		ldk::platform::copyFile(LDK_GAME_MODULE_NAME, gameModuleCopyName);
+		return loadGameModule(gameModuleCopyName, game, sharedLib);
+	}
+
+	return false;
+}
+
 GameConfig loadGameConfig()
 {
 	defaultConfig.width = defaultConfig.height = 600;
 	defaultConfig.aspect = 1.777;
 	defaultConfig.title = LDK_DEFAULT_GAME_WINDOW_TITLE;
+	defaultConfig.preallocMemorySize = 0;
 
 	ldk::VariantSectionRoot* root = ldk::config_parseFile((const char8*) LDK_DEFAULT_CONFIG_FILE);
 
@@ -82,6 +107,12 @@ GameConfig loadGameConfig()
 			ldk::config_getString(sectionDisplay, "title", &defaultConfig.title);
 			ldk::config_getInt(sectionDisplay, "height", &defaultConfig.height);
 			ldk::config_getFloat(sectionDisplay, "aspect", &defaultConfig.aspect);
+
+			ldk::VariantSection* sectionGame =
+				ldk::config_getSection(root,"game");
+
+			if (sectionGame)
+				ldk::config_getInt(sectionGame, "prealloc-memory", &defaultConfig.preallocMemorySize);
 		}
 
 	}
@@ -116,7 +147,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 		return LDK_EXIT_FAIL;
 	}
 
-	if (!loadGameModule(&game, &gameSharedLib))
+	if (!reloadGameModule(&game, &gameSharedLib))
 	{
 		LogError("Error loading game module");
 		return LDK_EXIT_FAIL;
@@ -128,12 +159,22 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 	ldk::render::setViewportAspectRatio(gameConfig.width, gameConfig.height, gameConfig.width, gameConfig.height);
 
-	game.init();
+
+	// preallocate memory for game state
+	void* gameStateMemory = nullptr;
+	if (gameConfig.preallocMemorySize > 0)
+	{
+		gameStateMemory = malloc(gameConfig.preallocMemorySize);
+		ldk::ldk_memory_set(gameStateMemory,  0, (size_t)gameConfig.preallocMemorySize);
+	}
+
+	game.init(gameStateMemory);
 	game.start();
 	float deltaTime;
 	int64 startTime = 0;
 	int64 endTime = 0;
 
+	float gameReloadCheckTimeout = 0;
 	while (!ldk::platform::windowShouldClose(window))
 	{
 		deltaTime = ldk::platform::getTimeBetweenTicks(startTime, endTime);
@@ -149,9 +190,20 @@ uint32 ldkMain(uint32 argc, char** argv)
 		game.update(deltaTime);
 		ldk::platform::swapWindowBuffer(window);
 		endTime = ldk::platform::getTicks();
+
+		// should we reload the game dll ?
+		gameReloadCheckTimeout += deltaTime;
+		if (gameReloadCheckTimeout >= 5.0f)
+		{
+			gameReloadCheckTimeout = 0;
+			if (reloadGameModule(&game, &gameSharedLib))
+					game.init(gameStateMemory);
+		}
 	}
 
 	game.stop();
+	// release game state memory
+	free(gameStateMemory);
 
 	if (gameSharedLib)
 		ldk::platform::unloadSharedLib(gameSharedLib);

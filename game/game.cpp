@@ -1,29 +1,52 @@
 #include <ldk/ldk.h>
 
-ldk::Material material;
-ldk::Sprite sprite;
+struct GameState
+{
+	bool initialized;
+	ldk::Material material;
+	ldk::Sprite sprite;
+} *gameState = nullptr;
 
-void gameInit()
+void setupSprite();
+
+void gameInit(void* memory)
 {
 	LogInfo("Game initialized");
+	gameState = (GameState*)memory;
+
+	if (!gameState->initialized)
+	{
+		gameState->initialized = true;
+		ldk::render::spriteBatchInit();
+		gameState->material = ldk::render::loadMaterial("./assets/sprite.cfg"); 
+	}
+	else
+	{
+		setupSprite();
+	}
+}
+
+void setupSprite()
+{
+	gameState->sprite.position = {0, 100, 1};
+	gameState->sprite.color = { 1.0, 1.0, 1.0, 1.0 };
+	gameState->sprite.width = 100;
+	gameState->sprite.height = 100;
+	gameState->sprite.srcRect = {0,0,100,75};
 }
 
 void gameStart()
 {
 	LogInfo("Game started");
-	material = ldk::render::loadMaterial("./assets/sprite.cfg"); 
-	
-	ldk::render::spriteBatchInit();
-	sprite.position = {0, 100, 1};
-	sprite.color = { 1.0, 1.0, 1.0, 1.0 };
-	sprite.width = 100;
-	sprite.height = 100;
-	sprite.srcRect = {0,0,100,75};
+	setupSprite();
 }
 
 const float speed = 100.0f;
 void gameUpdate(float deltaTime)
 {
+	ldk::Sprite& sprite = gameState->sprite;
+	ldk::Material& material = gameState->material;
+
 	if (ldk::input::getKey(LDK_KEY_W))
 		sprite.position.y += speed * deltaTime;
 
@@ -36,11 +59,11 @@ void gameUpdate(float deltaTime)
 	if (ldk::input::getKey(LDK_KEY_D))
 		sprite.position.x += speed * deltaTime;
 
-	if (ldk::input::isKeyDown(LDK_KEY_J))
-		sprite.srcRect.y -= speed * deltaTime;
+	if (ldk::input::getKey(LDK_KEY_Q))
+		sprite.angle -= 3 * deltaTime;
 
-	if (ldk::input::isKeyDown(LDK_KEY_K))
-		sprite.srcRect.y += speed * deltaTime;
+	if (ldk::input::getKey(LDK_KEY_E))
+		sprite.angle += 3 * deltaTime;
 
 	ldk::render::spriteBatchBegin(material);
 		ldk::render::spriteBatchSubmit(sprite);
@@ -51,4 +74,3 @@ void gameStop()
 {
 	LogInfo("Game stopped");
 }
-
