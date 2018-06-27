@@ -18,7 +18,7 @@ namespace ldk
 
 	struct Variant
 	{
-		char8 key[LDK_CFG_MAX_IDENTIFIER_SIZE + 1];
+		char key[LDK_CFG_MAX_IDENTIFIER_SIZE + 1];
 		uint32 size;
 		VariantType type;
 		int32 hash;
@@ -30,7 +30,7 @@ namespace ldk
 		int32 hash;
 		uint32 variantCount;
 		uint32 totalSize; //total size of variant section, including this header
-		char8 name[LDK_CFG_MAX_IDENTIFIER_SIZE + 1];
+		char name[LDK_CFG_MAX_IDENTIFIER_SIZE + 1];
 	};
 
 	struct VariantSectionRoot
@@ -40,12 +40,12 @@ namespace ldk
 
 	struct _IniBufferStream
 	{
-		char8* buffer;
+		char* buffer;
 		uint32 line;
 		uint32 column;
 		uint32 lastColumn;
-		char8* pos;
-		char8* eofAddr;
+		char* pos;
+		char* eofAddr;
 
 		inline bool eof()
 		{
@@ -53,9 +53,9 @@ namespace ldk
 		}
 
 		_IniBufferStream(void* buffer, size_t size):
-			buffer((char8*)buffer), line(1), column(1), pos((char8*)buffer), eofAddr((char8*)buffer+size) {}
+			buffer((char*)buffer), line(1), column(1), pos((char*)buffer), eofAddr((char*)buffer+size) {}
 
-		char8 peek()
+		char peek()
 		{
 			if (eof())
 				return EOF;
@@ -63,12 +63,12 @@ namespace ldk
 			return *pos;
 		}
 
-		char8 getc()
+		char getc()
 		{
 			if ( pos >= eofAddr)
 				return EOF;
 
-			char8 c = *pos++;
+			char c = *pos++;
 			if (c == '\n')
 			{
 				++line;
@@ -87,7 +87,7 @@ namespace ldk
 			if ( pos <= buffer)
 				return;
 
-			char8 c = *--pos;
+			char c = *--pos;
 			if ( c == '\n')
 			{
 				--line;
@@ -105,7 +105,7 @@ namespace ldk
 
 	struct Identifier
 	{
-		char8* start;
+		char* start;
 		uint32 length;
 	};
 
@@ -136,7 +136,7 @@ namespace ldk
 
 	struct Statement
 	{
-		char8* text;
+		char* text;
 		uint32 line;
 		uint32 column;
 		uint32 length;
@@ -154,19 +154,19 @@ namespace ldk
 	int32 pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal);
 	int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, Literal& literal);
 
-	int32 stringToHash(char8* str)
+	int32 stringToHash(char* str)
 	{
 		uint32 stringLen = strlen((const char*)str);
 		int32 hash = 0;
 		for (uint32 i = 0; i < stringLen; i++)
 		{
-			hash += ((char8)* str) * i;
+			hash += ((char)* str) * i;
 		}
 
 		return hash;
 	}
 
-	inline bool isLetter(char8 c)
+	inline bool isLetter(char c)
 	{
 		return (c >= 64 && c <= 90) || (c >= 97 && c <= 122);
 	}
@@ -178,7 +178,7 @@ namespace ldk
 
 	static void skipWhiteSpace(_IniBufferStream& stream)
 	{
-		char8 c = stream.peek();
+		char c = stream.peek();
 		while ( c == ' ' || c == '\t' || c == '\r')
 		{
 			stream.getc();
@@ -188,7 +188,7 @@ namespace ldk
 
 	static void skipEmptyLines(_IniBufferStream& stream)
 	{
-		char8 c;
+		char c;
 		do
 		{
 			skipWhiteSpace(stream);
@@ -201,9 +201,9 @@ namespace ldk
 
 	static bool parseIdentifier(_IniBufferStream& stream, Identifier* identifier)
 	{
-		char8* identifierText = stream.pos;
+		char* identifierText = stream.pos;
 		uint32 identifierLength = 0;
-		char8 c = stream.getc();
+		char c = stream.getc();
 
 		size_t usedData;
 
@@ -238,7 +238,7 @@ namespace ldk
 	// Returns -1 if unary '-', or +1 if unary '+'
 	static bool parseUnarySignal(_IniBufferStream& stream, int32* signal)
 	{
-		char8 c = stream.peek();
+		char c = stream.peek();
 		if ( c == '-')
 		{
 			stream.getc();
@@ -262,10 +262,10 @@ namespace ldk
 		parseUnarySignal(stream, &signal);
 		skipWhiteSpace(stream);
 
-		char8* literalStart = stream.pos;
+		char* literalStart = stream.pos;
 		uint32 literalLength = 0;
 		int8 dotCount = 0;
-		char8 c;
+		char c;
 
 		do 
 		{
@@ -335,8 +335,8 @@ namespace ldk
 	inline bool parseStringLiteral(_IniBufferStream& stream, Literal& literal)
 	{
 		uint32 stringLen = 0;
-		char8* stringStart = stream.pos+1;
-		char8 c = stream.peek();
+		char* stringStart = stream.pos+1;
+		char c = stream.peek();
 
 		if (c != '"')
 		{
@@ -377,7 +377,7 @@ namespace ldk
 			_IniBufferStream& stream, Identifier& identifier, Literal& literal)
 	{
 		skipWhiteSpace(stream);
-		char8 c = stream.peek();
+		char c = stream.peek();
 		// Bool literal
 		if (isLetter(c))
 		{
@@ -422,7 +422,7 @@ namespace ldk
 			_IniBufferStream& stream, Identifier& identifier, Literal& literal, int32 currentSectionOffset)
 	{
 		skipEmptyLines(stream);
-		char8 c = stream.peek();
+		char c = stream.peek();
 
 		int32 variantOffset;
 
@@ -497,7 +497,7 @@ namespace ldk
 	// parse identifier + '=' + rvalue
 	bool parseAssignment(Heap& parsedDataBuffer, _IniBufferStream& stream, Statement* statement, int32 currentSectionOffset)
 	{
-		char8 c;
+		char c;
 		statement->type = StatementType::ASSIGNMENT;
 		Identifier tempIdentifier = {};
 
@@ -521,7 +521,7 @@ namespace ldk
 	// parse [ + identifier + ]
 	static bool parseSectionDeclaration(Heap& parsedDataBuffer, _IniBufferStream& stream, Statement* statement)
 	{
-		char8 c = stream.getc();
+		char c = stream.getc();
 
 		if (c == '[')
 		{
@@ -555,7 +555,7 @@ namespace ldk
 		statement->column = stream.column;
 		bool success = false;
 
-		char8 c = stream.peek();
+		char c = stream.peek();
 		if (c == '[')
 			success = parseSectionDeclaration(parsedDataBuffer, stream, statement);
 		else if (isLetter(c))
@@ -751,7 +751,7 @@ namespace ldk
 
 		// Account for the root section
 		heap.used += rootSectionOffset;
-		Identifier rootSectionIdentifier = {(char8*)rootSectionName, rootSectionNameLen};
+		Identifier rootSectionIdentifier = {(char*)rootSectionName, rootSectionNameLen};
 
 		return pushVariantSection(heap, rootSectionIdentifier);
 	}
@@ -798,7 +798,7 @@ namespace ldk
 			return nullptr;
 	}
 
-	VariantSectionRoot* config_parseFile(const char8* fileName)
+	VariantSectionRoot* config_parseFile(const char* fileName)
 	{
 		size_t fileSize;
 		void* buffer = platform::loadFileToBuffer(fileName, &fileSize);
@@ -815,7 +815,7 @@ namespace ldk
 
 	VariantSection* config_getSection(VariantSectionRoot* rootSection, const char* name)
 	{
-		int32 hash = stringToHash((char8*)name);
+		int32 hash = stringToHash((char*)name);
 		//First section is ALWAYS after the section root
 		VariantSection* section = (VariantSection*) ((char*)rootSection + sizeof(VariantSectionRoot));
 
@@ -833,7 +833,7 @@ namespace ldk
 
 	Variant* config_getVariant(const VariantSection* section, const char* key)
 	{
-		int32 hash = stringToHash((char8*)key);
+		int32 hash = stringToHash((char*)key);
 		//Variant* v = (ldk::Variant*) (((char*)section) + sizeof(ldk::VariantSection));
 		Variant* v = (ldk::Variant*)(section + 1);
 

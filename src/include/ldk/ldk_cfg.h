@@ -6,7 +6,7 @@ namespace ldk
 	struct VariantSectionRoot;
 	struct VariantSection;
 
-	LDK_API VariantSectionRoot* config_parseFile(const char8* fileName);
+	LDK_API VariantSectionRoot* config_parseFile(const char* fileName);
 	LDK_API VariantSectionRoot* config_parseBuffer(void* buffer, size_t size);
 	LDK_API VariantSection* config_getSection(VariantSectionRoot* rootSection, const char* name);
 	LDK_API bool config_getInt(VariantSection* section, const char* key, int32* intValue);

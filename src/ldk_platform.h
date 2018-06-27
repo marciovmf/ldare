@@ -110,6 +110,14 @@ namespace ldk
 		// Updates all windows and OS dependent events
 		LDK_API void pollEvents();
 
+
+		//---------------------------------------------------------------------------
+		// Audio
+		//---------------------------------------------------------------------------
+		LDK_API uint32 createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize);
+
+		LDK_API void playAudioBuffer(uint32 audioBufferId);
+
 		//---------------------------------------------------------------------------
 		// Shared Library loading/unloading
 		//---------------------------------------------------------------------------
@@ -123,13 +131,15 @@ namespace ldk
 		//---------------------------------------------------------------------------
 		// File and filesystem api
 		//---------------------------------------------------------------------------
-		LDK_API void* loadFileToBuffer(const char8* filename, size_t* bufferSize);
+		LDK_API void* loadFileToBuffer(const char* filename, size_t* bufferSize);
 
 		LDK_API int64 getFileWriteTime(const char* fileName);
 		
 		LDK_API bool copyFile(const char* sourceFileName, const char* destFileName);
 
 		LDK_API bool moveFile(const char* sourceFileName, const char* destFileName);
+		
+		LDK_API bool deleteFile(const char* sourceFileName);
 		//---------------------------------------------------------------------------
 		// Memory allocation
 		//---------------------------------------------------------------------------

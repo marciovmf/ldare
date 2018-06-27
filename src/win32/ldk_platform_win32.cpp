@@ -451,7 +451,7 @@ namespace ldk
 // Plays an audio buffer
 // Returns the created buffer id
 //---------------------------------------------------------------------------
-uint32 ldk_win32_createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
+uint32 createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize)
 {
 	BoundAudio* audio = nullptr;
 	uint32 audioId = _platform.boundBufferCount;
@@ -497,7 +497,7 @@ uint32 ldk_win32_createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32
 //---------------------------------------------------------------------------
 // Plays an audio buffer
 //---------------------------------------------------------------------------
-void ldk_win32_playAudio(uint32 audioBufferId)
+void playAudioBuffer(uint32 audioBufferId)
 {
 	if (_platform.boundBufferCount >= LDK_MAX_AUDIO_BUFFER || _platform.boundBufferCount <= 0)
 		return;
@@ -863,7 +863,7 @@ void memoryFree(void* memory)
 	free(memory);
 }
 
-void* loadFileToBuffer(const char8* fileName, size_t* bufferSize)
+void* loadFileToBuffer(const char* fileName, size_t* bufferSize)
 {
 	HANDLE hFile = CreateFile((LPCSTR)fileName,
 			GENERIC_READ,
@@ -912,7 +912,6 @@ LDK_API int64 getFileWriteTime(const char* fileName)
 	return ((((int64) writeTime.dwHighDateTime) << 32) + writeTime.dwLowDateTime);
 }
 
-
 LDK_API bool copyFile(const char* sourceFileName, const char* destFileName)
 {
 	return CopyFileA(sourceFileName, destFileName, false);
@@ -921,6 +920,11 @@ LDK_API bool copyFile(const char* sourceFileName, const char* destFileName)
 LDK_API bool moveFile(const char* sourceFileName, const char* destFileName)
 {
 	return MoveFile(sourceFileName, destFileName);
+}
+
+LDK_API bool deleteFile(const char* sourceFileName)
+{
+	return DeleteFile(sourceFileName);
 }
 
 uint64 getTicks()

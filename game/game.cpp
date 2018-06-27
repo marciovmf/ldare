@@ -5,10 +5,11 @@ struct GameState
 	bool initialized;
 	ldk::Material material;
 	ldk::Sprite sprite;
+	ldk::Audio bgMusic;
 } *gameState = nullptr;
 
-void setupSprite();
 
+void setupSprite();
 void gameInit(void* memory)
 {
 	LogInfo("Game initialized");
@@ -19,6 +20,7 @@ void gameInit(void* memory)
 		gameState->initialized = true;
 		ldk::render::spriteBatchInit();
 		gameState->material = ldk::render::loadMaterial("./assets/sprite.cfg"); 
+		ldk::loadAudio("assets/bgmusic.wav", &gameState->bgMusic);
 	}
 	else
 	{
@@ -39,6 +41,7 @@ void gameStart()
 {
 	LogInfo("Game started");
 	setupSprite();
+	ldk::playAudio(&gameState->bgMusic);
 }
 
 const float speed = 100.0f;
