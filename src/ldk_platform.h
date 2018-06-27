@@ -130,6 +130,8 @@ namespace ldk
 		LDK_API bool copyFile(const char* sourceFileName, const char* destFileName);
 
 		LDK_API bool moveFile(const char* sourceFileName, const char* destFileName);
+		
+		LDK_API bool deleteFile(const char* sourceFileName);
 		//---------------------------------------------------------------------------
 		// Memory allocation
 		//---------------------------------------------------------------------------

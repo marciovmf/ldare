@@ -100,6 +100,8 @@ namespace ldk
 
 		LDK_API	Material loadMaterial(const char* materialFile);
 
+		LDK_API void unloadMaterial(Material* material);
+
 		// Sprite batch api
 		LDK_API int32 spriteBatchInit();
 		LDK_API void spriteBatchBegin(const ldk::Material& material);

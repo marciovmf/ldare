@@ -264,7 +264,8 @@ namespace ldk
 				}
 			}
 
-			ldk::Material material;
+			//TODO: Allocate this properly when we have a memory manager.
+			ldk::Material material = {};
 			ldk::Bitmap bitmap;
 			material.shader = ldk::render::loadShader(vertexSource, fragmentSource);
 			material.texture = ldk::render::loadTexture(textureFile);
@@ -273,6 +274,11 @@ namespace ldk
 			ldk::config_dispose(root);
 
 			return material;
+		}
+
+		void unloadMaterial(Material* material)
+		{
+			//TODO: We are leaking texuture memory here! Unload this properly when we have a memory manager.
 		}
 
 		void updateRenderer(float deltaTime)
