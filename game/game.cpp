@@ -2,6 +2,7 @@
 
 ldk::Material material;
 ldk::Sprite sprite;
+ldk::Audio bgMusic;
 
 void gameInit()
 {
@@ -12,13 +13,14 @@ void gameStart()
 {
 	LogInfo("Game started");
 	material = ldk::render::loadMaterial("./assets/sprite.cfg"); 
-	
+	ldk::loadAudio("assets/bgmusic.wav", &bgMusic);
 	ldk::render::spriteBatchInit();
 	sprite.position = {0, 100, 1};
 	sprite.color = { 1.0, 1.0, 1.0, 1.0 };
 	sprite.width = 100;
 	sprite.height = 100;
 	sprite.srcRect = {0,0,100,75};
+	ldk::playAudio(&bgMusic);
 }
 
 const float speed = 100.0f;

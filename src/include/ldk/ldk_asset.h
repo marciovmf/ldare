@@ -32,7 +32,7 @@ namespace ldk
 		uint32 width;
 		uint32 height;
 		uint32 bitsPerPixel;
-		uchar8 *pixels;
+		uchar *pixels;
 		//TODO: Remove this when memory/asset manager is done
 		void*  bmpFileMemoryToRelease_;
 		size_t bmpMemorySize_;
@@ -78,45 +78,14 @@ namespace ldk
 		uint16 lastCodePoint;  	// last character codepoint defined in the font
 		uint16 defaultCodePoint;// default character to be substituted in the font
 		FontGliphRect* gliphData;  // pointer to gliph data
-	};
-
-	//TODO: this is for testing only. materials will be defined on a custom asset file on something similar
-#define ASSET_API_LOAD_MATERIAL(name) \
-	ldk::Material name(const char* vertexShader, const char* fragmentShader, const char* textureFile)
-
-	typedef ASSET_API_LOAD_MATERIAL(loadMaterialFunc);
-
-#define ASSET_API_LOAD_FONT(name) \
-	bool name(const char* file, ldk::FontAsset** font)
-
-	typedef ASSET_API_LOAD_FONT(loadFontFunc);
-
-#define ASSET_API_LOAD_AUDIO(name) \
-	 bool name(const char* file, ldk::Audio* audio)
-
-	typedef ASSET_API_LOAD_AUDIO(loadAudioFunc);
-
-#define ASSET_API_PLAY_AUDIO(name) \
-	 void name(const ldk::Audio* audio)
-
-	typedef ASSET_API_PLAY_AUDIO(playAudioFunc);
-
-	struct AssetApi
-	{
-		loadAudioFunc* loadAudio;
-		loadFontFunc* loadFont;
+		//TODO: add font kerning information here
 	};
 	
-	struct AudioApi
-	{
-		playAudioFunc* playAudio;
-	};
-
-	bool loadBitmap(const char* file, ldk::Bitmap* bitmap);
-	bool loadAudio(const char8* file, ldk::Audio* audio);
-	bool loadFont(const char8* file, ldk::FontAsset** fontAsset);
-	void playAudio(const ldk::Audio* audio);
-	void freeAsset(void* memory, size_t size);
+	LDK_API bool loadBitmap(const char* file, ldk::Bitmap* bitmap);
+	LDK_API bool loadAudio(const char* file, ldk::Audio* audio);
+	LDK_API bool loadFont(const char* file, ldk::FontAsset** fontAsset);
+	LDK_API void playAudio(const ldk::Audio* audio);
+	LDK_API void freeAsset(void* memory, size_t size);
 } // namespace ldk
 
 #endif // __LDK_ASSET_H_

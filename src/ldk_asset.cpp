@@ -58,7 +58,7 @@ struct BITMAP_FILE_HEADER
 	bool loadBitmap(const char* file, ldk::Bitmap* bitmap)
 	{	
 		LogInfo("Loading texture: %s", file);
-		bitmap->bmpFileMemoryToRelease_ = ldk::platform::loadFileToBuffer((const char8*)file, &bitmap->bmpMemorySize_);
+		bitmap->bmpFileMemoryToRelease_ = ldk::platform::loadFileToBuffer(file, &bitmap->bmpMemorySize_);
 		if (!bitmap->bmpFileMemoryToRelease_ || bitmap->bmpMemorySize_ == 0) { return false; }
 
 		BITMAP_FILE_HEADER *bitmapHeader = (BITMAP_FILE_HEADER*)bitmap->bmpFileMemoryToRelease_;
@@ -106,15 +106,12 @@ struct BITMAP_FILE_HEADER
 		return true;
 	}
 
-	bool loadFont(const char8* file, ldk::FontAsset** font)
+	bool loadFont(const char* file, ldk::FontAsset** font)
 	{
 		size_t fontAssetSize;
 		ldk::FontAsset* fontAsset = (ldk::FontAsset*) ldk::platform::loadFileToBuffer(file, &fontAssetSize);
 		if (!fontAsset || fontAssetSize == 0) { return false; }
 
-		// fix gliph array pointer
-		//fontAsset->gliphData = (FontGliphRect*)(((uint8*)fontAsset) + ((uint8*)fontAsset->gliphData));
-	
 		fontAsset->gliphData = (FontGliphRect*) (((uint8*)fontAsset) + (uint32) fontAsset->gliphData);
 		*font = fontAsset;
 		return true;
@@ -129,7 +126,6 @@ struct BITMAP_FILE_HEADER
 	//---------------------------------------------------------------------------
 	// Audio functions
 	//---------------------------------------------------------------------------
-#if 0 // TODO: Add audio functions into he platform layer
 	static void* findAudioChunk(void* riffFileData, uint32 riffDataSize, uint32 fourcc, uint32* outSize)
 	{
 		*outSize = 0;
@@ -149,7 +145,7 @@ struct BITMAP_FILE_HEADER
 		return nullptr;
 	}
 
-	bool loadAudio(const char8* file, ldk::Audio* audio)
+	bool loadAudio(const char* file, ldk::Audio* audio)
 	{
 		audio->audioFileMemoryToRelease_ = ldk::platform::loadFileToBuffer(file, (size_t*) &audio->audioMemorySize_);
 
@@ -189,7 +185,7 @@ struct BITMAP_FILE_HEADER
 
 	void playAudio(const ldk::Audio* audio)
 	{
-		ldk::platform::playAudio(audio->id);
+		ldk::platform::playAudioBuffer(audio->id);
 	}
-#endif
+
 } // namespace ldk

@@ -26,7 +26,7 @@ static int32 checkNoGlError(const char* file, uint32 line)
 	const char* error = "UNKNOWN ERROR CODE";
 	GLenum err = glGetError();
 	int32 success = 1;
-	uchar8 noerror = 1;
+	uchar noerror = 1;
 	while(err!=GL_NO_ERROR)
 	{
 		switch(err)
@@ -181,12 +181,12 @@ namespace ldk
 			return shader;
 		}
 
-		Shader loadShaderFromFile(const char8* vertexFile, const char8* fragmentFile)
+		Shader loadShaderFromFile(const char* vertexFile, const char* fragmentFile)
 		{
 			size_t vertShaderFileSize;
 			size_t fragShaderFileSize;
-			const char* vertexSource = (const char*)platform::loadFileToBuffer((const char8*)vertexFile, &vertShaderFileSize);
-			const char* fragmentSource = (const char*) platform::loadFileToBuffer((const char8*)fragmentFile, &fragShaderFileSize);
+			const char* vertexSource = (const char*)platform::loadFileToBuffer(vertexFile, &vertShaderFileSize);
+			const char* fragmentSource = (const char*) platform::loadFileToBuffer(fragmentFile, &fragShaderFileSize);
 
 			Shader shader = loadShader(vertexSource, fragmentSource);
 			//TODO: remove this when we have a proper way to reuse file I/O memory
@@ -252,7 +252,7 @@ namespace ldk
 			char* vertexSource = "";
 			char* textureFile = "";
 
-			ldk::VariantSectionRoot* root = ldk::config_parseFile((const char8*)materialFile);
+			ldk::VariantSectionRoot* root = ldk::config_parseFile((const char*)materialFile);
 			if (root)
 			{
 				ldk::VariantSection* section = ldk::config_getSection(root, (const char*) "material");
@@ -335,7 +335,7 @@ namespace ldk
 
 			spriteBatchData.fallbackBitmapData = 0xFFFF000FF; // ugly hell magenta! ABRG
 			spriteBatchData.fallbackBitmap = fallbackBitmap;
-			spriteBatchData.fallbackBitmap.pixels = (uchar8*) &spriteBatchData.fallbackBitmapData;
+			spriteBatchData.fallbackBitmap.pixels = (uchar*) &spriteBatchData.fallbackBitmapData;
 
 			glGenVertexArrays(1, &spriteBatchData.vao);
 
