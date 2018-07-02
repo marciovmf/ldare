@@ -35,8 +35,7 @@ void setupSprite()
 {
 	gameState->sprite.position = {SCREEN_WIDTH /2, SCREEN_HEIGHT/2, 0};
 	gameState->sprite.color = { 1.0, 1.0, 1.0, 1.0 };
-	gameState->sprite.width = 100;
-	gameState->sprite.height = 100;
+	gameState->sprite.width = gameState->sprite.height = 64;
 	gameState->sprite.srcRect = {0,0,100,75};
 	gameState->sprite.angle = 0;
 }
@@ -49,7 +48,9 @@ void gameStart()
 }
 
 float heading = 0;
-float drag = 0.01f;
+float drag = 0.001f;
+float maxSpeed = 10.0f;
+float acceleration = 1.5f;
 ldk::Vec3 force = {};
 float t = 0;
 
@@ -59,15 +60,15 @@ void gameUpdate(float deltaTime)
 	ldk::Material& material = gameState->material;
 
 	// steering
-	if (ldk::input::getKey(LDK_KEY_A)) sprite.angle += 3 * deltaTime;
-	if (ldk::input::getKey(LDK_KEY_D)) sprite.angle -= 3 * deltaTime;
+	if (ldk::input::getKey(LDK_KEY_A)) sprite.angle += 5 * deltaTime;
+	if (ldk::input::getKey(LDK_KEY_D)) sprite.angle -= 5 * deltaTime;
 
 	// thrusting
 	if (ldk::input::getKey(LDK_KEY_W))
 	{
 			heading = sprite.angle;
-			force.x += cos(RADIAN(90) + heading) * 5 * deltaTime;
-			force.y += sin(RADIAN(90) + heading) * 5 * deltaTime;
+			force.x += cos(RADIAN(90) + heading) * acceleration * deltaTime;
+			force.y += sin(RADIAN(90) + heading) * acceleration * deltaTime;
 			t = 0;
 	}
 	else
@@ -78,7 +79,6 @@ void gameUpdate(float deltaTime)
 		force.y = ldk::lerp(force.y, 0, t);
 	}
 
-	float maxSpeed = 10.0f;
 	float speed = force.magnitude();
 
 	if (speed > maxSpeed)
