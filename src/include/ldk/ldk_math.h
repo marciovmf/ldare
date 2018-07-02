@@ -14,15 +14,14 @@
 
 namespace ldk
 {
-	float lerp(float start, float end, float t) 
-	{
-		return (1 - t) * start + t * end;
-	}
-
 	struct Rectangle
 	{
 		float x, y, w, h;
 	};
+
+	static const float _zero[] = {0,0,0,0};
+	static const float _one[] = {1,1,1,1};
+
 	//---------------------------------------------------------------------------
 	// Vector2 
 	//---------------------------------------------------------------------------
@@ -104,6 +103,15 @@ namespace ldk
 			return sqrt(x * x + y * y);
 		}
 
+		static const Vec2& one()
+		{
+			return (const Vec2&)_one;
+		}
+
+		static const Vec2& zero()
+		{
+			return (const Vec2& )_zero;
+		}
 	};
 
 	//---------------------------------------------------------------------------
@@ -212,11 +220,22 @@ namespace ldk
 			this->z /= other.z;
 			return *this;
 		}
-		
+
 		float magnitude()
 		{
 			return sqrt(x * x + y * y + z * z);
 		}
+
+		static const Vec3& one()
+		{
+			return (const Vec3&)_one;
+		}
+
+		static const Vec3& zero()
+		{
+			return (const Vec3& )_zero;
+		}
+
 	};
 
 	//---------------------------------------------------------------------------
@@ -318,6 +337,16 @@ namespace ldk
 		float magnitude()
 		{
 			return sqrt(x * x + y * y + z * z + w * w);
+		}
+
+		static const Vec4& one()
+		{
+			return (const Vec4&)_one;
+		}
+
+		static const Vec4& zero()
+		{
+			return (const Vec4& )_zero;
 		}
 	};
 
@@ -470,6 +499,39 @@ namespace ldk
 		}
 
 	};
+
+	float lerp(float start, float end, float t) 
+	{
+		return (1 - t) * start + t * end;
+	}
+
+	Vec2 lerpVec2(const Vec2& start, const Vec2& end, float t)
+	{
+		Vec2 result;
+		result.x = lerp(start.x, end.x, t);
+		result.y = lerp(start.y, end.y, t);
+		return result;
+	}
+
+	Vec3 lerpVec3(const Vec3& start, const Vec3& end, float t)
+	{
+		Vec3 result;
+		result.x = lerp(start.x, end.x, t);
+		result.y = lerp(start.y, end.y, t);
+		result.z = lerp(start.z, end.z, t);
+		return result;
+	}
+	
+	Vec4 lerpVec4(const Vec4& start, const Vec4& end, float t)
+	{
+		Vec4 result;
+		result.x = lerp(start.x, end.x, t);
+		result.y = lerp(start.y, end.y, t);
+		result.z = lerp(start.z, end.z, t);
+		result.w = lerp(start.w, end.w, t);
+		return result;
+	}
+
 } // ldk
 
 #endif // _LDK_MATH_H_
