@@ -14,11 +14,10 @@
 
 namespace ldk
 {
-
-//	float lerp(float start, float end, float f)
-//	{
-//		return (start * (1.0f - f)) + (end * f);
-//	}
+	float lerp(float start, float end, float t) 
+	{
+		return (1 - t) * start + t * end;
+	}
 
 	struct Rectangle
 	{
@@ -98,6 +97,11 @@ namespace ldk
 			this->x /= other.x;
 			this->y /= other.y;
 			return *this;
+		}
+
+		float magnitude()
+		{
+			return sqrt(x * x + y * y);
 		}
 
 	};
@@ -208,6 +212,11 @@ namespace ldk
 			this->z /= other.z;
 			return *this;
 		}
+		
+		float magnitude()
+		{
+			return sqrt(x * x + y * y + z * z);
+		}
 	};
 
 	//---------------------------------------------------------------------------
@@ -306,6 +315,10 @@ namespace ldk
 			return *this;
 		}
 
+		float magnitude()
+		{
+			return sqrt(x * x + y * y + z * z + w * w);
+		}
 	};
 
 	//---------------------------------------------------------------------------
