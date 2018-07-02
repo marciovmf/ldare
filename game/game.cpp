@@ -48,9 +48,9 @@ void gameStart()
 }
 
 float heading = 0;
-float drag = 0.001f;
-float maxSpeed = 10.0f;
-float acceleration = 1.5f;
+float drag = 0.0005f;
+float maxSpeed = 0.3f;
+float acceleration = 0.3f;
 ldk::Vec3 force = {};
 float t = 0;
 
@@ -66,26 +66,24 @@ void gameUpdate(float deltaTime)
 	// thrusting
 	if (ldk::input::getKey(LDK_KEY_W))
 	{
-			heading = sprite.angle;
-			force.x += cos(RADIAN(90) + heading) * acceleration * deltaTime;
-			force.y += sin(RADIAN(90) + heading) * acceleration * deltaTime;
-			t = 0;
+		float speed = force.magnitude();
+		heading = sprite.angle;
+		force.x += cos(RADIAN(90) + heading) * acceleration * deltaTime;
+		force.y += sin(RADIAN(90) + heading) * acceleration * deltaTime;
+		t = 0;
 	}
 	else
 	{
 		//drag
 		t += drag * deltaTime;
-		force.x = ldk::lerp(force.x, 0, t);
-		force.y = ldk::lerp(force.y, 0, t);
+		force = ldk::lerpVec3(force, ldk::Vec3::zero(), t);
 	}
-
-	float speed = force.magnitude();
 
 	if (speed > maxSpeed)
 	{
 		speed = maxSpeed/speed;
-		force.x *= speed * deltaTime;
-		force.y *= speed * deltaTime;
+		LogInfo("magnitude = %f", speed);
+		force *= speed * deltaTime;
 	}
 
 	sprite.position = sprite.position + force;
