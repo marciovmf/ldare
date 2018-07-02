@@ -1,5 +1,8 @@
 #include <ldk/ldk.h>
 
+#define SCREEN_WIDTH 1024
+#define SCREEN_HEIGHT 768
+
 struct GameState
 {
 	bool initialized;
@@ -30,44 +33,69 @@ void gameInit(void* memory)
 
 void setupSprite()
 {
-	gameState->sprite.position = {0, 100, 1};
+	gameState->sprite.position = {SCREEN_WIDTH /2, SCREEN_HEIGHT/2, 0};
 	gameState->sprite.color = { 1.0, 1.0, 1.0, 1.0 };
 	gameState->sprite.width = 100;
 	gameState->sprite.height = 100;
 	gameState->sprite.srcRect = {0,0,100,75};
+	gameState->sprite.angle = 0;
 }
 
 void gameStart()
 {
 	LogInfo("Game started");
 	setupSprite();
-	ldk::playAudio(&gameState->bgMusic);
+	//ldk::playAudio(&gameState->bgMusic);
 }
 
-const float speed = 100.0f;
+float heading = 0;
+float drag = 0.01f;
+ldk::Vec3 force = {};
+float t = 0;
+
 void gameUpdate(float deltaTime)
 {
 	ldk::Sprite& sprite = gameState->sprite;
 	ldk::Material& material = gameState->material;
 
+	// steering
+	if (ldk::input::getKey(LDK_KEY_A)) sprite.angle += 3 * deltaTime;
+	if (ldk::input::getKey(LDK_KEY_D)) sprite.angle -= 3 * deltaTime;
+
+	// thrusting
 	if (ldk::input::getKey(LDK_KEY_W))
-		sprite.position.y += speed * deltaTime;
+	{
+			heading = sprite.angle;
+			force.x += cos(RADIAN(90) + heading) * 5 * deltaTime;
+			force.y += sin(RADIAN(90) + heading) * 5 * deltaTime;
+			t = 0;
+	}
+	else
+	{
+		//drag
+		t += drag * deltaTime;
+		force.x = ldk::lerp(force.x, 0, t);
+		force.y = ldk::lerp(force.y, 0, t);
+	}
 
-	if (ldk::input::getKey(LDK_KEY_S))
-		sprite.position.y -= speed * deltaTime;
+	float maxSpeed = 10.0f;
+	float speed = force.magnitude();
 
-	if (ldk::input::getKey(LDK_KEY_A))
-		sprite.position.x -= speed * deltaTime;
+	if (speed > maxSpeed)
+	{
+		speed = maxSpeed/speed;
+		force.x *= speed * deltaTime;
+		force.y *= speed * deltaTime;
+	}
 
-	if (ldk::input::getKey(LDK_KEY_D))
-		sprite.position.x += speed * deltaTime;
+	sprite.position = sprite.position + force;
 
-	if (ldk::input::getKey(LDK_KEY_Q))
-		sprite.angle -= 3 * deltaTime;
-
-	if (ldk::input::getKey(LDK_KEY_E))
-		sprite.angle += 3 * deltaTime;
-
+	// wrap around the screen
+	if (sprite.position.x > SCREEN_WIDTH) sprite.position.x = 0;
+	if (sprite.position.x < 0) sprite.position.x = SCREEN_WIDTH;
+	if (sprite.position.y > SCREEN_HEIGHT) sprite.position.y = 0;
+	if (sprite.position.y < 0) sprite.position.y = SCREEN_HEIGHT;
+	
 	ldk::render::spriteBatchBegin(material);
 		ldk::render::spriteBatchSubmit(sprite);
 	ldk::render::spriteBatchEnd();
