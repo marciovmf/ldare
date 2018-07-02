@@ -451,10 +451,6 @@ namespace ldk
 			element[10] = -(2.0f / depth);
 
 			// Last column
-			//element[12] = -((right+left) / width);
-			//element[13] = -((top - bottom) / height);
-			//element[14] = -((near - far) / depth);
-			
 			element[12] = -((right + left) / width);
 			element[13] = -((top + bottom) / height);
 			element[14] = -((far + near) / depth);
