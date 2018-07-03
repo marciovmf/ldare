@@ -106,8 +106,10 @@ namespace ldk
 		LDK_API int32 spriteBatchInit();
 		LDK_API void spriteBatchBegin(const ldk::Material& material);
 		LDK_API void spriteBatchSubmit(const ldk::Sprite& sprite);
+		LDK_API Vec2 spriteBatchText(Vec3& position, float scale, Vec4& color, const char* text);
 		LDK_API void spriteBatchFlush();
 		LDK_API void spriteBatchEnd();
+		LDK_API void spriteBatchSetFont(const ldk::FontAsset& font);
 
 		//
 		LDK_API void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight);

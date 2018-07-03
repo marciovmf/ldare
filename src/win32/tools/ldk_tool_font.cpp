@@ -263,7 +263,7 @@ int _tmain(int argc, _TCHAR** argv)
 		return 1; 
 	}
 
-	// Colplete filling the fontInput structure
+	// filling the fontInput structure
 	const uint32 spacing = 2;
 
 	input.fontStringLen =  fontMetrics.tmLastChar - fontMetrics.tmFirstChar;
@@ -284,9 +284,7 @@ int _tmain(int argc, _TCHAR** argv)
 		fontBuffer[i] = codePoint;
 	}
 
-
 	enableFontSmoothing();
-
 
 	RECT bitmapRect = calcFontBitmapSize(dc, input.fontString, input.maxLineWidth, spacing);
 	HBITMAP hDcBitmap = CreateCompatibleBitmap(dc, bitmapRect.right, bitmapRect.bottom);
@@ -323,8 +321,10 @@ int _tmain(int argc, _TCHAR** argv)
 			gliphY += gliphSize.cy + spacing;
 		}
 
-		fontGliphData[i] = {gliphX, bitmapRect.bottom - gliphY - gliphSize.cy, gliphSize.cx, gliphSize.cy};
-		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, bitmapRect.bottom - gliphY - gliphSize.cy, gliphSize.cx, gliphSize.cy, 0);
+		//fontGliphData[i] = {gliphX, bitmapRect.bottom - gliphY - gliphSize.cy, gliphSize.cx, gliphSize.cy};
+		//LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, bitmapRect.bottom - gliphY - gliphSize.cy, gliphSize.cx, gliphSize.cy, 0);
+		fontGliphData[i] = {gliphX, gliphY, gliphSize.cx, gliphSize.cy};
+		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
 		TextOut(dc, gliphX, gliphY, &gliph, 1);
 		gliphX += gliphSize.cx + spacing;
 	}

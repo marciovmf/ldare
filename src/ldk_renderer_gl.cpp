@@ -553,24 +553,16 @@ namespace ldk
 
 	} // namespace render
 
-	//
-	// Text Rendering functions. 
-	// I still don't know if this is the best place or way to do it.
-	//
-	void beginText(const ldk::FontAsset& font, const ldk::Material& material)
+	LDK_API void spriteBatchSetFont(const ldk::FontAsset& font)
 	{
-		// copy font localy
 		fontAsset = font;
-		render::spriteBatchBegin(material);
 	}
 
-	void endText()
+	LDK_API Vec2 spriteBatchText(Vec3& position, float scale, Vec4& color, const char* text)
 	{
-		render::spriteBatchEnd();
-	}
+		if (fontAsset.gliphData == nullptr)
+			return {-1,-1};
 
-	Vec2 drawText(Vec3& position, float scale, Vec4& color, const char* text)
-	{
 		char c;
 		const char* ptrChar = text;
 		Sprite sprite;
@@ -615,10 +607,6 @@ namespace ldk
 		return textSize;
 	}
 
-	void flushText()
-	{
-		render::spriteBatchFlush();
-	}
 } // namespace ldk
 
 

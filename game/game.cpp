@@ -7,8 +7,10 @@ struct GameState
 {
 	bool initialized;
 	ldk::Material material;
+	ldk::Material fontMaterial;
 	ldk::Sprite sprite;
 	ldk::Audio bgMusic;
+	ldk::FontAsset* font;
 } *gameState = nullptr;
 
 
@@ -23,7 +25,10 @@ void gameInit(void* memory)
 		gameState->initialized = true;
 		ldk::render::spriteBatchInit();
 		gameState->material = ldk::render::loadMaterial("./assets/sprite.cfg"); 
+		gameState->fontMaterial = ldk::render::loadMaterial("./assets/font.cfg"); 
 		ldk::loadAudio("assets/bgmusic.wav", &gameState->bgMusic);
+		ldk::loadFont("assets/Capture it.font", &gameState->font);
+		ldk::render::spriteBatchSetFont((const ldk::FontAsset&)*gameState->font);
 	}
 	else
 	{
@@ -42,14 +47,14 @@ void setupSprite()
 
 void gameStart()
 {
-	LogInfo("Game started");
 	setupSprite();
+	LogInfo("Game started");
 	//ldk::playAudio(&gameState->bgMusic);
 }
 
 float heading = 0;
 float drag = 0.0005f;
-float maxSpeed = 0.3f;
+float maxSpeed = 1.0f;
 float acceleration = 0.3f;
 ldk::Vec3 force = {};
 float t = 0;
@@ -66,7 +71,6 @@ void gameUpdate(float deltaTime)
 	// thrusting
 	if (ldk::input::getKey(LDK_KEY_W))
 	{
-		float speed = force.magnitude();
 		heading = sprite.angle;
 		force.x += cos(RADIAN(90) + heading) * acceleration * deltaTime;
 		force.y += sin(RADIAN(90) + heading) * acceleration * deltaTime;
@@ -79,10 +83,10 @@ void gameUpdate(float deltaTime)
 		force = ldk::lerpVec3(force, ldk::Vec3::zero(), t);
 	}
 
+	float speed = force.magnitude();
 	if (speed > maxSpeed)
 	{
-		speed = maxSpeed/speed;
-		LogInfo("magnitude = %f", speed);
+		speed *= maxSpeed/speed;
 		force *= speed * deltaTime;
 	}
 
@@ -95,7 +99,15 @@ void gameUpdate(float deltaTime)
 	if (sprite.position.y < 0) sprite.position.y = SCREEN_HEIGHT;
 	
 	ldk::render::spriteBatchBegin(material);
-		ldk::render::spriteBatchSubmit(sprite);
+	ldk::render::spriteBatchSubmit(sprite);
+	ldk::render::spriteBatchEnd();
+
+	ldk::Vec4 black = {0,0,0,0.8f};
+	ldk::Vec3 textPos = sprite.position;
+	textPos.y += 50;
+	textPos.z = 3;
+	ldk::render::spriteBatchBegin(gameState->fontMaterial);
+	ldk::render::spriteBatchText(textPos, 0.8f, black, "Text Rendering is back!");
 	ldk::render::spriteBatchEnd();
 }
 
