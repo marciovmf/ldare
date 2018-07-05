@@ -186,12 +186,27 @@ namespace ldk
 		}
 	}
 
+	static void skipComment(_IniBufferStream& stream)
+	{
+		char c = stream.peek();
+
+		if (c != '#')
+			return;
+
+		while ( c != '\n')
+		{
+			stream.getc();
+			c = stream.peek();
+		}
+	}
+
 	static void skipEmptyLines(_IniBufferStream& stream)
 	{
 		char c;
 		do
 		{
 			skipWhiteSpace(stream);
+			skipComment(stream);
 			c = stream.getc();
 		} while (c == '\n');
 
@@ -550,6 +565,8 @@ namespace ldk
 	static bool parseStatement(Heap& parsedDataBuffer, _IniBufferStream& stream, Statement* statement, int32 currentSectionOffset)
 	{
 		skipWhiteSpace(stream);
+		skipComment(stream);
+
 		*statement = {};
 		statement->line = stream.line;
 		statement->column = stream.column;
@@ -565,7 +582,8 @@ namespace ldk
 
 		skipWhiteSpace(stream);
 
-		// skip comment
+		skipComment(stream);
+
 		if (success)
 		{
 			c = stream.getc();
@@ -576,7 +594,6 @@ namespace ldk
 		}
 		return false;
 	}
-
 
 	static uint32 variantDataSize(Literal& literal)
 	{
