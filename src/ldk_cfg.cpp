@@ -569,7 +569,7 @@ namespace ldk
 		if (success)
 		{
 			c = stream.getc();
-			if (c == '\n')
+			if (c == '\n' || c == EOF)
 			{
 				return true;
 			}
