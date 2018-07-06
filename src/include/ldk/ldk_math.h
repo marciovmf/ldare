@@ -55,7 +55,7 @@ namespace ldk
 	//---------------------------------------------------------------------------
 	// Vector3
 	//---------------------------------------------------------------------------
-	struct LDK_API_CLASS Vec3
+	struct LDK_API Vec3
 	{
 		float x, y, z;
 
@@ -94,7 +94,7 @@ namespace ldk
 	//---------------------------------------------------------------------------
 	// Vector4
 	//---------------------------------------------------------------------------
-	struct LDK_API_CLASS Vec4
+	struct LDK_API Vec4
 	{
 		float x, y, z, w;
 
@@ -138,7 +138,7 @@ namespace ldk
 	// Column 2 is back
 	// Column 3 is position
 	//---------------------------------------------------------------------------
-	struct LDK_API_CLASS Mat4
+	struct LDK_API Mat4
 	{
 		union{
 			float element[16];

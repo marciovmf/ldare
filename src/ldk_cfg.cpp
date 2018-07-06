@@ -925,22 +925,22 @@ namespace ldk
 		return false;
 	}
 
-	LDK_API int32 config_getIntArray(VariantSection* section, const char* key, int32** array)
+	int32 config_getIntArray(VariantSection* section, const char* key, int32** array)
 	{
 		return config_getArray(section, key,(void**) array, VariantType::INT);
 	}
 
-	LDK_API int32 config_getFloatArray(VariantSection* section, const char* key, float** array)
+	int32 config_getFloatArray(VariantSection* section, const char* key, float** array)
 	{
 		return config_getArray(section, key,(void**) array, VariantType::FLOAT);
 	}
 
-	LDK_API int32 config_getBoolArray(VariantSection* section, const char* key, bool** array)
+	int32 config_getBoolArray(VariantSection* section, const char* key, bool** array)
 	{
 		return config_getArray(section, key,(void**) array, VariantType::BOOL);
 	}
 
-	LDK_API void config_dispose(VariantSectionRoot* root)
+	void config_dispose(VariantSectionRoot* root)
 	{
 		ldk::ldk_memory_freeHeap((Heap*) root);
 	}
