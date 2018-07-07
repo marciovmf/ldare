@@ -551,14 +551,13 @@ namespace ldk
 			//TODO: sort draw calls per material 
 		}
 
-	} // namespace render
 
-	LDK_API void spriteBatchSetFont(const ldk::FontAsset& font)
+	void spriteBatchSetFont(const ldk::FontAsset& font)
 	{
 		fontAsset = font;
 	}
 
-	LDK_API Vec2 spriteBatchText(Vec3& position, float scale, Vec4& color, const char* text)
+	Vec2 spriteBatchText(Vec3& position, float scale, Vec4& color, const char* text)
 	{
 		if (fontAsset.gliphData == nullptr)
 			return {-1,-1};
@@ -606,7 +605,7 @@ namespace ldk
 		}
 		return textSize;
 	}
-
+	} // namespace render
 } // namespace ldk
 
 

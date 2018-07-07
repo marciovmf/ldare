@@ -928,7 +928,7 @@ void* loadFileToBuffer(const char* fileName, size_t* bufferSize)
 	return buffer;
 }
 
-LDK_API int64 getFileWriteTime(const char* fileName)
+int64 getFileWriteTime(const char* fileName)
 {
 	FILETIME writeTime;
 	HANDLE handle = CreateFileA(fileName, GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
@@ -937,17 +937,17 @@ LDK_API int64 getFileWriteTime(const char* fileName)
 	return ((((int64) writeTime.dwHighDateTime) << 32) + writeTime.dwLowDateTime);
 }
 
-LDK_API bool copyFile(const char* sourceFileName, const char* destFileName)
+bool copyFile(const char* sourceFileName, const char* destFileName)
 {
 	return CopyFileA(sourceFileName, destFileName, false);
 }
 
-LDK_API bool moveFile(const char* sourceFileName, const char* destFileName)
+bool moveFile(const char* sourceFileName, const char* destFileName)
 {
 	return MoveFile(sourceFileName, destFileName);
 }
 
-LDK_API bool deleteFile(const char* sourceFileName)
+bool deleteFile(const char* sourceFileName)
 {
 	return DeleteFile(sourceFileName);
 }
