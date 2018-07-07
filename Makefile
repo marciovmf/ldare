@@ -32,16 +32,16 @@ editor: $(LDK_EDITOR)
 
 game: $(LDK_GAME)
 
-$(LDK_GAME): $(LDK_EDITOR)
+$(LDK_GAME): $(LDK_EDITOR) game/*.cpp
 	@echo Building game dll...
 	cl game\game.cpp /Fo$(OUTDIR)\ /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /PDB:$(OUTDIR)\ldare_game_%random%.pdb $(OUTDIR)/ldk.lib
 
 
-$(LDK_ENGINE): 
+$(LDK_ENGINE): src/*.cpp src/*.h 
 	@echo Building ldk...
-	cl src\ldk.cpp /Fo$(OUTDIR)\ /Fe$(OUTDIR)\ldk.dll /LD $(CFLAGS) /link /DLL /subsystem:windows $(LIBS)
+	cl src\ldk.cpp /Fo$(OUTDIR)\ /Fe$(OUTDIR)\ldk.dll /LD $(CFLAGS) /D "_LDK_ENGINE_" /link /DLL /subsystem:windows $(LIBS)
 
-$(LDK_EDITOR): $(LDK_ENGINE)
+$(LDK_EDITOR): $(LDK_ENGINE) src/ldk_editor.cpp
 	cl src\ldk_editor.cpp /Fe$(OUTDIR)/ $(CFLAGS) $(LINKFLAGS) $(OUTDIR)/ldk.lib
 	@echo SUCCESS
 

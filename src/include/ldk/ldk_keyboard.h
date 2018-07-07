@@ -6,9 +6,9 @@ namespace ldk
 	namespace input
 	{
 		// Keyboard functions
-		LDK_API	int8 getKey(uint16 key);
-		LDK_API	int8 isKeyDown(uint16 key);
-		LDK_API	int8 isKeyUp(uint16 key);
+		LDK_API	bool getKey(uint16 key);
+		LDK_API	bool isKeyDown(uint16 key);
+		LDK_API	bool isKeyUp(uint16 key);
 		LDK_API	void keyboardUpdate();
 	}
 }

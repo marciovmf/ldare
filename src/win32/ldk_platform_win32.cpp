@@ -824,17 +824,17 @@ void pollEvents()
 
 				_platform.mouseState.cursor = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)}; 
 
-				int8 isDown = (msg.wParam & MK_LBUTTON == MK_LBUTTON);
+				int8 isDown = (msg.wParam & MK_LBUTTON) == MK_LBUTTON;
 				_platform.mouseState.button[LDK_MOUSE_LEFT] =
-					(_platform.mouseState.button[LDK_MOUSE_LEFT] << 1) | isDown;
+					((_platform.mouseState.button[LDK_MOUSE_LEFT] != isDown) << 1) | isDown;
 
-				isDown = (msg.wParam & MK_MBUTTON == MK_MBUTTON);
+				isDown = (msg.wParam & MK_MBUTTON) == MK_MBUTTON;
 				_platform.mouseState.button[LDK_MOUSE_MIDDLE] =
-					(_platform.mouseState.button[LDK_MOUSE_MIDDLE] << 1) | isDown;
+					((_platform.mouseState.button[LDK_MOUSE_MIDDLE] != isDown) << 1) | isDown;
 
-				isDown = (msg.wParam & MK_RBUTTON == MK_RBUTTON);
+				isDown = (msg.wParam & MK_RBUTTON) == MK_RBUTTON;
 				_platform.mouseState.button[LDK_MOUSE_RIGHT] =
-					(_platform.mouseState.button[LDK_MOUSE_RIGHT] << 1) | isDown;
+					((_platform.mouseState.button[LDK_MOUSE_RIGHT] != isDown) << 1) | isDown;
 
 				break;
 		}

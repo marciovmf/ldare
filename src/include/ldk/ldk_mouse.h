@@ -15,6 +15,7 @@ namespace ldk
 		LDK_API bool getMouseButton(uint16 mouseButton);
 		LDK_API bool getMouseButtonDown(uint16 mouseButton);
 		LDK_API bool getMouseButtonUp(uint16 mouseButton);
+		LDK_API void mouseUpdate();
 	}
 }
 
