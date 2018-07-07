@@ -102,12 +102,16 @@ void gameUpdate(float deltaTime)
 	ldk::render::spriteBatchSubmit(sprite);
 	ldk::render::spriteBatchEnd();
 
+	const ldk::Vec2& cursorPos = ldk::input::getMouseCursor();
+	char textBuffer[255];
+	sprintf(textBuffer, "%d,%d", cursorPos.x, cursorPos.y);
+
 	ldk::Vec4 black = {0,0,0,0.8f};
 	ldk::Vec3 textPos = sprite.position;
 	textPos.y += 50;
 	textPos.z = 3;
 	ldk::render::spriteBatchBegin(gameState->fontMaterial);
-	ldk::render::spriteBatchText(textPos, 0.8f, black, "Text Rendering is back!");
+	ldk::render::spriteBatchText(textPos, 0.8f, black, textBuffer);
 	ldk::render::spriteBatchEnd();
 }
 

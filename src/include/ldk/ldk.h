@@ -19,6 +19,7 @@
 #include "ldk_debug.h"
 #include "ldk_math.h"
 #include "ldk_keyboard.h"
+#include "ldk_mouse.h"
 #include "ldk_joystick.h"
 #include "ldk_game.h"
 #include "ldk_asset.h"
