@@ -12,3 +12,5 @@ deploy:
     secure: 1B78jwRfQb9JPz83VIas8ISvQPrc09h9xkfU/frT95JgH4EK+s+I7RM/1rrlum2R
   prerelease: true
   force_update: true
+call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64
+call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
