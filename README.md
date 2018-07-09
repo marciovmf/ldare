@@ -8,3 +8,7 @@ Current features include a fast sprite renderer (no fancy stuff yet), Text rende
 Check [here](https://github.com/marciovmf/ldare/projects/2) for the development roadmap.
 
 ![latest screenshot](screenshot.gif)
+
+ Demos/tests being developed by collaborators:
+  - [PAC-MAN](https://github.com/andreimesquita/LDK-PAC-MAN) by [andreimesquita](https://github.com/andreimesquita) 
+  
