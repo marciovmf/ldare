@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/qe4scoybey8y9gxl?svg=true)](https://ci.appveyor.com/project/marciovmf/ldk)
+
 ![latest screenshot](logo.png)
 
 LKD is a small game engine being developed from scratch for learning and practicing essential game development skills.
