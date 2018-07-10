@@ -27,7 +27,7 @@ void gameInit(void* memory)
 		gameState->material = ldk::render::loadMaterial("./assets/sprite.cfg"); 
 		gameState->fontMaterial = ldk::render::loadMaterial("./assets/font.cfg"); 
 		ldk::loadAudio("assets/bgmusic.wav", &gameState->bgMusic);
-		ldk::loadFont("assets/Capture it.font", &gameState->font);
+		ldk::loadFont("assets/Caviar Dreams.font", &gameState->font);
 		ldk::render::spriteBatchSetFont((const ldk::FontAsset&)*gameState->font);
 	}
 	else
