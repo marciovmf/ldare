@@ -3,41 +3,11 @@
 #include <stdlib.h>
 
 #define LogUnexpectedToken(expected, line, column)	LogError("Unexpected token '%c' at %d,%d", (expected), (line), (column));
-#define LDK_CFG_MAX_IDENTIFIER_SIZE 63
 #define LDK_CFG_MAX_IDENTIFIER 128
 #define LDK_CFG_DEFAULT_BUFFER_SIZE 512
+#define LDK_CFG_MAX_IDENTIFIER_SIZE 63
 namespace ldk
 {
-	enum VariantType
-	{
-		INT = 0,
-		BOOL,
-		FLOAT,
-		STRING,
-	};
-
-	struct Variant
-	{
-		char key[LDK_CFG_MAX_IDENTIFIER_SIZE + 1];
-		uint32 size;
-		VariantType type;
-		int32 hash;
-		int32 arrayCount;
-	};
-
-	struct VariantSection
-	{
-		int32 hash;
-		uint32 variantCount;
-		uint32 totalSize; //total size of variant section, including this header
-		char name[LDK_CFG_MAX_IDENTIFIER_SIZE + 1];
-	};
-
-	struct VariantSectionRoot
-	{
-		uint32 sectionCount;	
-	};
-
 	struct _IniBufferStream
 	{
 		char* buffer;
@@ -153,6 +123,7 @@ namespace ldk
 	uint32 pushVariantSection(Heap& heap, Identifier& identifier);
 	int32 pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal);
 	int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, Literal& literal);
+	void postProccessStringArrays(VariantSectionRoot*);
 
 	int32 stringToHash(char* str)
 	{
@@ -630,7 +601,6 @@ namespace ldk
 		}
 
 		VariantSection* section = (VariantSection*)((char*)heap.memory + heap.used);
-
 		heap.used += sizeof(VariantSection);
 
 		strncpy((char*)section->name, (char*)identifier.start, identifier.length);
@@ -639,9 +609,10 @@ namespace ldk
 		section->totalSize = sizeof(VariantSection);
 		section->variantCount = 0;
 
-		// Increment the number of section on the section root
-		VariantSectionRoot* sectionRoot = (VariantSectionRoot*) heap.memory;
-		++sectionRoot->sectionCount;
+		// Increment the number of sections on the section root and the root section total size
+		VariantSectionRoot* root = (VariantSectionRoot*) heap.memory;
+		root->totalSize += necessarySize;
+		++root->sectionCount;
 
 		int32 offset = (char*)section - (char*)heap.memory;
 		return offset;
@@ -651,6 +622,13 @@ namespace ldk
 	{
 	 // adds a new array element
 		uint32 necessarySize = variantDataSize(literal);
+	
+		// in case of a string, we must reserve extra space a pointer to this string
+		// all strigs will be stored sequentially. After all strings, there will be enough space for
+		// storing a pointer to each string. The pointers are all calculated after all parsing proccess
+		if ( literal.type == VariantType::STRING)
+			necessarySize += sizeof(char*);
+
 		int32 availableSize = heap.size - heap.used;
 
 		if(availableSize < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
@@ -682,10 +660,12 @@ namespace ldk
 				*(float*)elementPosition = (float)literal.floatValue;
 				break;
 			case ldk::VariantType::STRING:
-				//*elementPosition = (char*)literal.stringValue;
-				//TODO: we must store a list of string offsets before all strings. Probably as a post processing step.
-				//For this to work, I must add an extra sizeof(char*) to each string and then relocate them to the end
-				LDK_ASSERT(false,"string array is not implemented yet");
+				// ok, this is not pretty but its necessary. If this is not the first string in the array, we must store the
+				// string sizeof(char*) bakck, so there is always space for the pointers list after all strings
+				elementPosition -= variant->arrayCount * sizeof(char*);
+
+				memcpy(elementPosition, (const char*) literal.stringValue.start , literal.stringValue.length);
+				elementPosition[literal.stringValue.length] = 0; // null terminate the string
 				break;
 			default:
 				LogError("Can not persist unknow array element type");
@@ -695,9 +675,15 @@ namespace ldk
 		
 		// updates the section total size
 		section->totalSize += necessarySize;
+		
 		// increments the variant array element count
 		variant->size += necessarySize;
 		variant->arrayCount++;
+		
+		// update root total size
+		VariantSectionRoot* root = (VariantSectionRoot*)heap.memory;
+		root->totalSize += necessarySize;
+
 		return variantOffset;
 	}
 
@@ -705,6 +691,11 @@ namespace ldk
 	static int32 pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal)
 	{
 		uint32 necessarySize = sizeof(Variant) + variantDataSize(literal);
+
+		// if storing the first string from a string array, must add extra space for a pointer to it, later.
+		if (literal.isArray && literal.type == VariantType::STRING)
+			necessarySize += sizeof(char*);
+
 		int32 availableSize = heap.size - heap.used;
 
 		if(availableSize < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
@@ -720,6 +711,10 @@ namespace ldk
 		VariantSection* section = (VariantSection*)(((char*)heap.memory) + sectionOffset);
 		section->totalSize += necessarySize;
 		++section->variantCount;
+
+		// update root info
+		VariantSectionRoot* root = (VariantSectionRoot*)heap.memory;
+		root->totalSize += necessarySize;
 
 		// save variant data into the stream
 		strncpy((char*)variant->key,(char*) identifier.start, identifier.length);
@@ -765,6 +760,7 @@ namespace ldk
 		// initialize the number of section on the section root
 		VariantSectionRoot* sectionRoot = (VariantSectionRoot*) heap.memory;
 		sectionRoot->sectionCount = 0;
+		sectionRoot->totalSize = 0;
 
 		// Account for the root section
 		heap.used += rootSectionOffset;
@@ -797,11 +793,6 @@ namespace ldk
 				{
 					currentSectionOffset = statement.sectionDeclaration.sectionOffset;
 				}
-				//else if ( statement.type == StatementType::ASSIGNMENT)
-				//{
-				//pushVariant(heap, currentSectionOffset, 
-				//statement.assignment.identifier, statement.assignment.value);
-				//}
 			}
 			else
 			{
@@ -810,7 +801,10 @@ namespace ldk
 		}
 
 		if (noError)
+		{
+			postProccessStringArrays((VariantSectionRoot*)heap.memory);
 			return (VariantSectionRoot*) heap.memory;
+		}
 		else
 			return nullptr;
 	}
@@ -868,13 +862,50 @@ namespace ldk
 	int32 config_getArray(VariantSection* section, const char* key, void** array, VariantType type)
 	{
 		Variant* v = config_getVariant(section, key);
-		int32 arraySize = v->arrayCount;
-		if (v != nullptr && arraySize >= 0)
+		if (v != nullptr && v->arrayCount)
 		{
 			*array = ++v; // array data 
-			return arraySize;
+			return v->arrayCount;
 		}
 		return -1;
+	}
+
+	// places an array of pointers before the actual strings on a variant string array
+	void postProccessStringArrays(VariantSectionRoot* root)
+	{
+		ldk::VariantSection* section = ldk::config_getFirstSection((VariantSectionRoot*)root);
+		
+		while(section != nullptr)
+		{
+			ldk::Variant* variant = ldk::config_getFirstVariant(section);
+			while (variant)
+			{
+				if (variant->arrayCount > 0 && variant->type == VariantType::STRING)
+				{
+					int32 ptrTableSize = variant->arrayCount * sizeof(char*);
+					char** ptrTable = (char**)(variant->size + (char*) variant - ptrTableSize);
+
+					char* dataStart = (char*) (variant + 1);
+
+					char* stringAddress = dataStart;
+
+					for (int32 i = 0; i < variant->arrayCount; i++)
+					{
+						int32 len = strlen(stringAddress) + 1;
+						// copy string address to ptr table
+						*ptrTable = stringAddress;
+						ptrTable++;
+
+						// get next string
+						stringAddress += len;
+					}
+				}
+
+				variant = ldk::config_getNextVariant(section, variant);
+			}
+
+			section = ldk::config_getNextSection(root, section);
+		} 
 	}
 	
 	bool config_getInt(VariantSection* section, const char* key, int32* intValue)
@@ -940,8 +971,61 @@ namespace ldk
 		return config_getArray(section, key,(void**) array, VariantType::BOOL);
 	}
 
+	int32 config_getStringArray(VariantSection* section, const char* key, char*** array)
+	{
+		ldk::Variant* v = config_getVariant(section, key);
+		if (v && v->arrayCount > 0 && v->type == VariantType::STRING)
+		{
+			int32 ptrTableSize = sizeof(char*) * v->arrayCount;
+			*array = (char**)(v->size + (char*) v - ptrTableSize);
+			return v->arrayCount;
+		}
+		return 0;
+	}
+
 	void config_dispose(VariantSectionRoot* root)
 	{
 		ldk::ldk_memory_freeHeap((Heap*) root);
 	}
+
+	VariantSection* config_getFirstSection(VariantSectionRoot* root)
+	{
+				return (VariantSection*)(++root);
+	}
+	
+	VariantSection* config_getNextSection(VariantSectionRoot* root, VariantSection* section)
+	{
+
+		VariantSection* endOfLastSection =(VariantSection*) (((char*) root) + root->totalSize);
+	
+		// out of range section ?
+		if ((char*) section < (char*) root || (char*) section > (char*) endOfLastSection)
+			return nullptr;
+
+		VariantSection* nextSection = (VariantSection*) (((char*) section) + section->totalSize);
+		if ( nextSection < endOfLastSection)
+				return nextSection;
+
+		return nullptr;
+	}
+
+	Variant* config_getFirstVariant(VariantSection* section)
+	{
+		if (section->variantCount > 0)
+			return (Variant*)++section; // first section is immediately after section header
+
+		return nullptr;
+	}
+
+	Variant* config_getNextVariant(VariantSection* section, Variant* variant)
+	{
+		Variant* endOfLastVariant = (Variant*)(section->totalSize + (char*)section);
+		Variant* nextVariant = (Variant*) (variant->size + (char*) variant);
+
+		if (nextVariant < endOfLastVariant)
+			return nextVariant;
+
+		return nullptr;
+	}
+
 }

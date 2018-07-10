@@ -21,7 +21,13 @@ namespace ldk
 
 	bool Vec2::operator==(const Vec2& other)
 	{
-		return (int)	this->x == (int)	other.x && (int)	this->y == (int)	other.y ;
+		return (int)this->x == (int)	other.x && (int)this->y == (int)other.y ;
+	}
+
+	bool Vec2::operator!=(const Vec2& other)
+	{
+		return (int)this->x != (int)other.x && 
+			(int)this->y != (int)other.y ;
 	}
 
 	Vec2 Vec2::operator+(const Vec2& other)
@@ -114,6 +120,13 @@ namespace ldk
 		return  (int)	this->x == (int)	other.x && 
 			(int)	this->y == (int)	other.y && 
 			(int)	this->z == (int)	other.z;
+	}
+
+	bool Vec3::operator!=(const Vec3& other)
+	{
+		return  (int)	this->x == (int)	other.x && 
+			(int)	this->y != (int)	other.y && 
+			(int)	this->z != (int)	other.z;
 	}
 
 	Vec3 Vec3::operator+(const Vec3& other)
@@ -232,6 +245,14 @@ namespace ldk
 	{
 		return (int)	this->x == (int)	other.x && (int)	this->y == (int)	other.y &&
 			(int)	this->z == (int)	other.z && (int)	this->w == (int)	other.w;
+	}
+
+	bool Vec4::operator!=(const Vec4& other)
+	{
+		return (int)	this->x != (int)	other.x && 
+			(int)	this->y != (int)	other.y &&
+			(int)	this->z != (int)	other.z && 
+			(int)	this->w != (int)	other.w;
 	}
 
 	Vec4 Vec4::operator+(const Vec4& other)

@@ -3,7 +3,6 @@
 #include "ldk_platform.h"
 #include "ldk_memory.h"
 
-
 //TODO: use a higher level renderer interface here
 //#include "ldk_renderer_gl.cpp"
 #define LDK_DEFAULT_GAME_WINDOW_TITLE "LDK Window"
@@ -91,7 +90,7 @@ GameConfig loadGameConfig()
 	defaultConfig.width = defaultConfig.height = 600;
 	defaultConfig.aspect = 1.777;
 	defaultConfig.title = LDK_DEFAULT_GAME_WINDOW_TITLE;
-	defaultConfig.preallocMemorySize = 0;
+	defaultConfig.preallocMemorySize = 1024;
 
 	ldk::VariantSectionRoot* root = ldk::config_parseFile((const char8*) LDK_DEFAULT_CONFIG_FILE);
 
@@ -182,6 +181,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 		startTime = ldk::platform::getTicks();
 		ldk::platform::pollEvents();
 		ldk::input::keyboardUpdate();
+		ldk::input::mouseUpdate();
 		ldk::input::joystickUpdate();
 
 		ldkHandleKeyboardInput(window);

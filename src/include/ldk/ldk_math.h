@@ -28,6 +28,8 @@ namespace ldk
 		float operator[](int32 n);
 
 		bool operator==(const Vec2& other);
+		
+		bool operator!=(const Vec2& other);
 
 		Vec2 operator+(const Vec2& other);
 
@@ -62,6 +64,8 @@ namespace ldk
 		float operator[](int32 n);
 
 		bool operator==(const Vec3& other);
+		
+		bool operator!=(const Vec3& other);
 
 		Vec3 operator+(const Vec3& other);
 
@@ -101,6 +105,8 @@ namespace ldk
 		float operator[](int32 n);
 
 		bool operator==(const Vec4& other);
+		
+		bool operator!=(const Vec4& other);
 
 		Vec4 operator+(const Vec4& other);
 

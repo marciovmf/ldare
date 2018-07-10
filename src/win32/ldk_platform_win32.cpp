@@ -783,6 +783,12 @@ void pollEvents()
 		}
 	}
 
+	// clear 'changed' bit from mouse buttons
+	for (int i=0; i < LDK_MAX_MOUSE_BUTTONS; i++)
+	{
+			_platform.mouseState.button[i] &= ~LDK_KEYSTATE_CHANGED;
+	}
+
 	MSG msg;
 	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 	{
@@ -808,9 +814,28 @@ void pollEvents()
 				break;
 
 				// Cursor position
+			case WM_LBUTTONDOWN:
+			case WM_LBUTTONUP:
+			case WM_MBUTTONDOWN:
+			case WM_MBUTTONUP:
+			case WM_RBUTTONDOWN:
+			case WM_RBUTTONUP:
 			case WM_MOUSEMOVE:
-				{
-				}
+
+				_platform.mouseState.cursor = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)}; 
+
+				int8 isDown = (msg.wParam & MK_LBUTTON) == MK_LBUTTON;
+				_platform.mouseState.button[LDK_MOUSE_LEFT] =
+					((_platform.mouseState.button[LDK_MOUSE_LEFT] != isDown) << 1) | isDown;
+
+				isDown = (msg.wParam & MK_MBUTTON) == MK_MBUTTON;
+				_platform.mouseState.button[LDK_MOUSE_MIDDLE] =
+					((_platform.mouseState.button[LDK_MOUSE_MIDDLE] != isDown) << 1) | isDown;
+
+				isDown = (msg.wParam & MK_RBUTTON) == MK_RBUTTON;
+				_platform.mouseState.button[LDK_MOUSE_RIGHT] =
+					((_platform.mouseState.button[LDK_MOUSE_RIGHT] != isDown) << 1) | isDown;
+
 				break;
 		}
 	}

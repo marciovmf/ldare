@@ -59,6 +59,8 @@ float acceleration = 0.3f;
 ldk::Vec3 force = {};
 float t = 0;
 
+ldk::Vec4 textColor = {0,0,0,0.8f};
+
 void gameUpdate(float deltaTime)
 {
 	ldk::Sprite& sprite = gameState->sprite;
@@ -102,12 +104,23 @@ void gameUpdate(float deltaTime)
 	ldk::render::spriteBatchSubmit(sprite);
 	ldk::render::spriteBatchEnd();
 
-	ldk::Vec4 black = {0,0,0,0.8f};
+	const ldk::Vec2& cursorPos = ldk::input::getMouseCursor();
+	char textBuffer[255];
+	sprintf(textBuffer, "%d,%d", (int)cursorPos.x, (int)cursorPos.y);
+
+	if (ldk::input::getMouseButtonDown(LDK_MOUSE_LEFT))
+		textColor = {1,0,0,0.8f};
+	else if (ldk::input::getMouseButtonDown(LDK_MOUSE_RIGHT))
+		textColor = {0,0,1,0.8f};
+	else if (ldk::input::getMouseButtonUp(LDK_MOUSE_LEFT) || ldk::input::getMouseButtonUp(LDK_MOUSE_RIGHT))
+		textColor = {0,0,0,0.8f};
+
 	ldk::Vec3 textPos = sprite.position;
 	textPos.y += 50;
 	textPos.z = 3;
+
 	ldk::render::spriteBatchBegin(gameState->fontMaterial);
-	ldk::render::spriteBatchText(textPos, 0.8f, black, "Text Rendering is back!");
+	ldk::render::spriteBatchText(textPos, 0.8f, textColor, textBuffer);
 	ldk::render::spriteBatchEnd();
 }
 

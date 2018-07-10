@@ -6,6 +6,7 @@
 #define _LDK_PLATFORM_H_
 #include <ldk/ldk.h>
 #define LDK_MAX_KBD_KEYS 255
+#define LDK_MAX_MOUSE_BUTTONS 3
 #define LDK_KEYSTATE_PRESSED  0x01
 #define LDK_KEYSTATE_CHANGED  0x02
 
@@ -27,9 +28,8 @@ namespace ldk
 
 		struct MouseState
 		{
-			KeyState button[LDK_JOYSTICK_MAX_DIGITAL_BUTTONS];
-			float axis[LDK_JOYSTICK_MAX_AXIS];
-			uint8 connected;
+			KeyState button[LDK_MAX_MOUSE_BUTTONS];
+			Vec2 cursor;
 		};
 
 		struct JoystickState

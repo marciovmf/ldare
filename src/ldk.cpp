@@ -9,6 +9,7 @@
 #include "ldk_math.cpp"
 #include "ldk_memory.cpp"
 #include "ldk_keyboard.cpp"
+#include "ldk_mouse.cpp"
 #include "ldk_joystick.cpp"
 #include "ldk_asset.cpp"
 #include "ldk_cfg.cpp"
