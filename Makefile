@@ -22,20 +22,17 @@ RELEASE_LINK_OPTIONS=/link /subsystem:windows $(LIBS)
 CFLAGS=$(DEBUG_COMPILE_OPTIONS)
 LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
-.PHONY: outdirfolder clean assets
+.PHONY: outdirfolder gameassets clean assets
 
-all: outdirfolder assets game
-
-ldk: $(LDK_ENGINE)
+ldk: outdirfolder $(LDK_ENGINE) $(LDK_EDITOR) assets 
 
 editor: $(LDK_EDITOR)
 
-game: $(LDK_GAME)
+game: $(LDK_GAME) gameassets
 
 $(LDK_GAME): $(LDK_EDITOR) game/*.cpp
 	@echo Building game dll...
 	cl game\game.cpp /Fo$(OUTDIR)\ /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /PDB:$(OUTDIR)\ldare_game_%random%.pdb $(OUTDIR)/ldk.lib
-
 
 $(LDK_ENGINE): src/*.cpp src/*.h 
 	@echo Building ldk...
@@ -49,14 +46,29 @@ tool: src\win32\tools\ldk_tool_font.cpp
 	cl src\win32\tools\ldk_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
 
 assets:
-	@echo copying assets ...
-	@xcopy game\assets $(OUTDIR)\assets /Y /I /E /F > NUL
+	@echo copying standard assets ...
 	@xcopy assets $(OUTDIR)\assets /Y /I /E /F > NUL
 	@copy /Y ldk.cfg $(OUTDIR) > NUL
+
+gameassets: 
+	@echo copying game assets ...
+	@xcopy game\assets $(OUTDIR)\assets /Y /I /E /F > NUL
 
 outdirfolder:
 	@IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR)
 
+package:
+	@IF NOT EXIST "$(OUTDIR)\ldk" mkdir "$(OUTDIR)\ldk"
+	@IF NOT EXIST "$(OUTDIR)\ldk\lib" mkdir "$(OUTDIR)\ldk\lib"
+	@IF NOT EXIST "$(OUTDIR)\ldk\include" mkdir "$(OUTDIR)\ldk\include"
+	@xcopy assets $(OUTDIR)\ldk\assets /Y /I /E /F
+	xcopy "$(LDKSDK)" "$(OUTDIR)\ldk\include" /E /F /Y /I 
+	copy /Y "$(OUTDIR)\*.exe" "$(OUTDIR)\ldk\"
+	copy /Y "$(OUTDIR)\*.dll" "$(OUTDIR)\ldk\"
+	copy /Y "$(OUTDIR)\*.cfg" "$(OUTDIR)\ldk\"
+	copy /Y "$(OUTDIR)\*.lib" "$(OUTDIR)\ldk\lib\"
+
+
 clean:
-	@IF EXIST "$(OUTDIR)" del /S /Q .\$(OUTDIR)\* > NUL
-	@IF EXIST "$(OUTDIR)\assets" rd /S /Q .\$(OUTDIR)\assets > NUL
+	IF EXIST "$(OUTDIR)" rd /S /Q $(OUTDIR) > NUL
+
