@@ -91,6 +91,8 @@ namespace ldk
 		ldk::Bitmap fallbackBitmap;
 		uint32 fallbackBitmapData;
 	} spriteBatchData;
+	
+	static Rectangle _viewPort;
 
 	static GLboolean checkShaderProgramLink(GLuint program)
 	{
@@ -292,6 +294,7 @@ namespace ldk
 		void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight)
 		{
 			float targetAspectRatio = virtualWidth / (float) virtualHeight;
+
 			// Try full viewport width with cropped, height if necessary
 			int32 viewportWidth = windowWidth;
 			int32 viewportHeight = (int)(viewportWidth / targetAspectRatio + 0.5f);
@@ -313,6 +316,12 @@ namespace ldk
 			globalShaderData.baseModelMatrix.scale(
 					viewportWidth / (float)virtualWidth, 
 					viewportHeight / (float)virtualHeight, 1.0f);
+
+			// Update global viewport data
+			_viewPort.x = viewportX;
+			_viewPort.y = viewportY;
+			_viewPort.w = viewportWidth;
+			_viewPort.h = viewportHeight;
 		}
 
 		void setViewport(uint32 x, uint32 y, uint32 width, uint32 height)
@@ -321,6 +330,17 @@ namespace ldk
 			globalShaderData.projectionMatrix.orthographic(0, width, 0, height, -100, 100);
 			glViewport(x, y, width, height);
 			updateGlobalShaderData = true;
+			
+			// Update global viewport data
+			_viewPort.x = x;
+			_viewPort.y = y;
+			_viewPort.w = width;
+			_viewPort.h = height;
+		}
+
+		const Rectangle& getViewPort()
+		{
+			return _viewPort;
 		}
 
 		int32 spriteBatchInit()
