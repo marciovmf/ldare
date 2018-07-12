@@ -114,6 +114,7 @@ namespace ldk
 		//
 		LDK_API void setViewportAspectRatio(uint32 windowWidth, uint32 windowHeight, uint32 virtualWidth, uint32 virtualHeight);
 		LDK_API void setViewport(uint32 x, uint32 y, uint32 width, uint32 height);
+		LDK_API const Rectangle& getViewPort();
 		LDK_API void updateRenderer(float deltaTime);
 	}
 }
