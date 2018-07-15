@@ -129,12 +129,19 @@ namespace ldk
 	{
 		uint32 stringLen = strlen((const char*)str);
 		int32 hash = 0;
-		for (uint32 i = 0; i < stringLen; i++)
-		{
-			hash += ((char)* str) * i;
-		}
 
-		return hash;
+    for(; *str; ++str)
+    {
+        hash += *str;
+        hash += (hash << 10);
+        hash ^= (hash >> 6);
+    }
+
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    hash += (hash << 15);
+
+    return hash;
 	}
 
 	inline bool isLetter(char c)
