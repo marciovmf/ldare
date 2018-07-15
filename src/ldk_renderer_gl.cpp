@@ -8,7 +8,7 @@
 #define SPRITE_BATCH_VERTEX_DATA_SIZE sizeof(ldk::SpriteVertexData)
 #define SPRITE_BATCH_SPRITE_SIZE SPRITE_BATCH_VERTEX_DATA_SIZE * 4 // 4 vetices per sprite
 #define SPRITE_BATCH_BUFFER_SIZE SPRITE_BATCH_MAX_SPRITES * SPRITE_BATCH_SPRITE_SIZE
-#define SPRITE_BATCH_INDICES_SIZE SPRITE_BATCH_MAX_SPRITES * 6		//6 indices per quad
+#define SPRITE_BATCH_INDICES_SIZE SPRITE_BATCH_MAX_SPRITES * 6        //6 indices per quad
 
 #define SPRITE_ATTRIB_COLOR 0
 #define SPRITE_ATTRIB_VERTEX 1
@@ -21,37 +21,84 @@
 #define checkGlError() 
 #endif
 
+// render state config keys
+#define LDK_MATERIAL_PARAM_CULL_FACE        "cull-face"
+#define LDK_MATERIAL_PARAM_DEPTH_TEST       "depth-test"
+#define LDK_MATERIAL_PARAM_STENCIL_TEST     "stencil-test"
+#define LDK_MATERIAL_PARAM_BLEND_FUNC_SRC   "blend-func-src"
+#define LDK_MATERIAL_PARAM_BLEND_FUNC_DST   "blend-func-dst"
+#define LDK_MATERIAL_PARAM_BLEND_FUNC_COLOR "blend-func-color"
+#define LDK_MATERIAL_PARAM_VERTEX_SHADER	  "vertex-shader"
+#define LDK_MATERIAL_PARAM_FRAGMENT_SHADER  "fragment-shader"
+#define LDK_MATERIAL_PARAM_MAIN_TEXTURE     "main-texture"
+
+#define LDK_MATERIAL_PARAM_BLEND_RGB_SRC    "main-textue"
+#define LDK_MATERIAL_PARAM_BLEND_RGB_SRC    "main-textue"
+#define LDK_MATERIAL_PARAM_BLEND_ALPHA_SRC  "main-textue"
+#define LDK_MATERIAL_PARAM_BLEND_ALPHA_DST  "main-textue"
+
+#define LDK_MATERIAL_CULL_FRONT "front"
+#define LDK_MATERIAL_CULL_BACK  "back"
+#define LDK_MATERIAL_CULL_NONE  "none"
+
+#define LDK_MATERIAL_TEST_LESS           "less"
+#define LDK_MATERIAL_TEST_LESS_EQUALS    "less_equals"
+#define LDK_MATERIAL_TEST_GREATER        "greater"
+#define LDK_MATERIAL_TEST_GREATER_EQUALS "greater_equals"
+#define LDK_MATERIAL_TEST_EQUALS         "equals"
+#define LDK_MATERIAL_TEST_DIFFERENT      "different"
+#define LDK_MATERIAL_TEST_ALWAYS         "always"
+#define LDK_MATERIAL_TEST_NEVER          "never"
+#define LDK_MATERIAL_TEST_DISABLE        "disable"
+
+#define LDK_MATERIAL_BLEND_ZERO "zero"
+#define LDK_MATERIAL_BLEND_ONE "one"
+#define LDK_MATERIAL_BLEND_SRC_COLOR "src-color"
+#define LDK_MATERIAL_BLEND_ONE_MINUS_SRC_COLOR "one-minus-src-color"
+#define LDK_MATERIAL_BLEND_DST_COLOR "dst-color"
+#define LDK_MATERIAL_BLEND_ONE_MINUS_DST_COLOR "one-minus-dst-color"
+#define LDK_MATERIAL_BLEND_SRC_ALPHA "src-alpha"
+#define LDK_MATERIAL_BLEND_ONE_MINUS_SRC_ALPHA "one-minus-src-alpha"
+#define LDK_MATERIAL_BLEND_DST_ALPHA "dst-alpha"
+#define LDK_MATERIAL_BLEND_ONE_MINUS_DST_ALPHA "one-minus-dst-alpha"
+#define LDK_MATERIAL_BLEND_CONST_COLOR "const-color"
+#define LDK_MATERIAL_BLEND_ONE_MINUS_CONST_COLOR "one-minus-const-color"
+#define LDK_MATERIAL_BLEND_CONST_ALPHA "const-alpha"
+#define LDK_MATERIAL_BLEND_ONE_MINUS_CONST_ALPHA "one-minus-const-alpha"
+
+#define LDK_MATERIAL_OPTION_DISABLE				  "disable"
+
 static int32 checkNoGlError(const char* file, uint32 line)
 {
-	const char* error = "UNKNOWN ERROR CODE";
-	GLenum err = glGetError();
-	int32 success = 1;
-	uchar noerror = 1;
-	while(err!=GL_NO_ERROR)
-	{
-		switch(err)
-		{
-			case GL_INVALID_OPERATION:      error="INVALID_OPERATION";      break;
-			case GL_INVALID_ENUM:           error="INVALID_ENUM";           break;
-			case GL_INVALID_VALUE:          error="INVALID_VALUE";          break;
-			case GL_OUT_OF_MEMORY:          error="OUT_OF_MEMORY";          break;
-			case GL_INVALID_FRAMEBUFFER_OPERATION:  error="INVALID_FRAMEBUFFER_OPERATION";  break;
-		}
-		success=0;
-		LogError("GL ERROR %s at %s:%d",error, file, line);
-		noerror=0;
-		err=glGetError();
-	}
-	return success;
+    const char* error = "UNKNOWN ERROR CODE";
+    GLenum err = glGetError();
+    int32 success = 1;
+    uchar noerror = 1;
+    while(err!=GL_NO_ERROR)
+    {
+        switch(err)
+        {
+            case GL_INVALID_OPERATION:      error="INVALID_OPERATION";      break;
+            case GL_INVALID_ENUM:           error="INVALID_ENUM";           break;
+            case GL_INVALID_VALUE:          error="INVALID_VALUE";          break;
+            case GL_OUT_OF_MEMORY:          error="OUT_OF_MEMORY";          break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION:  error="INVALID_FRAMEBUFFER_OPERATION";  break;
+        }
+        success=0;
+        LogError("GL ERROR %s at %s:%d",error, file, line);
+        noerror=0;
+        err=glGetError();
+    }
+    return success;
 }
 
 static void clearGlError()
 {
-	GLenum err;
-	do
-	{
-		err = glGetError();
-	}while (err != GL_NO_ERROR);
+    GLenum err;
+    do
+    {
+        err = glGetError();
+    }while (err != GL_NO_ERROR);
 }
 
 namespace ldk 
@@ -59,13 +106,13 @@ namespace ldk
 #ifdef _MSC_VER
 #pragma pack(push,1)
 #endif
-	struct SpriteVertexData
-	{
-		Vec4 color;
-		Vec3 position;
-		Vec2 uv;
-		float zRotation;
-	};
+    struct SpriteVertexData
+    {
+        Vec4 color;
+        Vec3 position;
+        Vec2 uv;
+        float zRotation;
+    };
 
 #ifdef _MSC_VER
 #pragma pack(pop)
@@ -156,6 +203,36 @@ namespace ldk
 
 	namespace render
 	{
+    static struct _MaterialOptionHashes
+    {
+      int32 cullFront;
+      int32 cullBack;
+      int32 cullNone;
+      int32 testLess;    
+      int32 testLessEquals;    
+      int32 testGreater;    
+      int32 testGreaterEquals;    
+      int32 testDifferent;    
+      int32 testAlways;
+      int32 testNever;
+      int32 BlendZero;
+      int32 BlendOne;
+      int32 BlendSrcColor;
+      int32 BlendOneMinusSrcColor;
+      int32 BlendDstColor;
+      int32 BlendOneMinusDstColor;
+      int32 BlendSrcAlpha;
+      int32 BlendOneMinusSrcAlpha;
+      int32 BlendDstAlpha;
+      int32 BlendOneMinusDstAlpha;
+      int32 BlendConstColor;
+      int32 BlendOneMinusConstColor;
+      int32 BlendConstAlpha;
+      int32 BlendOneMinusConstAlpha;
+      
+      int32 disable;
+    } _materialOptionHashes;
+
 		static GLuint createShaderProgram(const char* vertex, const char* fragment)
 		{
 			GLuint vertexShader = compileShader((const char*)vertex, GL_VERTEX_SHADER);
@@ -175,7 +252,6 @@ namespace ldk
 
 			return shaderProgram;
 		}
-
 
 		Shader loadShader(const char* vertexSource, const char* fragmentSource)
 		{
@@ -198,6 +274,97 @@ namespace ldk
 			return shader;
 		}
 
+
+    GLenum getCullStateFromConfig(ldk::VariantSection& section)
+    {
+      char* cfgValue;
+      GLenum value = GL_BACK;
+      if (ldk::config_getString(&section, LDK_MATERIAL_PARAM_CULL_FACE, &cfgValue))
+      {
+        int32 hash = ldk::stringToHash(cfgValue);
+        if(hash == _materialOptionHashes.cullFront )
+          value = GL_FRONT;
+        else if (hash == _materialOptionHashes.cullNone)
+          value = GL_FRONT_AND_BACK;
+        else if (hash == _materialOptionHashes.cullBack)
+          value = GL_BACK;
+        else
+          LogWarning("invalid culling mode" );
+      }
+      return value;
+    }
+
+    GLenum getTestFromConfig(ldk::VariantSection& section, const char* key)
+    {
+      char* cfgValue;
+      GLenum value = GL_LESS;
+      if (ldk::config_getString(&section, key, &cfgValue))
+      {
+        int32 hash = ldk::stringToHash(cfgValue);
+        if (hash == _materialOptionHashes.testLess)
+          value = GL_LESS;
+        else if (hash == _materialOptionHashes.testLessEquals)
+          value = GL_LEQUAL;
+        else if (hash == _materialOptionHashes.testGreater)
+          value = GL_GREATER;
+        else if (hash == _materialOptionHashes.testGreaterEquals)
+          value = GL_GEQUAL;
+        else if (hash == _materialOptionHashes.testAlways)
+          value = GL_ALWAYS;
+        else if (hash == _materialOptionHashes.testNever)
+          value = GL_NEVER;
+        else if (hash == _materialOptionHashes.testDifferent)
+          value = GL_NOTEQUAL;
+        else if (hash == _materialOptionHashes.disable)
+          value = -1; // disable
+        else
+          LogWarning("invalid depth/stencil test mode" );
+      }
+      return value;
+    }
+
+    GLenum getBlendFuncFromConfig(ldk::VariantSection& section, const char* key, bool dst)
+    {
+      char* cfgValue;
+      GLenum value = dst ? GL_ONE_MINUS_SRC_ALPHA: GL_SRC_ALPHA;
+
+      if (ldk::config_getString(&section, key, &cfgValue))
+      {
+        int32 hash = ldk::stringToHash(cfgValue);
+        if (hash == _materialOptionHashes.BlendZero)
+          value = GL_ZERO;
+        else if (hash == _materialOptionHashes.BlendOne)
+          value = GL_ONE;
+        else if (hash == _materialOptionHashes.BlendSrcColor)
+          value = GL_SRC_COLOR;
+        else if (hash == _materialOptionHashes.BlendOneMinusSrcColor)
+          value = GL_ONE_MINUS_SRC_COLOR;
+        else if (hash == _materialOptionHashes.BlendDstColor)
+          value = GL_DST_COLOR;
+        else if (hash == _materialOptionHashes.BlendOneMinusDstColor)
+          value = GL_ONE_MINUS_DST_COLOR;
+        else if (hash == _materialOptionHashes.BlendSrcAlpha)
+          value = GL_SRC_ALPHA;
+        else if (hash == _materialOptionHashes.BlendOneMinusSrcAlpha)
+          value = GL_ONE_MINUS_SRC_ALPHA;
+        else if (hash == _materialOptionHashes.BlendDstAlpha)
+          value = GL_DST_ALPHA;
+        else if (hash == _materialOptionHashes.BlendOneMinusDstAlpha)
+          value = GL_ONE_MINUS_DST_ALPHA;
+        else if (hash == _materialOptionHashes.BlendConstColor)
+          value = GL_CONSTANT_COLOR;
+        else if (hash == _materialOptionHashes.BlendOneMinusConstColor)
+          value = GL_ONE_MINUS_CONSTANT_COLOR;
+        else if (hash == _materialOptionHashes.BlendConstAlpha)
+          value = GL_CONSTANT_ALPHA;
+        else if (hash == _materialOptionHashes.BlendOneMinusConstAlpha)
+          value = GL_ONE_MINUS_CONSTANT_ALPHA;
+        else
+          LogWarning("invalid depth/stencil test mode" );
+      }
+      return value;
+    }
+    
 		//TODO: make filtering paremetrizable when importing texture
 		//TODO: Pass texture import settings as an argument to loadTexture
 		ldk::Texture loadTexture(const char* bitmapFile)
@@ -248,35 +415,57 @@ namespace ldk
 			return texture;
 		}
 
-		ldk::Material loadMaterial(const char* materialFile)
-		{
-			char* fragmentSource = "";
-			char* vertexSource = "";
-			char* textureFile = "";
+    ldk::Material loadMaterial(const char* materialFile)
+    {
+      char* fragmentSource = "";
+      char* vertexSource = "";
+      char* textureFile = "";
 
-			ldk::VariantSectionRoot* root = ldk::config_parseFile((const char*)materialFile);
-			if (root)
-			{
-				ldk::VariantSection* section = ldk::config_getSection(root, (const char*) "material");
-				if (section)
-				{
-					ldk::config_getString(section, "vertex-shader", &vertexSource);
-					ldk::config_getString(section, "fragment-shader", &fragmentSource);
-					ldk::config_getString(section, "main-texture", &textureFile);
-				}
-			}
+      ldk::Material material = {};
 
-			//TODO: Allocate this properly when we have a memory manager.
-			ldk::Material material = {};
-			ldk::Bitmap bitmap;
-			material.shader = ldk::render::loadShader(vertexSource, fragmentSource);
-			material.texture = ldk::render::loadTexture(textureFile);
+      ldk::VariantSectionRoot* root = ldk::config_parseFile((const char*)materialFile);
+      if (root)
+      {
+        ldk::VariantSection* section = ldk::config_getSection(root, (const char*) "material");
+        if (section)
+        {
+          ldk::config_getString(section, LDK_MATERIAL_PARAM_VERTEX_SHADER, &vertexSource);
+          ldk::config_getString(section, LDK_MATERIAL_PARAM_FRAGMENT_SHADER, &fragmentSource);
+          ldk::config_getString(section, LDK_MATERIAL_PARAM_MAIN_TEXTURE, &textureFile);
+          
+          float* blendColor;
+          int32 blendColorArraySize = ldk::config_getFloatArray(section, LDK_MATERIAL_PARAM_BLEND_FUNC_COLOR, &blendColor);
+          if (blendColorArraySize == 4)
+          {
+            material.blendConstantColor.x = *(blendColor++);
+            material.blendConstantColor.y = *(blendColor++);
+            material.blendConstantColor.z = *(blendColor++);
+            material.blendConstantColor.w = *(blendColor++);
+          }
+          else if (blendColorArraySize != -1) // not defined in the file
+          {
+            LogWarning("%s must be a 4 element array, not %d", LDK_MATERIAL_PARAM_BLEND_FUNC_COLOR, blendColorArraySize);
+          }
 
-			// dispose of the parsed material memory
-			ldk::config_dispose(root);
+          //material.blendFunc = getBlendFuncFromConfig(*section);
+          material.cullMode = getCullStateFromConfig(*section);
+          material.depthFunc = getTestFromConfig(*section, LDK_MATERIAL_PARAM_DEPTH_TEST);
+          material.blendFuncSrc = getBlendFuncFromConfig(*section, LDK_MATERIAL_PARAM_BLEND_FUNC_SRC, false);
+          material.blendFuncDst = getBlendFuncFromConfig(*section, LDK_MATERIAL_PARAM_BLEND_FUNC_DST, true);
+          material.stencilFunc = getTestFromConfig(*section, LDK_MATERIAL_PARAM_STENCIL_TEST);
+        }
 
-			return material;
-		}
+        //TODO: Allocate this properly when we have a memory manager.
+        ldk::Bitmap bitmap;
+        material.shader = ldk::render::loadShader(vertexSource, fragmentSource);
+        material.texture = ldk::render::loadTexture(textureFile);
+
+
+        // dispose of the parsed material memory
+        ldk::config_dispose(root);
+      }
+      return material;
+    }
 
 		void unloadMaterial(Material* material)
 		{
@@ -353,7 +542,7 @@ namespace ldk
 			fallbackBitmap.bmpMemorySize_ = 4;
 			//TODO: is it possible that at some poit someone try to release this memory ?
 
-			spriteBatchData.fallbackBitmapData = 0xFFFF000FF; // ugly hell magenta! ABRG
+			spriteBatchData.fallbackBitmapData = 0xFFFFFFFF; // Default 1pixel white! ABRG
 			spriteBatchData.fallbackBitmap = fallbackBitmap;
 			spriteBatchData.fallbackBitmap.pixels = (uchar*) &spriteBatchData.fallbackBitmapData;
 
@@ -430,49 +619,101 @@ namespace ldk
 			checkGlError();
 			glBindVertexArray(0);
 
-			//TODO: Marcio, this is a hack for testing stuff in 2D. Move this to material state
-			glClearColor(1, 1, 1, 1);
-			glEnable(GL_DEPTH_TEST);
-			glDepthFunc(GL_LESS);
-			glDepthMask(GL_TRUE);
-			glEnable(GL_CULL_FACE);
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glEnable(GL_DEBUG_OUTPUT);
-			//	glLineWidth(1.0);
-			//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			//	glPolygonOffset(-1,-1);
-			return 1;
-		}
+      //TODO: Marcio, this is a hack for testing stuff in 2D. Move this to material state
+      glClearColor(1, 1, 1, 1);
+#if _LDK_DEBUG_
+      glEnable(GL_DEBUG_OUTPUT);
+#endif
 
-		void spriteBatchBegin(const ldk::Material& material)
-		{ 
-			clearGlError();
-			spriteBatchData.material = material;
-			spriteBatchData.spriteCount = 0;
+      // comput hashes for material parameters
+      _materialOptionHashes.cullFront = ldk::stringToHash(LDK_MATERIAL_CULL_FRONT);    
+      _materialOptionHashes.cullBack = ldk::stringToHash(LDK_MATERIAL_CULL_BACK);    
+      _materialOptionHashes.cullNone = ldk::stringToHash(LDK_MATERIAL_CULL_NONE);    
+      _materialOptionHashes.testLess = ldk::stringToHash(LDK_MATERIAL_TEST_LESS);    
+      _materialOptionHashes.testLessEquals = ldk::stringToHash(LDK_MATERIAL_TEST_EQUALS);    
+      _materialOptionHashes.testGreater = ldk::stringToHash(LDK_MATERIAL_TEST_GREATER);    
+      _materialOptionHashes.testGreaterEquals = ldk::stringToHash(LDK_MATERIAL_TEST_GREATER_EQUALS);    
+      _materialOptionHashes.testDifferent = ldk::stringToHash(LDK_MATERIAL_TEST_DIFFERENT);    
+      _materialOptionHashes.testAlways = ldk::stringToHash(LDK_MATERIAL_TEST_ALWAYS);
+      _materialOptionHashes.testNever = ldk::stringToHash(LDK_MATERIAL_TEST_NEVER);
 
-			if (updateGlobalShaderData)
-			{
-				// Set global uniform data
-				render::bindBuffer(spriteBatchData.uniformBuffer);
-				render::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
+     _materialOptionHashes.BlendZero =ldk::stringToHash(LDK_MATERIAL_BLEND_ZERO);
+     _materialOptionHashes.BlendOne =ldk::stringToHash(LDK_MATERIAL_BLEND_ONE);
+     _materialOptionHashes.BlendSrcColor =ldk::stringToHash(LDK_MATERIAL_BLEND_SRC_COLOR);
+     _materialOptionHashes.BlendOneMinusSrcColor =ldk::stringToHash(LDK_MATERIAL_BLEND_ONE_MINUS_SRC_COLOR);
+     _materialOptionHashes.BlendDstColor =ldk::stringToHash(LDK_MATERIAL_BLEND_DST_COLOR);
+     _materialOptionHashes.BlendOneMinusDstColor =ldk::stringToHash(LDK_MATERIAL_BLEND_ONE_MINUS_DST_COLOR);
+     _materialOptionHashes.BlendSrcAlpha =ldk::stringToHash(LDK_MATERIAL_BLEND_SRC_ALPHA);
+     _materialOptionHashes.BlendOneMinusSrcAlpha =ldk::stringToHash(LDK_MATERIAL_BLEND_ONE_MINUS_SRC_ALPHA);
+     _materialOptionHashes.BlendDstAlpha =ldk::stringToHash(LDK_MATERIAL_BLEND_DST_ALPHA);
+     _materialOptionHashes.BlendOneMinusDstAlpha =ldk::stringToHash(LDK_MATERIAL_BLEND_ONE_MINUS_DST_ALPHA);
+     _materialOptionHashes.BlendConstColor =ldk::stringToHash(LDK_MATERIAL_BLEND_CONST_COLOR);
+     _materialOptionHashes.BlendOneMinusConstColor =ldk::stringToHash(LDK_MATERIAL_BLEND_ONE_MINUS_CONST_COLOR);
+     _materialOptionHashes.BlendConstAlpha =ldk::stringToHash(LDK_MATERIAL_BLEND_CONST_ALPHA);
+     _materialOptionHashes.BlendOneMinusConstAlpha =ldk::stringToHash(LDK_MATERIAL_BLEND_ONE_MINUS_CONST_ALPHA);
 
-				// Bind the global uniform buffer to the 'ldk' global 
-				unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldk");
-				const GLuint bindingPointIndex = 0;
-				glUniformBlockBinding(material.shader, block_index, bindingPointIndex);
-				checkGlError();
+      glEnable(GL_DEPTH_TEST);
+      glEnable(GL_CULL_FACE);
+      glEnable(GL_BLEND);
+      glDepthMask(GL_TRUE);
 
-				glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.id);
-				checkGlError();
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-				updateGlobalShaderData = false;
-			}
+      //    glLineWidth(1.0);
+      //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      //    glPolygonOffset(-1,-1);
+      return 1;
+    }
 
+    void spriteBatchBegin(const ldk::Material& material)
+    { 
+      clearGlError();
+      spriteBatchData.material = material;
+      spriteBatchData.spriteCount = 0;
 
-			LDK_ASSERT(checkGlError(), "GL ERROR!");
-			render::bindBuffer(spriteBatchData.vertexBuffer);
-		}
+      if (updateGlobalShaderData)
+      {
+        // Set global uniform data
+        render::bindBuffer(spriteBatchData.uniformBuffer);
+        render::setBufferData(spriteBatchData.uniformBuffer, &globalShaderData, sizeof(globalShaderData));
+
+        // Bind the global uniform buffer to the 'ldk' global 
+        unsigned int block_index = glGetUniformBlockIndex(material.shader, "ldk");
+        const GLuint bindingPointIndex = 0;
+        glUniformBlockBinding(material.shader, block_index, bindingPointIndex);
+        checkGlError();
+
+        glBindBufferBase(GL_UNIFORM_BUFFER, bindingPointIndex, spriteBatchData.uniformBuffer.id);
+        checkGlError();
+
+        updateGlobalShaderData = false;
+      }
+
+      // set pipeline sates
+      glCullFace(material.cullMode);
+      if (material.depthFunc == -1)
+      {
+        glDisable(GL_DEPTH_TEST);
+      } 
+      else
+      {
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(material.depthFunc);
+      }
+
+      //TODO:implement blend func parameter
+      glBlendFunc(material.blendFuncSrc, material.blendFuncDst);
+      glBlendColor( material.blendConstantColor.x,
+          material.blendConstantColor.y,
+          material.blendConstantColor.z,
+          material.blendConstantColor.w);
+
+      //TODO: implement stencil values
+      //glStencilFunc(material.stencilFunc,???,???);
+
+      LDK_ASSERT(checkGlError(), "GL ERROR!");
+      render::bindBuffer(spriteBatchData.vertexBuffer);
+    }
 
 		void spriteBatchSubmit(const Sprite& sprite)
 		{
@@ -571,60 +812,59 @@ namespace ldk
 			//TODO: sort draw calls per material 
 		}
 
+    void spriteBatchSetFont(const ldk::FontAsset& font)
+    {
+      fontAsset = font;
+    }
 
-	void spriteBatchSetFont(const ldk::FontAsset& font)
-	{
-		fontAsset = font;
-	}
+    Vec2 spriteBatchText(Vec3& position, float scale, Vec4& color, const char* text)
+    {
+      if (fontAsset.gliphData == nullptr)
+        return {-1,-1};
 
-	Vec2 spriteBatchText(Vec3& position, float scale, Vec4& color, const char* text)
-	{
-		if (fontAsset.gliphData == nullptr)
-			return {-1,-1};
+      char c;
+      const char* ptrChar = text;
+      Sprite sprite;
+      sprite.color = color;
 
-		char c;
-		const char* ptrChar = text;
-		Sprite sprite;
-		sprite.color = color;
+      ldk::FontGliphRect* gliphList = fontAsset.gliphData;
+      uint32 advance = 0;
 
-		ldk::FontGliphRect* gliphList = fontAsset.gliphData;
-		uint32 advance = 0;
+      if ( scale < 0 ) scale = 1.0f;
 
-		if ( scale < 0 ) scale = 1.0f;
+      Vec2 textSize = {};
+      //submit each character as an individual sprite
+      while ((c = *ptrChar) != 0)
+      {
+        FontGliphRect* gliph;
 
-		Vec2 textSize = {};
-		//submit each character as an individual sprite
-		while ((c = *ptrChar) != 0)
-		{
-			FontGliphRect* gliph;
+        // avoid indexing undefined characters
+        if (c < fontAsset.firstCodePoint || c > fontAsset.lastCodePoint)
+        {
+          gliph = &(gliphList[fontAsset.defaultCodePoint]);
+        }
+        else
+        {
+          c = c - fontAsset.firstCodePoint;
+          gliph = &(gliphList[c]);
+        }
 
-			// avoid indexing undefined characters
-			if (c < fontAsset.firstCodePoint || c > fontAsset.lastCodePoint)
-			{
-				gliph = &(gliphList[fontAsset.defaultCodePoint]);
-			}
-			else
-			{
-				c = c - fontAsset.firstCodePoint;
-				gliph = &(gliphList[c]);
-			}
+        //calculate advance
+        sprite.position = position;
+        sprite.position.x += advance;
+        advance += gliph->w * scale;
+        sprite.width = gliph->w * scale; 
+        sprite.height = gliph->h * scale;
+        sprite.srcRect = {gliph->x, gliph->y, gliph->w, gliph->h};
+        ++ptrChar;
+        render::spriteBatchSubmit(sprite);
 
-			//calculate advance
-			sprite.position = position;
-			sprite.position.x += advance;
-			advance += gliph->w * scale;
-			sprite.width = gliph->w * scale; 
-			sprite.height = gliph->h * scale;
-			sprite.srcRect = {gliph->x, gliph->y, gliph->w, gliph->h};
-			++ptrChar;
-			render::spriteBatchSubmit(sprite);
-
-			//TODO: account for multi line text
-			textSize.x += sprite.width;
-			textSize.y = MAX(textSize.y, sprite.height); 	
-		}
-		return textSize;
-	}
+        //TODO: account for multi line text
+        textSize.x += sprite.width;
+        textSize.y = MAX(textSize.y, sprite.height); 	
+      }
+      return textSize;
+    }
 	} // namespace render
 } // namespace ldk
 

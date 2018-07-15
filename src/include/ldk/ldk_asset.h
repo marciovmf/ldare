@@ -17,6 +17,12 @@ namespace ldk
 	{
 		ldk::Shader shader;
 		ldk::Texture texture;
+		int32 depthFunc;
+		int32 blendFuncSrc;
+		int32 blendFuncDst;
+    Vec4  blendConstantColor;
+		int32 stencilFunc;
+		int32 cullMode;
 	};
 	
 	struct Audio
