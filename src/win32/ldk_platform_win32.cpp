@@ -791,6 +791,8 @@ void pollEvents()
 			_platform.mouseState.button[i] &= ~LDK_KEYSTATE_CHANGED;
 	}
 
+  ldk_win32_updateGamePad();
+
 	MSG msg;
 	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 	{
