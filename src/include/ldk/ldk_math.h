@@ -48,6 +48,8 @@ namespace ldk
 		Vec2& operator/=(const Vec2& other);
 
 		float magnitude();
+		
+		Vec2 normalize();
 
 		static const Vec2& one();
 
@@ -88,6 +90,8 @@ namespace ldk
 		Vec3& operator/=(const Vec3& other);
 
 		float magnitude();
+		
+		Vec3 normalize();
 
 		static const Vec3& one();
 
@@ -125,6 +129,8 @@ namespace ldk
 		Vec4& operator/=(const Vec4& other);
 
 		float magnitude();
+		
+		Vec4 normalize();
 
 		static const Vec4& one();
 
