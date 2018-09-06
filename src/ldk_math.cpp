@@ -96,6 +96,15 @@ namespace ldk
 		return sqrt(x * x + y * y);
 	}
 
+	Vec2 Vec2::normalize()
+	{
+		Vec2 result;
+		float magnitude = sqrt(x * x + y * y);
+		result.x = this->x / magnitude;
+		result.y = this->y / magnitude;
+		return result;
+	}
+
 	const Vec2& Vec2::one()
 	{
 		return (const Vec2&)_one;
@@ -221,6 +230,16 @@ namespace ldk
 		return sqrt(x * x + y * y + z * z);
 	}
 
+	Vec3 Vec3::normalize()
+	{
+		Vec3 result;
+		float magnitude = sqrt(x * x + y * y + z * z);
+		result.x = this->x / magnitude;
+		result.y = this->y / magnitude;
+		result.z = this->z / magnitude;
+		return result;
+	}
+
 	const Vec3& Vec3::one()
 	{
 		return (const Vec3&)_one;
@@ -335,6 +354,17 @@ namespace ldk
 	float Vec4::magnitude()
 	{
 		return sqrt(x * x + y * y + z * z + w * w);
+	}
+
+	Vec4 Vec3::normalize()
+	{
+		Vec4 result;
+		float magnitude = sqrt(x * x + y * y + z * z + w * w);
+		result.x = this->x / magnitude;
+		result.y = this->y / magnitude;
+		result.z = this->z / magnitude;
+		result.w = this->w / magnitude;
+		return result;
 	}
 
 	const Vec4& Vec4::one()
