@@ -356,7 +356,7 @@ namespace ldk
 		return sqrt(x * x + y * y + z * z + w * w);
 	}
 
-	Vec4 Vec3::normalize()
+	Vec4 Vec4::normalize()
 	{
 		Vec4 result;
 		float magnitude = sqrt(x * x + y * y + z * z + w * w);
