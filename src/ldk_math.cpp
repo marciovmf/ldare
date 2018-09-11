@@ -1,11 +1,11 @@
 
-#include <math.h>
 #define PI 3.14159265359L
 #define RADIAN(n) (((n) * PI)/180.0f)
 
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
+#include <math.h>
 namespace ldk
 {
 	static const float _zero[] = {0,0,0,0};

@@ -29,9 +29,9 @@ namespace ldk
 }
 
 #if defined(_LDK_WINDOWS_)
-#	define LDK_GAME_MODULE_NAME "ldk_game.dll"
+  #define LDK_GAME_MODULE_NAME "ldk_game.dll"
 #else
-#		error "Undefined platform"
+  #error "Undefined platform"
 #endif
 
 extern "C"

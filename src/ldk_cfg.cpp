@@ -125,25 +125,6 @@ namespace ldk
 	int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, Literal& literal);
 	void postProccessStringArrays(VariantSectionRoot*);
 
-	int32 stringToHash(char* str)
-	{
-		uint32 stringLen = strlen((const char*)str);
-		int32 hash = 0;
-
-    for(; *str; ++str)
-    {
-        hash += *str;
-        hash += (hash << 10);
-        hash ^= (hash >> 6);
-    }
-
-    hash += (hash << 3);
-    hash ^= (hash >> 11);
-    hash += (hash << 15);
-
-    return hash;
-	}
-
 	inline bool isLetter(char c)
 	{
 		return (c >= 64 && c <= 90) || (c >= 97 && c <= 122);
@@ -293,7 +274,7 @@ namespace ldk
 
 	static bool identifierCompare(Identifier& identifier, const char* str)
 	{
-		int32 length = strlen(str);
+		int32 length = strlen((char*)str);
 		if (length != identifier.length)
 			return false;
 

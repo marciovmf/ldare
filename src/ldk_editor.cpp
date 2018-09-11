@@ -3,8 +3,6 @@
 #include "ldk_platform.h"
 #include "ldk_memory.h"
 
-//TODO: use a higher level renderer interface here
-//#include "ldk_renderer_gl.cpp"
 #define LDK_DEFAULT_GAME_WINDOW_TITLE "LDK Window"
 #define LDK_DEFAULT_CONFIG_FILE "ldk.cfg"
 
@@ -28,7 +26,7 @@ void windowCloseCallback(ldk::platform::LDKWindow* window)
 void windowResizeCallback(ldk::platform::LDKWindow* window, int32 width, int32 height)
 {
 	// Recalculate projection matrix here.
-	ldk::render::setViewportAspectRatio(width, height, defaultConfig.width, defaultConfig.height);
+	//ldk::render::setViewportAspectRatio(width, height, defaultConfig.width, defaultConfig.height);
 	return;
 }
 
@@ -156,7 +154,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 	ldk::platform::setWindowResizeCallback(window, windowResizeCallback);
 	ldk::platform::toggleFullScreen(window, gameConfig.fullscreen);
 
-	ldk::render::setViewportAspectRatio(gameConfig.width, gameConfig.height, gameConfig.width, gameConfig.height);
+	//ldk::render::setViewportAspectRatio(gameConfig.width, gameConfig.height, gameConfig.width, gameConfig.height);
 
 
 	// preallocate memory for game state
@@ -186,7 +184,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 		ldkHandleKeyboardInput(window);
 
-		ldk::render::updateRenderer(deltaTime);
+		//ldk::render::updateRenderer(deltaTime);
 		game.update(deltaTime);
 		ldk::platform::swapWindowBuffer(window);
 		endTime = ldk::platform::getTicks();

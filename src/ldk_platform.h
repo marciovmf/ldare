@@ -1,10 +1,6 @@
-/**
- * ldare_platform.h
- * Defines platform specific functions for abstracting the real OS
- */
 #ifndef _LDK_PLATFORM_H_
 #define _LDK_PLATFORM_H_
-#include <ldk/ldk.h>
+
 #define LDK_MAX_KBD_KEYS 255
 #define LDK_MAX_MOUSE_BUTTONS 3
 #define LDK_KEYSTATE_PRESSED  0x01

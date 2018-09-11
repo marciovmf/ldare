@@ -3,14 +3,6 @@
 #define _LDK_ENGINE_
 #endif // _LDK_ENGINE_
 
-#include "../ldk_platform.h"
-#include "../include/ldk/ldk_types.h"
-#include "../include/ldk/ldk_debug.h"
-
-#include "../ldk_platform.h"
-#include "../ldk_gl.h"
-#include "ldk_xinput_win32.h"
-#include "ldk_xaudio2_win32.h"
 
 // Win32 specifics
 #include "tchar.h"
@@ -19,6 +11,13 @@
 #include <winuser.h>
 #include <tchar.h>
 #include <objbase.h>
+
+#include "../GL/glcorearb.h"
+#include "../GL/wglext.h"
+#include "ldk_gl.h"
+
+#include "ldk_xinput_win32.h"
+#include "ldk_xaudio2_win32.h"
 
 #define LDK_MAX_AUDIO_BUFFER 16
 #define LDK_WINDOW_CLASS "LDK_WINDOW_CLASS"
@@ -284,6 +283,12 @@ namespace ldk
 			FETCH_GL_FUNC(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding);
 			FETCH_GL_FUNC(PFNGLCULLFACEPROC, glCullFace);
 			FETCH_GL_FUNC(PFNGLBLENDCOLORPROC, glBlendColor);
+      FETCH_GL_FUNC(PFNGLGETACTIVEUNIFORMPROC, glGetActiveUniform);
+      FETCH_GL_FUNC(PFNGLGETUNIFORMLOCATIONPROC, glGetUniformLocation);
+      FETCH_GL_FUNC(PFNGLDETACHSHADERPROC, glDetachShader);
+      FETCH_GL_FUNC(PFNGLGETACTIVEATTRIBPROC, glGetActiveAttrib);
+      FETCH_GL_FUNC(PFNGLGETATTRIBLOCATIONPROC, glGetAttribLocation);
+      FETCH_GL_FUNC(PFNGLFENCESYNCPROC, glFenceSync);
 #undef FETCH_GL_FUNC
 
 			if (!success)

@@ -1,11 +1,6 @@
-/**
- * win32_math.h
- * ldk math functions and structures
- */
 #ifndef _LDK_MATH_H_
 #define _LDK_MATH_H_
 
-#include <math.h>
 #define PI 3.14159265359L
 #define RADIAN(n) (((n) * PI)/180.0f)
 
