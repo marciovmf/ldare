@@ -22,7 +22,9 @@ RELEASE_LINK_OPTIONS=/link /subsystem:windows $(LIBS)
 CFLAGS=$(DEBUG_COMPILE_OPTIONS)
 LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
-.PHONY: outdirfolder gameassets clean assets
+.PHONY: outdirfolder gameassets clean assets all
+
+all: ldk editor game assets
 
 ldk: outdirfolder $(LDK_ENGINE) $(LDK_EDITOR) assets 
 
