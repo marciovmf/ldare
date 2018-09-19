@@ -2,10 +2,12 @@
 
 #define STR(s) #s
 
-static ldk::RenderContext* context;
-ldk::Renderable;
-ldk::Shader shader;
-ldk::VertexData vertexData;
+using namespace ldk;
+
+static ldk::renderer::Context* context;
+renderer::RenderBuffer;
+renderer::Shader shader;
+renderer::RenderBufferLayout layout;
 float mesh[] = {-0.5,-0.5,0.5,-0.5,0.0,0.5};
 
 // Vertex shader
@@ -29,14 +31,14 @@ void gameInit(void* memory) { }
 
 void gameStart()
 {
-  context =  ldk::makeRenderContext(100, 0, 0);
-  ldk::loadShader(&shader, vs, fs);
-  ldk::setVertexData(&vertexData, 6, 3 * sizeof(float), true);
+  context =  ldk::renderer::makeContext(100, 0, 0);
+  renderer::loadShader(&shader, vs, fs);
+  renderer::makeBufferLayout(&layout, 6, 3 * sizeof(float));
 }
 
 void gameUpdate(float deltaTime) { }
 
 void gameStop()
 {
-  ldk::freeContext(context);
+  renderer::freeContext(context);
 }

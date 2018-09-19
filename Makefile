@@ -24,9 +24,9 @@ LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
 .PHONY: outdirfolder gameassets clean assets all
 
-all: ldk editor game assets
+all: ldk editor game 
 
-ldk: outdirfolder $(LDK_ENGINE) $(LDK_EDITOR) assets 
+ldk: outdirfolder $(LDK_ENGINE) $(LDK_EDITOR) 
 
 editor: $(LDK_EDITOR)
 

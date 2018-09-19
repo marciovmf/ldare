@@ -1,103 +1,95 @@
 #ifndef _LDK_RENDERER_GL_H_
 #define _LDK_RENDERER_GL_H_
 
-#define LDK_RENDER_NUM_BUFFERS    3
-#define LDK_MAX_UNIFORM_COUNT     8
-#define LDK_MAX_ATTRIBUTES        16
-#define LDK_UNIFORM_NAME_LENGTH   64
+#define LDK_RENDERER_MAX_BUFFER_ATTRIBUTES  16
+#define LDK_RENDERER_UNIFORM_NAME_LENGTH    64
+#define LDK_RENDERER_MAX_UNIFORM_COUNT      8
 
 namespace ldk
 {
-  struct Uniform
+  namespace renderer
   {
-    char name[LDK_UNIFORM_NAME_LENGTH];
-    uint32 id;
-    uint32 hash;
-    uint32 type;
-    uint32 location;
-    uint32 size;
-  };
+    struct Shader;
+    struct DrawCall;
+    struct Context;
+    struct RenderBufferAttribute;
+    struct RenderBufferLayout;
+    struct RenderBuffer;
 
-  struct Shader
-  {
-    uint32 program;
-    uint32 uniformCount;
-    Uniform uniforms[LDK_MAX_UNIFORM_COUNT];
-  };
+    struct Uniform
+    {
+      char name[LDK_RENDERER_UNIFORM_NAME_LENGTH];
+      uint32 id;
+      uint32 hash;
+      uint32 type;
+      uint32 location;
+      uint32 size;
+    };
 
-  struct DrawCall
-  {
-    uint32 vertexCount;
-    void* vertices;
-    uint32 textureCount;
-    uint32 textureId[8];
-  };
+    struct Shader
+    {
+      uint32 program;
+      uint32 uniformCount;
+      Uniform uniforms[LDK_RENDERER_MAX_UNIFORM_COUNT];
+    };
 
-  struct RenderContext
-  {
-    uint32 clearBits;
-    uint32 settingsBits;
-    uint32 maxDrawCalls;
-    uint32 drawCallCount;
-    DrawCall* drawCalls;
-  };
+    enum RenderQueue
+    {
+      OPAQUE = 5,
+      TRANSLUCENT = 100,
+      OVERLAY = 250,
+    };
 
-  struct VertexAttribute
-  {
-    const char* name;
-    uint64 hash;
-    uint32 size;
-    uint32 type;
-    uint32 offset;
-    uint32 location;
-  };
+    enum RenderBufferAttributeType
+    {
+      FLOAT,
+      INT,
+      BOOL,
+      SAMPLER,
+      UNKNOWN
+    };
 
-  struct VertexBufferLayout
-  {
-    uint32 size;
-    uint32 stride;
-    uint32 usage;
-    uint32 attributCount;
-    VertexAttribute attributes[LDK_MAX_ATTRIBUTES];
-  };
+    enum Primitive
+    {
+      PRIMITIVE_TRIANGLES,
+      PRIMITIVE_TRIANGLE_STRIP
+    };
 
-  struct Renderable
-  {
-    VertexBufferLayout data;
-    Shader* shader;
-    //TODO: add rendere queue order info herer
-    uint32 attributeCount;
-    uint32 index0;
-    uint32 index1;
-    uint32 needUpdate;
-    uint32 bufferNumber;
-    uint32 bufferCount;
-    uint32 buffers[LDK_RENDER_NUM_BUFFERS];
-    //GLsync fences[LDK_RENDER_NUM_BUFFERS];
-    size_t fences[LDK_RENDER_NUM_BUFFERS];
-  };
-  
-  enum VertexAttributeType
-  {
-    ATTRIB_TYPE_FLOAT,
-    ATTRIB_TYPE_INT,
-    ATTRIB_TYPE_BOOL,
-    ATTRIB_TYPE_SAMPLER,
-    ATTRIB_TYPE_UNKNOWN
-  };
-  
-  LDK_API int32 loadShader(Shader* shader, char* vertexSource, char* fragmentSource);
+    enum BufferUsage
+    {
+      STATIC_BUFFER,
+      DYNAMIC_BUFFER
+    };
 
-  LDK_API RenderContext* makeRenderContext(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits);
+    struct RenderBufferAttribute
+    {
+      const char* name;
+      uint64 hash;
+      uint32 size;
+      uint32 type;
+      uint32 offset;
+      uint32 location;
+    };
 
-  LDK_API void freeContext(RenderContext* context);
+    struct RenderBufferLayout
+    {
+      uint32 size;
+      uint32 stride;
+      uint32 attributeCount;
+      Primitive primitive;
+      RenderBufferAttribute attributes[LDK_RENDERER_MAX_BUFFER_ATTRIBUTES];
+    };
 
-  LDK_API void setVertexBufferLayout(VertexBufferLayout* data, uint32 bufferSize, uint32 stride, bool isStatic);
+    LDK_API bool loadShader(Shader* shader, char* vertexSource, char* fragmentSource);
+    LDK_API void setShader(RenderBuffer* renderable, Shader* shader);
+    LDK_API Context* makeContext(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits);
+    LDK_API void freeContext(Context* context);
+    LDK_API void makeBufferLayout(RenderBufferLayout* layout, uint32 bufferSize, uint32 stride);
+    LDK_API void addBufferLayoutAttribute(RenderBufferLayout* layout, RenderBufferAttribute* attribute);
+    LDK_API RenderBuffer* createRenderBuffer(RenderBufferLayout* layout, Primitive primitive, BufferUsage usage);
+    LDK_API void pushDrawCall(Context* context, DrawCall* drawCall);
 
-  LDK_API void makeRenderable(Renderable* renderable, VertexBufferLayout* vertexData);
-
-  LDK_API void setShader(Renderable* renderable, Shader* shader);
-
+  } // renderer
 } // ldk
 
 #endif// _LDK_RENDERER_GL_H_

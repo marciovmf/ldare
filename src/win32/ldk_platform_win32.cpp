@@ -289,6 +289,7 @@ namespace ldk
       FETCH_GL_FUNC(PFNGLGETACTIVEATTRIBPROC, glGetActiveAttrib);
       FETCH_GL_FUNC(PFNGLGETATTRIBLOCATIONPROC, glGetAttribLocation);
       FETCH_GL_FUNC(PFNGLFENCESYNCPROC, glFenceSync);
+      FETCH_GL_FUNC(PFNGLDELETEPROGRAMPROC, glDeleteProgram);
 #undef FETCH_GL_FUNC
 
 			if (!success)
