@@ -36,7 +36,7 @@ namespace ldk
       uint64 hash;
       GLuint size;
       GLuint type;
-      GLuint offset;
+      GLint offset;
       GLuint location;
     };
 
@@ -46,7 +46,7 @@ namespace ldk
       GLuint id;
       GLuint hash;
       GLuint type;
-      GLuint location;
+      GLint location;
       GLuint size;
     };
 

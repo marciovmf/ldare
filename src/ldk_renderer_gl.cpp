@@ -196,7 +196,7 @@ namespace ldk
         LogWarning("Shader and buffer layout has different attribute count");
       }
 
-      uint32 attribType;
+      uint32 attribType = 0;
       uint32 attribSize = 0;
       uint64 attribHash = 0;
       char attribName[256];
@@ -206,26 +206,23 @@ namespace ldk
       {
         // query attribute type and size
         glGetActiveAttrib(shader->program, i, 256, 0, (GLint*) &attribSize,  (GLenum*) &attribType, (GLchar*)&attribName);
-        //attribType = _glTypeToInternal(attribType);
-        attribType = attribType;
         attribHash = ldk::stringToHash(attribName);
         VertexAttribute* attribute;
 
         for (int j = 0; j < attribCount; j++) 
         {
           VertexAttribute* tmpAttribute = renderable->buffer.attributes + j;
-          if(tmpAttribute->hash = attribHash)
+          if(tmpAttribute->hash == attribHash)
           {
             attribute = tmpAttribute;
             break;
           }
-
+        }
           LDK_ASSERT(attribute, "No matching attribute found");
-          LDK_ASSERT(attribute->type == attribType, "No matching attribute type");
-
+		  //TODO(marcio): we need to convert to/from gl types to internal because gl has specific type for vec3, vec2 etc, but we whant just to pass addAttribute(3, FLOAT) as a vec3
+//          LDK_ASSERT(attribute->type == attribType, "No matching attribute type");
           // cache attribute location
           attribute->location = glGetAttribLocation(shader->program, attribName);
-        }
       }
 
       // Generate GPU buffers
