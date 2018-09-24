@@ -4,26 +4,32 @@
 
 using namespace ldk;
 
-static ldk::renderer::Context* context;
-renderer::RenderBuffer;
-renderer::Shader shader;
-renderer::RenderBufferLayout layout;
-float mesh[] = {-0.5,-0.5,0.5,-0.5,0.0,0.5};
+float mesh[] = {
+  -0.5f,  -0.5f,  0.0f,
+  0.5f,   -0.5f,  0.0f,
+  0.0f,   0.5f,   0.0f
+};
+
+ldk::gl::Context* context;
+ldk::gl::Shader shader;
+ldk::gl::Renderable renderable;
+ldk::gl::VertexBuffer buffer;
+ldk::gl::DrawCall drawCall;
 
 // Vertex shader
 char* vs = STR(#version 330\n
-  layout(location = 0) in vec4 in_position;\n
+  layout(location = 0) in vec3 _pos;\n
   void main()\n
   {
-      gl_Position = in_position;\n
+      gl_Position = vec4(_pos, 1.0);\n
   });
 
 // Fragment shader
 char* fs = STR(#version 330\n
-  layout(location = 0) out vec4 out_color;\n
+  out vec4 out_color;\n
   void main()\n
   {
-      out_color = vec4(1.0, 0.0, 0.0, 1.0);\n
+      out_color = vec4(1.0, 0.3, 0.0, 1.0);\n
   });
 
 
@@ -31,14 +37,31 @@ void gameInit(void* memory) { }
 
 void gameStart()
 {
-  context =  ldk::renderer::makeContext(100, 0, 0);
-  renderer::loadShader(&shader, vs, fs);
-  renderer::makeBufferLayout(&layout, 6, 3 * sizeof(float));
+  context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT,0);
+  
+  ldk::gl::makeVertexBuffer(&buffer, 3 * sizeof(float), 3 * sizeof(float));
+  ldk::gl::addVertexBufferAttribute(&buffer, "_pos", 3*sizeof(float), GL_FLOAT, 0);
+
+  ldk::gl::loadShader(&shader, vs, fs);
+  ldk::gl::makeRenderable(&renderable, &buffer, true);
+
+  ldk::gl::setShader(&renderable, &shader);
+
+  // compose draw call
+  drawCall.renderable = &renderable;
+  drawCall.textureCount = 0;
+  drawCall.vertexCount = 3;
+  drawCall.vertices = mesh;
+
 }
 
-void gameUpdate(float deltaTime) { }
+void gameUpdate(float deltaTime) 
+{
+  ldk::gl::pushDrawCall(context, &drawCall);
+  ldk::gl::flush(context);
+}
 
 void gameStop()
 {
-  renderer::freeContext(context);
+  ldk::gl::destroyContext(context);
 }

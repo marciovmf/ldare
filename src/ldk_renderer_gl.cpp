@@ -1,59 +1,11 @@
-#define LDK_RENDERER_NUM_BUFFERS            3
-#define LDK_RENDERER_MAX_TEXTURES           8
 
-#define LDK_RENDERER_ALLOC(size) malloc((size))
-#define LDK_RENDERER_FREE(ptr) free((ptr))
+#define LDK_GL_ALLOC(size) malloc((size))
+#define LDK_GL_FREE(ptr) free((ptr))
 
 namespace ldk
 {
-  namespace renderer
+  namespace gl
   {
-    struct Material
-    {
-      Shader shader;
-      uint32 textureCount;
-      uint32 textureId[LDK_RENDERER_MAX_TEXTURES];
-      int32 renderQueue; 
-      RenderBuffer* buffer;
-      //TODO: Marcio, remember that the drawcall references the buffer so
-      // we can minimize state changes per draw call.
-      // DrawCalls will be ordered, first by renderQueue, than by buffer
-    };
-
-    struct DrawCall
-    {
-      uint32 vertexCount;
-      void* vertices;
-      uint32 textureCount;
-      uint32 textureId[LDK_RENDERER_MAX_TEXTURES];
-    };
-
-    struct Context
-    {
-      uint32 clearBits;
-      uint32 settingsBits;
-      uint32 maxDrawCalls;
-      uint32 drawCallCount;
-      DrawCall* drawCalls;
-    };
-
-
-    struct RenderBuffer
-    {
-      RenderBufferLayout layout;
-      uint32 usage;
-      Shader* shader;
-      uint32 attributeCount;
-      uint32 index0;
-      uint32 index1;
-      uint32 needUpdate;
-      uint32 bufferNumber;
-      uint32 bufferCount;
-      uint32 buffers[LDK_RENDERER_NUM_BUFFERS];
-      size_t fences[LDK_RENDERER_NUM_BUFFERS];
-    };
-
-
     //
     // Internal functions
     //
@@ -138,7 +90,8 @@ namespace ldk
       return shaderProgram;
     }
 
-    RenderBufferAttributeType _glTypeToInternal(uint32 glType)
+#if 0
+    VertexAttributeType _glTypeToInternal(uint32 glType)
     {
       switch (glType)
       {
@@ -146,7 +99,7 @@ namespace ldk
         case GL_INT_VEC2:
         case GL_INT_VEC3:
         case GL_INT_VEC4:
-          return ldk::renderer::RenderBufferAttributeType::INT;
+          return VertexAttributeType::INT;
 
         case GL_FLOAT:
         case GL_FLOAT_VEC2:
@@ -155,42 +108,26 @@ namespace ldk
         case GL_FLOAT_MAT2:
         case GL_FLOAT_MAT3:
         case GL_FLOAT_MAT4:
-          return RenderBufferAttributeType::FLOAT;
+          return VertexAttributeType::FLOAT;
 
         case GL_BOOL:
         case GL_BOOL_VEC2:
         case GL_BOOL_VEC3:
         case GL_BOOL_VEC4:
-          return RenderBufferAttributeType::BOOL;
+          return VertexAttributeType::BOOL;
 
         case GL_SAMPLER_2D:
         case GL_SAMPLER_3D:
-          return RenderBufferAttributeType::SAMPLER;
+          return VertexAttributeType::SAMPLER;
 
         default:
-          return RenderBufferAttributeType::UNKNOWN;
+          return VertexAttributeType::UNKNOWN;
       }
 
     }
+#endif
 
-
-    //
-    // Material functions
-    //
-
-    Material* createMaterial(Shader* shader)
-    {
-      Material* material = (Material*) LDK_RENDERER_ALLOC(sizeof(Material));
-      material->shader = *shader;
-      return material;
-    }
-
-    void freeMaterial(Material* material)
-    {
-      LDK_RENDERER_FREE(material);
-    }
-
-    //TODO:We need a way to add textures to a material. This is how I thing i
+    //TODO:We need a way to add textures to a material. This is how I think i
     //should be:
     // Texture loadTexture(Context* context, ImageAsset* imageAsset);
     // - setTexture(Material* materia, Texture);
@@ -220,9 +157,9 @@ namespace ldk
       int32 uniformCount;
       glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &uniformCount);
 
-      LDK_ASSERT(uniformCount <= LDK_RENDERER_MAX_UNIFORM_COUNT, "Too many uniforms");
+      LDK_ASSERT(uniformCount <= LDK_GL_MAX_UNIFORM_COUNT, "Too many uniforms");
 
-      uint32 maxUniformNameLength = sizeof(char) * LDK_RENDERER_UNIFORM_NAME_LENGTH;
+      uint32 maxUniformNameLength = sizeof(char) * LDK_GL_UNIFORM_NAME_LENGTH;
 
       for (int i = 0; i < uniformCount; i++) 
       {
@@ -249,12 +186,12 @@ namespace ldk
       return program > 0;
     }
     
-    void setShader(RenderBuffer* renderable, Shader* shader)
+    void setShader(Renderable* renderable, Shader* shader)
     {
       renderable->shader = shader;
-      glGetProgramiv(shader->program, GL_ACTIVE_ATTRIBUTES, (GLint*) renderable->attributeCount);
+      glGetProgramiv(shader->program, GL_ACTIVE_ATTRIBUTES, (GLint*) &renderable->attributeCount);
 
-      if(renderable->attributeCount != renderable->layout.attributeCount)
+      if(renderable->attributeCount != renderable->buffer.attributeCount)
       {
         LogWarning("Shader and buffer layout has different attribute count");
       }
@@ -264,17 +201,19 @@ namespace ldk
       uint64 attribHash = 0;
       char attribName[256];
 
-      int32 attribCount = renderable->layout.attributeCount;
+      int32 attribCount = renderable->buffer.attributeCount;
       for (int i = 0; i < attribCount; i++) 
       {
         // query attribute type and size
         glGetActiveAttrib(shader->program, i, 256, 0, (GLint*) attribSize,  (GLenum*) &attribType, attribName);
-        attribType = _glTypeToInternal(attribType);
-        RenderBufferAttribute* attribute;
+        //attribType = _glTypeToInternal(attribType);
+        attribType = attribType;
+        attribHash = ldk::stringToHash(attribName);
+        VertexAttribute* attribute;
 
         for (int j = 0; j < attribCount; j++) 
         {
-          RenderBufferAttribute* tmpAttribute = renderable->layout.attributes + j;
+          VertexAttribute* tmpAttribute = renderable->buffer.attributes + j;
           if(tmpAttribute->hash = attribHash)
           {
             attribute = tmpAttribute;
@@ -289,26 +228,39 @@ namespace ldk
         }
       }
 
+      // Generate GPU buffers
+      VertexBuffer* buffer = &renderable->buffer;
+      for (int i = 0; i < renderable->vboCount; i++) 
+      {
+        GLuint* vbo = renderable->vbos + i;
+        glGenBuffers(1, vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+        glBufferData(GL_ARRAY_BUFFER, buffer->size * buffer->stride, NULL, renderable->usage);
+        renderable->fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+      }
+
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     }
 
     //
     // Context functions
     //
 
-    Context* makeContext(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits)
+    Context* createContext(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits)
     {
-      Context* context = (Context*) platform::memoryAlloc(sizeof(Context));
+      Context* context = (Context*) LDK_GL_ALLOC(sizeof(Context));
       if (!context) return nullptr;
 
       context->clearBits = clearBits;
       context->settingsBits = settingsBits;
       context->maxDrawCalls = maxDrawCalls;
       context->drawCallCount = 0;
-      context->drawCalls = (ldk::renderer::DrawCall*) platform::memoryAlloc(sizeof(ldk::renderer::DrawCall) * maxDrawCalls);
+      context->drawCalls = (ldk::gl::DrawCall*) LDK_GL_ALLOC(sizeof(ldk::gl::DrawCall) * maxDrawCalls);
 
       if(!context->drawCalls)
       {
-        platform::memoryFree(context);
+        LDK_GL_FREE(context);
         return nullptr;
       }
 
@@ -319,63 +271,57 @@ namespace ldk
       return context;
     }
 
-    void freeContext(Context* context)
+    void destroyContext(Context* context)
     {
-      platform::memoryFree(context->drawCalls); 
-      platform::memoryFree(context); 
+        LDK_GL_FREE(context->drawCalls);
+        LDK_GL_FREE(context);
     }
 
     //
     // Buffer functions
     //
 
-    void makeBufferLayout(RenderBufferLayout* layout, uint32 bufferSize, uint32 stride) 
+    void makeVertexBuffer(VertexBuffer* buffer, uint32 bufferSize, uint32 stride) 
     {
-      layout->size = bufferSize;
-      layout->stride = stride;
-      layout->attributeCount = 0;
+      buffer->size = bufferSize;
+      buffer->stride = stride;
+      buffer->primitive = GL_TRIANGLES; // only primitive supported by now
+      buffer->attributeCount = 0;
     }
 
-    void addBufferLayoutAttribute(RenderBufferLayout* layout, RenderBufferAttribute* attribute)
+    void addVertexBufferAttribute(VertexBuffer* buffer, char* name, uint32 size, uint32 type, uint32 offset)
     {
-      LDK_ASSERT((layout->attributeCount < LDK_RENDERER_MAX_BUFFER_ATTRIBUTES),
+      LDK_ASSERT((buffer->attributeCount < LDK_GL_MAX_VERTEX_ATTRIBUTES),
           "Maximum attribute count reached for buffer layout");
 
-      int32 index = layout->attributeCount++;
-      RenderBufferAttribute* attributeSlot = &layout->attributes[index];
-      *attributeSlot = *attribute;
+      VertexAttribute attribute;
+      attribute.hash = ldk::stringToHash(name);
+      attribute.size = size;
+      attribute.offset = offset;
+      attribute.type = type;
+      attribute.name = name;
+
+      int32 index = buffer->attributeCount++;
+      VertexAttribute* attributeSlot = &buffer->attributes[index];
+      *attributeSlot = attribute;
     }
 
-    RenderBuffer* createRenderBuffer(RenderBufferLayout* layout, Primitive primitive, BufferUsage usage)
+    void makeRenderable(Renderable* renderable, VertexBuffer* vertexBuffer, bool isStatic)
     {
+      *renderable = {};
+      renderable->buffer = *vertexBuffer;
 
-      RenderBuffer* buffer = (RenderBuffer*) LDK_RENDERER_ALLOC(sizeof(RenderBuffer));
-      buffer->layout = *layout;
-
-      if (usage == STATIC_BUFFER)
+      if (isStatic)
       {
-        buffer->usage = GL_STATIC_DRAW;
-        buffer->bufferCount = 1;
+        renderable->usage = GL_STATIC_DRAW;
+        renderable->vboCount = 1;
+        renderable->needNewSync = 1;
       }
       else
       {
-        buffer->usage = GL_DYNAMIC_DRAW;
-        buffer->bufferCount = LDK_RENDERER_NUM_BUFFERS;
+        renderable->usage = GL_DYNAMIC_DRAW;
+        renderable->vboCount = LDK_GL_NUM_VBOS;
       }
-
-      // Generate GPU buffers
-      for (int i = 0; i < buffer->bufferCount; i++) 
-      {
-        GLuint* vbo = buffer->buffers + i;
-
-        glGenBuffers(1, vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, *vbo);
-        glBufferData(GL_ARRAY_BUFFER, layout->size * layout->stride, NULL, usage);
-        buffer->fences[i] = (size_t) glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-      }
-
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-      return buffer;
     }
 
     //
@@ -383,11 +329,166 @@ namespace ldk
     //
     void pushDrawCall(Context* context, DrawCall* drawCall)
     {
-      LDK_ASSERT(context->drawCallCount < context->maxDrawCalls,
-          "Exceeded maximum draw calls per frame at current context");
+      LDK_ASSERT(context->drawCallCount < context->maxDrawCalls, "Exceeded maximum draw calls per frame at current context");
       context->drawCalls[context->drawCallCount++] = *drawCall;
     }
+    //TODO(marcio): Implement sorting here...
+    void _sortDrawCalls(DrawCall* calls, uint32 count) { }
 
+    static void* _mapBuffer(Renderable* renderable, uint32 count)
+    {
+      VertexBuffer* buffer = &renderable->buffer;
+      LDK_ASSERT(buffer->size >= count, "Buffer too small. Make buffer larger or draw less data.");
 
-  } // renderer
+      uint32 dataEndOffset = renderable->index1 + count;
+
+      if( dataEndOffset <= buffer->size)
+      {
+        renderable->index0 = renderable->index1;  // begin writting past last data written
+        renderable->index1 = dataEndOffset;       // data written will spread this much
+      }
+      else
+      {
+        //TODO(marcio): Should usage be part of VertextBuffer instead of
+        //Renderable ?
+        LDK_ASSERT(renderable->usage != GL_STATIC_DRAW, "Static buffers can not be overflown");
+
+        // We are trying to write past the current buffer. Lets cycle buffers...
+        ++renderable->currentVboIndex;
+        renderable->currentVboIndex = renderable->currentVboIndex & renderable->vboCount;
+      
+        // make sure this buffer is note being used by GPU
+        GLsync fence = renderable->fences[renderable->currentVboIndex];
+        GLenum waitResult = glClientWaitSync(fence, 0, (uint64) 1000000000);
+        LDK_ASSERT(waitResult != GL_TIMEOUT_EXPIRED, "We are GPU bound! Renderer is waiting for the gpu.");
+        LDK_ASSERT(waitResult != GL_WAIT_FAILED, "Error waiting for sync object on GPU.");
+        glDeleteSync(fence);
+
+        // fix buffer chunk limits
+        renderable->index0 = 0;
+        renderable->index1 = count;
+        renderable->needNewSync = 1;
+      }
+
+      // map the buffer with no driver syncrhonization
+      uint32 vbo = renderable->vbos[renderable->currentVboIndex];
+      glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+      //TODO: marcio, map/unmap a buffer only ONCE per flush.
+      uint32 chunkStart = renderable->index0 * buffer->stride;
+      uint32 chunkSize = (renderable->index1 - renderable->index0) * buffer->stride;
+      void* memory = glMapBufferRange(GL_ARRAY_BUFFER, chunkStart, chunkSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+      LDK_ASSERT(memory, "glMapBufferRange returned null");
+      return memory;
+    }
+
+    static void _unmapBuffer()
+    {
+      glUnmapBuffer(GL_ARRAY_BUFFER);
+    }
+
+    // Send vertex data to the GPU
+    // gl_do_map_internal
+    static void _uploadVertexData(DrawCall* drawCall)
+    {
+      uint32 vertexCount = drawCall->vertexCount;
+     Renderable* renderable = drawCall->renderable; 
+     VertexBuffer* buffer = &drawCall->renderable->buffer;
+
+      //TODO(marcio): check if glBufferSubData is faster than mapping/coppying
+      void* driverMemory = _mapBuffer(renderable, vertexCount);
+      memcpy(driverMemory, drawCall->vertices, buffer->stride * vertexCount);
+      _unmapBuffer();
+    }
+
+    static void _executeDrawCall(DrawCall* drawCall)
+    {
+      Renderable* renderable = drawCall->renderable; 
+      if(renderable->usage == GL_STATIC_DRAW)
+      {
+        if (renderable->needNewSync)
+        {
+          renderable->needNewSync = 0; 
+          _uploadVertexData(drawCall);
+        }
+      }
+      else
+      {
+          _uploadVertexData(drawCall);
+      }
+
+      VertexBuffer* buffer = &(renderable->buffer);
+      glUseProgram(renderable->shader->program);
+
+      uint32 currentVboIndex = renderable->currentVboIndex;
+      uint32 vbo = renderable->vbos[currentVboIndex];
+      glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+      // Set buffer format
+      uint32 vertexStride = buffer->stride;
+      uint32 attributeCount = buffer->attributeCount;
+      for (int i = 0; i < attributeCount; i++) 
+      {
+        VertexAttribute* attribute = buffer->attributes + i;    
+        glEnableVertexAttribArray(attribute->location);
+        glVertexAttribPointer(attribute->location, attribute->size, attribute->type, GL_FALSE, vertexStride,
+              (void*)((size_t) attribute->offset));
+      }
+
+      // enable/bind textures
+      uint32 textureCount = drawCall->textureCount;
+      for (int i = 0; i < textureCount; i++) 
+      {
+        glActiveTexture(GL_TEXTURE0 + i) ;
+        uint32 textureId = drawCall->textureId[i];
+        glBindTexture(GL_TEXTURE_2D, textureId);
+      }
+
+      // Draw
+      uint32 streamStart = renderable->index0;
+      uint32 streamSize = renderable->index1 - streamStart;
+      //TODO(marcio): Figure out the best way to allow indexed rendering
+      //TODO(marcio): Figure out the best way to allow instanced rendering
+      glDrawArrays(buffer->primitive, streamStart, streamSize);
+     
+      // create new fence if necessary
+      if (renderable->needNewSync)
+      {
+        // TODO: This shouldn't be called for static buffers
+        renderable->fences[currentVboIndex] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        renderable->needNewSync = 0;
+      }
+
+      // disable bound attributes
+      for (int i = 0; i < attributeCount; i++) 
+      {
+        VertexAttribute* attribute = buffer->attributes + 1;    
+        glDisableVertexAttribArray(attribute->location);
+      }
+
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+      glUseProgram(0);
+    }
+
+    void flush(Context* context)
+    {
+      uint32 drawCallCount = context->drawCallCount;
+      _sortDrawCalls(context->drawCalls, drawCallCount);
+
+      glClear(context->clearBits);
+      glEnable(context->settingsBits);
+
+      // execute draw calls
+      for (int i = 0; i < drawCallCount; i++) 
+      {
+        DrawCall* drawCall = context->drawCalls + i;
+        _executeDrawCall(drawCall);
+      }
+
+      // reset draw call count for this frame
+      context->drawCallCount = 0;
+    }
+
+  } // gl
 } // ldk

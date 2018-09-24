@@ -1,3 +1,4 @@
+//TODO(marcio): Review if this is really necessary or if all memory management will be done by the platform layer
 #ifndef _LDK_MEMORY_H_
 #define _LDK_MEMORY_H_
 

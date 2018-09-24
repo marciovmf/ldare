@@ -8,14 +8,6 @@
 #include "ldk_memory.h"
 #include "ldk_platform.h"
 
-// implementations
-#include "ldk_math.cpp"
-#include "ldk_memory.cpp"
-#include "ldk_keyboard.cpp"
-#include "ldk_mouse.cpp"
-#include "ldk_joystick.cpp"
-#include "ldk_asset.cpp"
-#include "ldk_cfg.cpp"
 
 // platform specific implementation
 #ifdef _LDK_WINDOWS_
@@ -24,4 +16,11 @@
   #error "Unsupported platform"
 #endif
 
+#include "ldk_math.cpp"
+#include "ldk_memory.cpp"
+#include "ldk_keyboard.cpp"
+#include "ldk_mouse.cpp"
+#include "ldk_joystick.cpp"
+#include "ldk_asset.cpp"
+#include "ldk_cfg.cpp"
 #include "ldk_renderer_gl.cpp"
