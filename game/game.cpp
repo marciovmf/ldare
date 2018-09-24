@@ -40,7 +40,7 @@ void gameStart()
   context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT,0);
   
   ldk::gl::makeVertexBuffer(&buffer, 3 * sizeof(float), 3 * sizeof(float));
-  ldk::gl::addVertexBufferAttribute(&buffer, "_pos", 3*sizeof(float), GL_FLOAT, 0);
+  ldk::gl::addVertexBufferAttribute(&buffer, "_pos", 3, GL_FLOAT, 0);
 
   ldk::gl::loadShader(&shader, vs, fs);
   ldk::gl::makeRenderable(&renderable, &buffer, true);

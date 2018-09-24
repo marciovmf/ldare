@@ -205,7 +205,7 @@ namespace ldk
       for (int i = 0; i < attribCount; i++) 
       {
         // query attribute type and size
-        glGetActiveAttrib(shader->program, i, 256, 0, (GLint*) attribSize,  (GLenum*) &attribType, attribName);
+        glGetActiveAttrib(shader->program, i, 256, 0, (GLint*) &attribSize,  (GLenum*) &attribType, (GLchar*)&attribName);
         //attribType = _glTypeToInternal(attribType);
         attribType = attribType;
         attribHash = ldk::stringToHash(attribName);
