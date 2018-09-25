@@ -179,6 +179,8 @@ namespace ldk
 
 		void orthographic(float left, float right, float bottom, float top, float near, float far);
 
+		void perspective(float fov, float ratio, float near, float far);
+
 	};
 
 	LDK_API float lerp(float start, float end, float t); 
