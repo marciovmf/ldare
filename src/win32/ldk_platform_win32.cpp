@@ -636,6 +636,7 @@ namespace ldk
     // terminates the platform layer
     void terminate()
     {
+      LogInfo("LDK terminating...");
     }
     
     // Sets error callback for the platform

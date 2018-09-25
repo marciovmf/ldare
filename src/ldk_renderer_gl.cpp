@@ -90,7 +90,24 @@ namespace ldk
       return shaderProgram;
     }
 
-#if 0
+    GLuint _internalToGlType(uint32 glType)
+    {
+      switch(glType)
+      {
+        case VertexAttributeType::INT:
+          return GL_INT;
+        case VertexAttributeType::FLOAT:
+          return GL_FLOAT;
+        case VertexAttributeType::BOOL:
+          return GL_BOOL;
+        case VertexAttributeType::SAMPLER:
+          return GL_SAMPLER;
+        case VertexAttributeType::UNKNOWN:
+        default:
+          return GL_INVALID_ENUM;
+      }
+    }
+
     VertexAttributeType _glTypeToInternal(uint32 glType)
     {
       switch (glType)
@@ -125,7 +142,6 @@ namespace ldk
       }
 
     }
-#endif
 
     //TODO:We need a way to add textures to a material. This is how I think i
     //should be:
@@ -140,8 +156,6 @@ namespace ldk
 
     bool loadShader(Shader* shader, char* vertexSource, char* fragmentSource)
     {
-      LogInfo(vertexSource);
-      LogInfo(fragmentSource);
       uint32 vertexShader = _compileShader((const char*)vertexSource, GL_VERTEX_SHADER);
       uint32 fragmentShader = _compileShader((const char*)fragmentSource, GL_FRAGMENT_SHADER);
 
@@ -172,7 +186,7 @@ namespace ldk
         uniform.location = glGetUniformLocation(program, uniform.name);
         uniform.id = i;
         uniform.hash = stringToHash(uniform.name);
-        uniform.type = uniform.type; //TODO: Store an internal representation
+        uniform.type = uniform.type;
         shader->uniforms[i] = uniform;
       }
 
@@ -218,11 +232,11 @@ namespace ldk
             break;
           }
         }
-          LDK_ASSERT(attribute, "No matching attribute found");
-		  //TODO(marcio): we need to convert to/from gl types to internal because gl has specific type for vec3, vec2 etc, but we whant just to pass addAttribute(3, FLOAT) as a vec3
-//          LDK_ASSERT(attribute->type == attribType, "No matching attribute type");
-          // cache attribute location
-          attribute->location = glGetAttribLocation(shader->program, attribName);
+
+        LDK_ASSERT(attribute, "No matching attribute found");
+        LDK_ASSERT(attribute->type == _glTypeToInternal(attribType), "No matching attribute type");
+        // cache attribute location
+        attribute->location = glGetAttribLocation(shader->program, attribName);
       }
 
       // Generate GPU buffers
@@ -286,7 +300,7 @@ namespace ldk
       buffer->attributeCount = 0;
     }
 
-    void addVertexBufferAttribute(VertexBuffer* buffer, char* name, uint32 size, uint32 type, uint32 offset)
+    void addVertexBufferAttribute(VertexBuffer* buffer, char* name, uint32 size, VertexAttributeType type, uint32 offset)
     {
       LDK_ASSERT((buffer->attributeCount < LDK_GL_MAX_VERTEX_ATTRIBUTES),
           "Maximum attribute count reached for buffer layout");
@@ -429,7 +443,9 @@ namespace ldk
       {
         VertexAttribute* attribute = buffer->attributes + i;    
         glEnableVertexAttribArray(attribute->location);
-        glVertexAttribPointer(attribute->location, attribute->size, attribute->type, GL_FALSE, vertexStride,
+
+        GLuint glType = _internalToGlType(attribute->type);
+        glVertexAttribPointer(attribute->location, attribute->size, glType, GL_FALSE, vertexStride,
               (void*)((size_t) attribute->offset));
       }
 
