@@ -13,7 +13,6 @@ struct GameConfig
 	bool fullscreen;
 	float aspect;
 	char* title;
-	int32 preallocMemorySize;
 } defaultConfig;
 
 static int64 lastGameDllTime = 0;
@@ -88,7 +87,6 @@ GameConfig loadGameConfig()
 	defaultConfig.width = defaultConfig.height = 600;
 	defaultConfig.aspect = 1.777;
 	defaultConfig.title = LDK_DEFAULT_GAME_WINDOW_TITLE;
-	defaultConfig.preallocMemorySize = 1024;
 
 	ldk::VariantSectionRoot* root = ldk::config_parseFile((const char8*) LDK_DEFAULT_CONFIG_FILE);
 
@@ -104,12 +102,7 @@ GameConfig loadGameConfig()
 			ldk::config_getString(sectionDisplay, "title", &defaultConfig.title);
 			ldk::config_getInt(sectionDisplay, "height", &defaultConfig.height);
 			ldk::config_getFloat(sectionDisplay, "aspect", &defaultConfig.aspect);
-
-			ldk::VariantSection* sectionGame =
-				ldk::config_getSection(root,"game");
-
-			if (sectionGame)
-				ldk::config_getInt(sectionGame, "prealloc-memory", &defaultConfig.preallocMemorySize);
+			ldk::VariantSection* sectionGame = ldk::config_getSection(root,"game");
 		}
 
 	}
@@ -158,15 +151,12 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 
 	// preallocate memory for game state
+	size_t gameStateMemorySize = game.init();
 	void* gameStateMemory = nullptr;
-	if (gameConfig.preallocMemorySize > 0)
-	{
-		gameStateMemory = malloc(gameConfig.preallocMemorySize);
-		ldk::ldk_memory_set(gameStateMemory,  0, (size_t)gameConfig.preallocMemorySize);
-	}
+  gameStateMemory = malloc(gameStateMemorySize);
+  ldk::ldk_memory_set(gameStateMemory, 0, (size_t)gameStateMemorySize);
 
-	game.init(gameStateMemory);
-	game.start();
+	game.start(gameStateMemory);
 	float deltaTime;
 	int64 startTime = 0;
 	int64 endTime = 0;
@@ -195,7 +185,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 		{
 			gameReloadCheckTimeout = 0;
 			if (reloadGameModule(&game, &gameSharedLib))
-					game.init(gameStateMemory);
+					game.start(gameStateMemory);
 		}
 	}
 

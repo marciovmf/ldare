@@ -12,11 +12,17 @@ float mesh[] = {
 
 #define VERTEX_SIZE (6 * sizeof(float))
 
-ldk::gl::Context* context;
-ldk::gl::Shader shader;
-ldk::gl::Renderable renderable;
-ldk::gl::VertexBuffer buffer;
-ldk::gl::DrawCall drawCall;
+struct GameState
+{
+  uint32 initialized;
+  ldk::gl::Context* context;
+  ldk::gl::Shader shader;
+  ldk::gl::Renderable renderable;
+  ldk::gl::VertexBuffer buffer;
+  ldk::gl::DrawCall drawCall;
+};
+
+static GameState* _gameState;
 
 // Vertex shader
 char* vs = STR(#version 330\n
@@ -36,40 +42,47 @@ char* fs = STR(#version 330\n
   
   void main()\n
   {
-	  //out_color = vec4(1.0, fragColor.x, 0.0, 1.0) ; \n
-	out_color = vec4(fragColor, 1.0); \n
+	  out_color = vec4(fragColor, 1.0); \n
   });
 
-void gameInit(void* memory) { }
-
-void gameStart()
+size_t gameInit()
 {
-  context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT,0);
+  return sizeof(GameState);
+}
+
+void gameStart(void* memory)
+{
+  _gameState = (GameState*)memory;
+
+  if (_gameState->initialized)
+    return;
+
+  _gameState->context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT,0);
   
-  ldk::gl::makeVertexBuffer(&buffer, 3, VERTEX_SIZE);
-  ldk::gl::addVertexBufferAttribute(&buffer, "_pos", 3, GL_FLOAT, 0);
-  ldk::gl::addVertexBufferAttribute(&buffer, "_color", 3, GL_FLOAT,  3 * sizeof(float));
+  ldk::gl::makeVertexBuffer(&_gameState->buffer, 3, VERTEX_SIZE);
+  ldk::gl::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, ldk::gl::VertexAttributeType::FLOAT, 0);
+  ldk::gl::addVertexBufferAttribute(&_gameState->buffer, "_color", 3, ldk::gl::VertexAttributeType::FLOAT,  3 * sizeof(float));
 
-  ldk::gl::loadShader(&shader, vs, fs);
-  ldk::gl::makeRenderable(&renderable, &buffer, true);
+  ldk::gl::loadShader(&_gameState->shader, vs, fs);
+  ldk::gl::makeRenderable(&_gameState->renderable, &_gameState->buffer, true);
 
-  ldk::gl::setShader(&renderable, &shader);
+  ldk::gl::setShader(&_gameState->renderable, &_gameState->shader);
 
   // compose draw call
-  drawCall.renderable = &renderable;
-  drawCall.textureCount = 0;
-  drawCall.vertexCount = 3;
-  drawCall.vertices = mesh;
-
+  _gameState->drawCall.renderable = &_gameState->renderable;
+  _gameState->drawCall.textureCount = 0;
+  _gameState->drawCall.vertexCount = 3;
+  _gameState->drawCall.vertices = mesh;
+  _gameState->initialized;
 }
 
 void gameUpdate(float deltaTime) 
 {
-  ldk::gl::pushDrawCall(context, &drawCall);
-  ldk::gl::flush(context);
+  ldk::gl::pushDrawCall(_gameState->context, &_gameState->drawCall);
+  ldk::gl::flush(_gameState->context);
 }
 
 void gameStop()
 {
-  ldk::gl::destroyContext(context);
+  ldk::gl::destroyContext(_gameState->context);
 }
