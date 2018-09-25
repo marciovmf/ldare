@@ -518,7 +518,7 @@ namespace ldk
 			element[14] = -((far + near) / depth);
 		}
 
-		void Mat4::perspective(perspective(float fov, float ratio, float near, float far);
+		void Mat4::perspective(float fov, float aspect, float near, float far)
     {
       // https://i.stack.imgur.com/oesw9.jpg
       float tanHalfFov = tan(fov/2);
