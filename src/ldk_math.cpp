@@ -472,7 +472,7 @@ namespace ldk
 			float depth = far - near;
 
 			diagonal(1.0f);
-			//ldk::Mat4 ortho;
+			
 			LDK_ASSERT(width != 0, "Orthographic width can not be zero");
 			LDK_ASSERT(height != 0, "Orthographic height can not be zero");
 			LDK_ASSERT(depth != 0, "Orthographic depth can not be zero");
@@ -487,6 +487,23 @@ namespace ldk
 			element[13] = -((top + bottom) / height);
 			element[14] = -((far + near) / depth);
 		}
+
+		void Mat4::perspective(perspective(float fov, float ratio, float near, float far);
+    {
+      // https://i.stack.imgur.com/oesw9.jpg
+      float tanHalfFov = tan(fov/2);
+      float distance = far - near;
+
+			// Diagonal
+			element[0] = 1 / (aspect * tanHalfFov);
+			element[5] = 1 / tanHalfFov;
+			element[10] = -(far + near) / distance;
+
+			element[11] = -1;
+
+			// Last column
+			element[14] = - (2 * far * near) / distance;
+    }
 
 
 	float lerp(float start, float end, float t) 
