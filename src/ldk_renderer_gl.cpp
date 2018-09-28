@@ -17,7 +17,7 @@ namespace ldk
       glGetProgramiv(program, GL_LINK_STATUS, &success);
       if (!success)
       {
-        glGetProgramInfoLog(program, sizeof(msgBuffer), 0, msgBuffer);
+        glGetProgramInfoLog(program, sizeof(msgBuffer), GL_FALSE, msgBuffer);
         LogError("Error linking shader");
         LogError(msgBuffer);
         return GL_FALSE;
@@ -143,6 +143,163 @@ namespace ldk
 
     }
 
+    //TODO(marcio): Implement sorting here...
+    void _sortDrawCalls(DrawCall* calls, uint32 count) { }
+
+    static void* _mapBuffer(Renderable* renderable, uint32 count)
+    {
+      VertexBuffer* buffer = &renderable->buffer;
+      LDK_ASSERT(buffer->size >= count, "Buffer too small. Make buffer larger or draw less data.");
+
+      uint32 dataEndOffset = renderable->index1 + count;
+
+      if( dataEndOffset <= buffer->size)
+      {
+        renderable->index0 = renderable->index1;  // begin writting past last data written
+        renderable->index1 = dataEndOffset;       // data written will spread this much
+      }
+      else
+      {
+        //TODO(marcio): Should usage be part of VertextBuffer instead of
+        //Renderable ?
+        LDK_ASSERT(renderable->usage != GL_STATIC_DRAW, "Static buffers can not be overflown");
+
+        // We are trying to write past the current buffer. Lets cycle buffers...
+        ++renderable->currentVboIndex;
+        renderable->currentVboIndex = renderable->currentVboIndex & renderable->vboCount;
+      
+        // make sure this buffer is note being used by GPU
+        GLsync fence = renderable->fences[renderable->currentVboIndex];
+        GLenum waitResult = glClientWaitSync(fence, 0, (uint64) 1000000000);
+        LDK_ASSERT(waitResult != GL_TIMEOUT_EXPIRED, "We are GPU bound! Renderer is waiting for the gpu.");
+        LDK_ASSERT(waitResult != GL_WAIT_FAILED, "Error waiting for sync object on GPU.");
+        glDeleteSync(fence);
+
+        // fix buffer chunk limits
+        renderable->index0 = 0;
+        renderable->index1 = count;
+        renderable->needNewSync = 1;
+      }
+
+      // map the buffer with no driver syncrhonization
+      uint32 vbo = renderable->vbos[renderable->currentVboIndex];
+      glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+      //TODO: marcio, map/unmap a buffer only ONCE per flush.
+      uint32 chunkStart = renderable->index0 * buffer->stride;
+      uint32 chunkSize = (renderable->index1 - renderable->index0) * buffer->stride;
+      void* memory = glMapBufferRange(GL_ARRAY_BUFFER, chunkStart, chunkSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+      LDK_ASSERT(memory, "glMapBufferRange returned null");
+      return memory;
+    }
+
+    static void _unmapBuffer()
+    {
+      glUnmapBuffer(GL_ARRAY_BUFFER);
+    }
+
+    // Send vertex data to the GPU
+    // gl_do_map_internal
+    static void _uploadVertexData(DrawCall* drawCall)
+    {
+      uint32 vertexCount = drawCall->vertexCount;
+     Renderable* renderable = drawCall->renderable; 
+     VertexBuffer* buffer = &drawCall->renderable->buffer;
+
+      //TODO(marcio): check if glBufferSubData is faster than mapping/coppying
+      void* driverMemory = _mapBuffer(renderable, vertexCount);
+      memcpy(driverMemory, drawCall->vertices, buffer->stride * vertexCount);
+      _unmapBuffer();
+    }
+
+    static void _executeDrawCall(DrawCall* drawCall)
+    {
+      Renderable* renderable = drawCall->renderable; 
+      if(renderable->usage == GL_STATIC_DRAW)
+      {
+        if (renderable->needNewSync)
+        {
+          renderable->needNewSync = 0; 
+          _uploadVertexData(drawCall);
+        }
+      }
+      else
+      {
+          _uploadVertexData(drawCall);
+      }
+
+      VertexBuffer* buffer = &(renderable->buffer);
+      glUseProgram(renderable->shader->program);
+
+      uint32 currentVboIndex = renderable->currentVboIndex;
+      uint32 vbo = renderable->vbos[currentVboIndex];
+      glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+      // Set buffer format
+      uint32 vertexStride = buffer->stride;
+      uint32 attributeCount = buffer->attributeCount;
+      for (int i = 0; i < attributeCount; i++) 
+      {
+        VertexAttribute* attribute = buffer->attributes + i;    
+        glEnableVertexAttribArray(attribute->location);
+
+        GLuint glType = _internalToGlType(attribute->type);
+        glVertexAttribPointer(attribute->location, attribute->size, glType, GL_FALSE, vertexStride,
+              (void*)((size_t) attribute->offset));
+      }
+
+      // enable/bind textures
+      uint32 textureCount = drawCall->textureCount;
+      for (int i = 0; i < textureCount; i++) 
+      {
+        glActiveTexture(GL_TEXTURE0 + i) ;
+        uint32 textureId = drawCall->textureId[i];
+        glBindTexture(GL_TEXTURE_2D, textureId);
+      }
+
+      // Draw
+      uint32 streamStart = renderable->index0;
+      uint32 streamSize = renderable->index1 - streamStart;
+      //TODO(marcio): Figure out the best way to allow indexed rendering
+      //TODO(marcio): Figure out the best way to allow instanced rendering
+      glDrawArrays(buffer->primitive, streamStart, streamSize);
+     
+      // create new fence if necessary
+      if (renderable->needNewSync)
+      {
+        // TODO: This shouldn't be called for static buffers
+        renderable->fences[currentVboIndex] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        renderable->needNewSync = 0;
+      }
+
+      // disable bound attributes
+      for (int i = 0; i < attributeCount; i++) 
+      {
+        VertexAttribute* attribute = buffer->attributes + 1;    
+        glDisableVertexAttribArray(attribute->location);
+      }
+
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+      glUseProgram(0);
+    }
+
+    static const Uniform* _findUniform(Shader* shader, char* name)
+    {
+      uint32 uniformCount = shader->uniformCount;
+      int32 hash = stringToHash(name);
+
+      for(int i=0; i < uniformCount; i++)
+      {
+        Uniform* uniform = &shader->uniforms[i];
+        if (uniform->hash == hash)
+          return uniform;
+      }
+
+      LogWarning("Could not find uniform '%s' on shader, name");
+      return nullptr;
+    }
+
     //TODO:We need a way to add textures to a material. This is how I think i
     //should be:
     // Texture loadTexture(Context* context, ImageAsset* imageAsset);
@@ -186,7 +343,7 @@ namespace ldk
         uniform.location = glGetUniformLocation(program, uniform.name);
         uniform.id = i;
         uniform.hash = stringToHash(uniform.name);
-        uniform.type = uniform.type;
+        uniform.type = _glTypeToInternal(uniform.type);
         shader->uniforms[i] = uniform;
       }
 
@@ -199,7 +356,22 @@ namespace ldk
       shader->uniformCount = uniformCount;
       return program > 0;
     }
-    
+
+    void setShaderParam(Shader* shader, char* name, ldk::Mat4* matrix)
+    {
+      const Uniform* uniform = _findUniform(shader, name);
+      
+      if(uniform)
+      {
+        LDK_ASSERT((uniform->type == ldk::gl::VertexAttributeType::FLOAT
+           && uniform->size == 1), "Mismatching uniform types");
+
+        glUseProgram(shader->program);
+        glUniformMatrix4fv(uniform->id, 1, 0, matrix->element);
+        glUseProgram(0);
+      }
+    }
+
     void setShader(Renderable* renderable, Shader* shader)
     {
       renderable->shader = shader;
@@ -343,146 +515,6 @@ namespace ldk
       LDK_ASSERT(context->drawCallCount < context->maxDrawCalls, "Exceeded maximum draw calls per frame at current context");
       context->drawCalls[context->drawCallCount++] = *drawCall;
     }
-    //TODO(marcio): Implement sorting here...
-    void _sortDrawCalls(DrawCall* calls, uint32 count) { }
-
-    static void* _mapBuffer(Renderable* renderable, uint32 count)
-    {
-      VertexBuffer* buffer = &renderable->buffer;
-      LDK_ASSERT(buffer->size >= count, "Buffer too small. Make buffer larger or draw less data.");
-
-      uint32 dataEndOffset = renderable->index1 + count;
-
-      if( dataEndOffset <= buffer->size)
-      {
-        renderable->index0 = renderable->index1;  // begin writting past last data written
-        renderable->index1 = dataEndOffset;       // data written will spread this much
-      }
-      else
-      {
-        //TODO(marcio): Should usage be part of VertextBuffer instead of
-        //Renderable ?
-        LDK_ASSERT(renderable->usage != GL_STATIC_DRAW, "Static buffers can not be overflown");
-
-        // We are trying to write past the current buffer. Lets cycle buffers...
-        ++renderable->currentVboIndex;
-        renderable->currentVboIndex = renderable->currentVboIndex & renderable->vboCount;
-      
-        // make sure this buffer is note being used by GPU
-        GLsync fence = renderable->fences[renderable->currentVboIndex];
-        GLenum waitResult = glClientWaitSync(fence, 0, (uint64) 1000000000);
-        LDK_ASSERT(waitResult != GL_TIMEOUT_EXPIRED, "We are GPU bound! Renderer is waiting for the gpu.");
-        LDK_ASSERT(waitResult != GL_WAIT_FAILED, "Error waiting for sync object on GPU.");
-        glDeleteSync(fence);
-
-        // fix buffer chunk limits
-        renderable->index0 = 0;
-        renderable->index1 = count;
-        renderable->needNewSync = 1;
-      }
-
-      // map the buffer with no driver syncrhonization
-      uint32 vbo = renderable->vbos[renderable->currentVboIndex];
-      glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-      //TODO: marcio, map/unmap a buffer only ONCE per flush.
-      uint32 chunkStart = renderable->index0 * buffer->stride;
-      uint32 chunkSize = (renderable->index1 - renderable->index0) * buffer->stride;
-      void* memory = glMapBufferRange(GL_ARRAY_BUFFER, chunkStart, chunkSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-
-      LDK_ASSERT(memory, "glMapBufferRange returned null");
-      return memory;
-    }
-
-    static void _unmapBuffer()
-    {
-      glUnmapBuffer(GL_ARRAY_BUFFER);
-    }
-
-    // Send vertex data to the GPU
-    // gl_do_map_internal
-    static void _uploadVertexData(DrawCall* drawCall)
-    {
-      uint32 vertexCount = drawCall->vertexCount;
-     Renderable* renderable = drawCall->renderable; 
-     VertexBuffer* buffer = &drawCall->renderable->buffer;
-
-      //TODO(marcio): check if glBufferSubData is faster than mapping/coppying
-      void* driverMemory = _mapBuffer(renderable, vertexCount);
-      memcpy(driverMemory, drawCall->vertices, buffer->stride * vertexCount);
-      _unmapBuffer();
-    }
-
-    static void _executeDrawCall(DrawCall* drawCall)
-    {
-      Renderable* renderable = drawCall->renderable; 
-      if(renderable->usage == GL_STATIC_DRAW)
-      {
-        if (renderable->needNewSync)
-        {
-          renderable->needNewSync = 0; 
-          _uploadVertexData(drawCall);
-        }
-      }
-      else
-      {
-          _uploadVertexData(drawCall);
-      }
-
-      VertexBuffer* buffer = &(renderable->buffer);
-      glUseProgram(renderable->shader->program);
-
-      uint32 currentVboIndex = renderable->currentVboIndex;
-      uint32 vbo = renderable->vbos[currentVboIndex];
-      glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-      // Set buffer format
-      uint32 vertexStride = buffer->stride;
-      uint32 attributeCount = buffer->attributeCount;
-      for (int i = 0; i < attributeCount; i++) 
-      {
-        VertexAttribute* attribute = buffer->attributes + i;    
-        glEnableVertexAttribArray(attribute->location);
-
-        GLuint glType = _internalToGlType(attribute->type);
-        glVertexAttribPointer(attribute->location, attribute->size, glType, GL_FALSE, vertexStride,
-              (void*)((size_t) attribute->offset));
-      }
-
-      // enable/bind textures
-      uint32 textureCount = drawCall->textureCount;
-      for (int i = 0; i < textureCount; i++) 
-      {
-        glActiveTexture(GL_TEXTURE0 + i) ;
-        uint32 textureId = drawCall->textureId[i];
-        glBindTexture(GL_TEXTURE_2D, textureId);
-      }
-
-      // Draw
-      uint32 streamStart = renderable->index0;
-      uint32 streamSize = renderable->index1 - streamStart;
-      //TODO(marcio): Figure out the best way to allow indexed rendering
-      //TODO(marcio): Figure out the best way to allow instanced rendering
-      glDrawArrays(buffer->primitive, streamStart, streamSize);
-     
-      // create new fence if necessary
-      if (renderable->needNewSync)
-      {
-        // TODO: This shouldn't be called for static buffers
-        renderable->fences[currentVboIndex] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-        renderable->needNewSync = 0;
-      }
-
-      // disable bound attributes
-      for (int i = 0; i < attributeCount; i++) 
-      {
-        VertexAttribute* attribute = buffer->attributes + 1;    
-        glDisableVertexAttribArray(attribute->location);
-      }
-
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-      glUseProgram(0);
-    }
 
     void flush(Context* context)
     {
@@ -491,6 +523,7 @@ namespace ldk
 
       glClear(context->clearBits);
       glEnable(context->settingsBits);
+      glDepthFunc(GL_LESS);
 
       // execute draw calls
       for (int i = 0; i < drawCallCount; i++) 

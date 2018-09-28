@@ -94,6 +94,7 @@ PFNGLMAPBUFFERRANGEPROC glMapBufferRange;
 PFNGLACTIVETEXTUREPROC glActiveTexture;
 PFNGLDRAWARRAYSPROC glDrawArrays;
 PFNGLDISABLEVERTEXATTRIBARRAYPROC glDisableVertexAttribArray;
+PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
 
 //TODO: Use a custom container with custom memory allocation
 #include <map>
@@ -369,6 +370,7 @@ namespace ldk
       FETCH_GL_FUNC(PFNGLACTIVETEXTUREPROC, glActiveTexture);
       FETCH_GL_FUNC(PFNGLDRAWARRAYSPROC, glDrawArrays);
       FETCH_GL_FUNC(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray);
+      FETCH_GL_FUNC(PFNGLUNIFORMMATRIX4FVPROC, glUniformMatrix4fv);
 
 #undef FETCH_GL_FUNC
 
