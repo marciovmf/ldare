@@ -13,8 +13,7 @@ float mesh[] = {
 
 float mesh[]
 {
-    //messy pile of vertex data. Chill out, this is disposable/crappy test data
-    -1.0f,	-1.0f,	-1.0f,	0,	0,	1,	
+-1.0f,	-1.0f,	-1.0f,	0,	0,	1,	
      -1.0f,	-1.0f,	1.0f,	0,	0,	1,	
     -1.0f,	1.0f,	1.0f,	0,	0,	1,	
     1.0f,	1.0f,	-1.0f,	0,	0,	1,	
@@ -49,7 +48,7 @@ float mesh[]
     -1.0f,	1.0f,	1.0f,	0,	0,	1,	
     1.0f,	1.0f,	1.0f,	0,	1,	1,	
     -1.0f,	1.0f,	1.0f,	1,	0,	1,	
-    1.0f,	-1.0f,	1.0f,	0,	0,	1	
+    1.0f,	-1.0f,	1.0f,	0,	0,	1
 };
 
 #define VERTEX_SIZE (6 * sizeof(float))
@@ -104,7 +103,7 @@ void gameStart(void* memory)
     return;
 
   //_gameState->context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, 0);
-  _gameState->context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_CULL_FACE | GL_DEPTH_TEST);
+  _gameState->context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT ,0);
   
   ldk::gl::makeVertexBuffer(&_gameState->buffer, 64, VERTEX_SIZE);
   ldk::gl::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, ldk::gl::VertexAttributeType::FLOAT, 0);
@@ -123,7 +122,7 @@ void gameStart(void* memory)
   _gameState->initialized;
 
   // projection
-  _gameState->projMatrix.perspective(RADIAN(45), 4/3, 0.0f, 100.0f);
+  _gameState->projMatrix.perspective(RADIAN(45), 4/3, 50.0f, -50.0f);
   ldk::gl::setShaderParam(&_gameState->shader, "mprojection", &_gameState->projMatrix);
 
   // model

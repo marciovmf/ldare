@@ -520,10 +520,12 @@ namespace ldk
     {
       uint32 drawCallCount = context->drawCallCount;
       _sortDrawCalls(context->drawCalls, drawCallCount);
-
-      glClear(context->clearBits);
-      glEnable(context->settingsBits);
+      
+      glEnable(GL_DEPTH_TEST);
+      glEnable(GL_CULL_FACE);
       glDepthFunc(GL_LESS);
+
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       // execute draw calls
       for (int i = 0; i < drawCallCount; i++) 
