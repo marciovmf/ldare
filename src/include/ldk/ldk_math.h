@@ -2,6 +2,7 @@
 #define _LDK_MATH_H_
 
 #define PI 3.14159265359L
+#define DEG2RAD (PI/180f)
 #define RADIAN(n) (((n) * PI)/180.0f)
 
 #define MAX(a,b) ((a) > (b) ? a : b)
@@ -171,7 +172,7 @@ namespace ldk
 
 		Mat4& scale(float x, float y, float z);
 
-		inline Mat4& rotate(float rad);
+    void rotate(float x, float y, float z, float angle_rad);
 
 		inline void diagonal(float value);
 

@@ -399,23 +399,35 @@ namespace ldk
 			identity();
 		}
 
-		Mat4 Mat4::multiply(const Mat4& a, const Mat4& b)
+		Mat4 Mat4::multiply(const Mat4& matA, const Mat4& matB)
 		{
-			Mat4 result;
+      Mat4 result;
 
-			for (int32 column = 0; column < 4; column++)
-			{
-				for (int32 line = 0; line < 4; line++)
-				{
-					float sum = 0.0f;
-					sum += a.element[line] * b.element[column * 4];
-					sum += a.element[line + 1 * 4] * b.element[column * 4 + 1];
-					sum += a.element[line + 2 * 4] * b.element[column * 4 + 2];
-					sum += a.element[line + 3 * 4] * b.element[column * 4 + 3];
-					result.element[line + column * 4] = sum;
-				}
-			}
-			return result;
+      float* a = (float *) matA.element;
+      float* b = (float *) matB.element;
+      float* c = (float *) result.element;
+
+      c[0]  = a[0] * b[0] + a[4] * b[1] + a[8] * b[2] + a[12] * b[3];
+      c[4]  = a[0] * b[4] + a[4] * b[5] + a[8] * b[6] + a[12] * b[7];
+      c[8]  = a[0] * b[8] + a[4] * b[9] + a[8] * b[10] + a[12] * b[11];
+      c[12] = a[0] * b[12] + a[4] * b[13] + a[8] * b[14] + a[12] * b[15];
+
+      c[1]  = a[1] * b[0] + a[5] * b[1] + a[9] * b[2] + a[13] * b[3];
+      c[5]  = a[1] * b[4] + a[5] * b[5] + a[9] * b[6] + a[13] * b[7];
+      c[9]  = a[1] * b[8] + a[5] * b[9] + a[9] * b[10] + a[13] * b[11];
+      c[13] = a[1] * b[12] + a[5] * b[13] + a[9] * b[14] + a[13] * b[15];
+      
+      c[2]  = a[2] * b[0] + a[6] * b[1] + a[10] * b[2] + a[14] * b[3];
+      c[6]  = a[2] * b[4] + a[6] * b[5] + a[10] * b[6] + a[14] * b[7];
+      c[10] = a[2] * b[8] + a[6] * b[9] + a[10] * b[10] + a[14] * b[11];
+      c[14] = a[2] * b[12] + a[6] * b[13] + a[10] * b[14] + a[14] * b[15];
+      
+      c[3]  = a[3] * b[0] + a[7] * b[1] + a[11] * b[2] + a[15] * b[3];
+      c[7]  = a[3] * b[4] + a[7] * b[5] + a[11] * b[6] + a[15] * b[7];
+      c[11] = a[3] * b[8] + a[7] * b[9] + a[11] * b[10] + a[15] * b[11];
+      c[15] = a[3] * b[12] + a[7] * b[13] + a[11] * b[14] + a[15] * b[15];
+
+      return result;
 		}
 
 		float Mat4::operator[](int32 n)
@@ -468,19 +480,28 @@ namespace ldk
 			return *this;
 		}
 
-		inline Mat4& Mat4::rotate(float rad)
-		{
-			Mat4 zRotationMatrix;
-			float costTheta = cosf(rad);
-			float sinTheta = sin(rad);
-			zRotationMatrix.element[0] = costTheta;
-			zRotationMatrix.element[1] = sinTheta;
+    //https://en.wikipedia.org/wiki/Transformation_matrix#Rotation_2
+    void Mat4::rotate(float x, float y, float z, float angle)
+    {
+      float c = cos(angle);
+      float s = sin(angle);
+      float oneMinusC = 1 - c;
 
-			zRotationMatrix.element[4] = -sinTheta;
-			zRotationMatrix.element[5] = costTheta;
-			*this *= zRotationMatrix;
-			return *this;
-		}
+      Mat4 tx;
+      tx.element[0]  = x * x * oneMinusC + c;
+      tx.element[1]  = x * y * oneMinusC + z * s;
+      tx.element[2]  = x * z * oneMinusC - y * s;
+
+      tx.element[4]  = y * x * oneMinusC - z * s;
+      tx.element[5]  = y * y * oneMinusC + c;
+      tx.element[6]  = y * z * oneMinusC + x * s;
+
+      tx.element[8]  = z * x * oneMinusC + y * s;
+      tx.element[9]  = z * y * oneMinusC - x * s;
+      tx.element[10] = z * z * oneMinusC + c;
+ 
+      *this *= tx; 
+    }
 
 		inline void Mat4::diagonal(float value)
 		{
@@ -521,20 +542,19 @@ namespace ldk
 		void Mat4::perspective(float fov, float aspect, float near, float far)
     {
       // https://i.stack.imgur.com/oesw9.jpg
-      float tanHalfFov = tan(fov/2);
+      float a = 1.0f / (float) tanf(fov / 2.0f);
       float distance = far - near;
 
 			// Diagonal
-			element[0] = 1 / (aspect * tanHalfFov);
-			element[5] = 1 / tanHalfFov;
-			element[10] = -(far + near) / distance;
+			element[0] = a / aspect;
+			element[5] = a;
+			element[10] = -((far + near) / distance);
 
-			element[11] = -1;
+			element[11] = -1.0f;
 
 			// Last column
-			element[14] = - (2 * far * near) / distance;
+			element[14] = -((2 * far * near) / distance);
     }
-
 
 	float lerp(float start, float end, float t) 
 	{
