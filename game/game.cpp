@@ -13,38 +13,43 @@ float mesh[] = {
 
 float mesh[]
 {
-
-// Front
-       0.0f, 1.0f, 0.0f   ,
-      1.0f, 0.0f, 0.0f    ,  // Red
-      -1.0f, -1.0f, 1.0f  ,
-      0.0f, 1.0f, 0.0f    ,  // Green
-      1.0f, -1.0f, 1.0f   ,
-      0.0f, 0.0f, 1.0f    ,  // Blue
-                          
-      // Right            
-      0.0f, 1.0f, 0.0f    ,
-      1.0f, 0.0f, 0.0f    ,  // Red
-      1.0f, -1.0f, 1.0f   ,
-      0.0f, 0.0f, 1.0f    , // Blue
-      1.0f, -1.0f, -1.0f  ,
-      0.0f, 1.0f, 0.0f    ,  // Green
-                          
-      // Back             
-      0.0f, 1.0f, 0.0f    ,
-      1.0f, 0.0f, 0.0f    ,  // Red
-      1.0f, -1.0f, -1.0f  ,
-      0.0f, 1.0f, 0.0f    ,  // Green
-      -1.0f, -1.0f, -1.0f ,
-      0.0f, 0.0f, 1.0f    ,  // Blue
-                          
-      // Left             
-       0.0f, 1.0f, 0.0f   ,
-      1.0f,0.0f,0.0f      ,  // Red
-      -1.0f,-1.0f,-1.0f   ,
-      0.0f,0.0f,1.0f      ,  // Blue
-      -1.0f,-1.0f, 1.0f   ,
-      0.0f,1.0f,0.0f        // Green
+    //messy pile of vertex data. Chill out, this is disposable/crappy test data
+    -1.0f,	-1.0f,	-1.0f,	0,	0,	1,	
+     -1.0f,	-1.0f,	1.0f,	0,	0,	1,	
+    -1.0f,	1.0f,	1.0f,	0,	0,	1,	
+    1.0f,	1.0f,	-1.0f,	0,	0,	1,	
+    -1.0f,	-1.0f,	-1.0f,	0,	0,	1,	
+    -1.0f,	1.0f,	-1.0f,	1,	0,	1,	
+    1.0f,	-1.0f,	1.0f,	  0,	0,	1,	
+    -1.0f,	-1.0f,	-1.0f,	0,	0,	1,	
+    1.0f,	-1.0f,  -1.0f,	  0,	0,	1,	
+    1.0f,	1.0f,	-1.0f,	  0,	0,	1,	
+    1.0f,	-1.0f,	-1.0f,	  0,	0,	1,	
+    -1.0f,	-1.0f,	-1.0f,	1,	0,	1,	
+    -1.0f,	-1.0f,	-1.0f,	0,	0,	1,	
+    -1.0f,	1.0f,	1.0f,	0,	1,	1,	
+    -1.0f,	1.0f,	-1.0f,	0,	0,	1,	
+    1.0f,	-1.0f,	1.0f,	0,	0,	1,	
+    -1.0f,	-1.0f,	1.0f,	0,	0,	1,	
+    -1.0f,	-1.0f,	-1.0f,	0,	1,	1,	
+    -1.0f,	1.0f,	1.0f,	0,	0,	1,	
+    -1.0f,	-1.0f,	1.0f,	0,	0,	1,	
+    1.0f,	-1.0f,	1.0f,	0,	0,	1,	
+    1.0f,	1.0f,	1.0f,	1,	0,	1,	
+    1.0f,	-1.0f,	-1.0f,	0,	0,	1,	
+    1.0f,	1.0f,	-1.0f,	0,	0,	1,	
+    1.0f,	-1.0f,	-1.0f,	1,	0,	1,	
+    1.0f,	1.0f,	1.0f,	0,	1,	1,	
+    1.0f,	-1.0f,	1.0f,	1,	0,	1,	
+    1.0f,	1.0f,	1.0f,	0,	1,	1,	
+    1.0f,	1.0f,	-1.0f,	0,	0,	1,	
+    -1.0f,	1.0f,	-1.0f,	0,	0,	1,	
+    1.0f,	1.0f,	1.0f,	0,	1,	1,	
+    -1.0f,	1.0f,	-1.0f,	0,	0,	1,	
+    -1.0f,	1.0f,	1.0f,	0,	0,	1,	
+    1.0f,	1.0f,	1.0f,	0,	1,	1,	
+    -1.0f,	1.0f,	1.0f,	1,	0,	1,	
+    1.0f,	-1.0f,	1.0f,	0,	0,	1	
 };
 
 #define VERTEX_SIZE (6 * sizeof(float))
@@ -98,8 +103,8 @@ void gameStart(void* memory)
   if (_gameState->initialized)
     return;
 
-  _gameState->context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, 0);
-  //_gameState->context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST);
+  //_gameState->context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, 0);
+  _gameState->context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_CULL_FACE | GL_DEPTH_TEST);
   
   ldk::gl::makeVertexBuffer(&_gameState->buffer, 64, VERTEX_SIZE);
   ldk::gl::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, ldk::gl::VertexAttributeType::FLOAT, 0);
@@ -113,7 +118,7 @@ void gameStart(void* memory)
   // compose draw call
   _gameState->drawCall.renderable = &_gameState->renderable;
   _gameState->drawCall.textureCount = 0;
-  _gameState->drawCall.vertexCount = 12;
+  _gameState->drawCall.vertexCount = 36;
   _gameState->drawCall.vertices = mesh;
   _gameState->initialized;
 
