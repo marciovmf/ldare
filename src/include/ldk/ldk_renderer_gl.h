@@ -89,6 +89,8 @@ namespace ldk
       VertexBuffer buffer;
       Shader* shader;
       RenderQueue renderQueue; 
+      GLuint ibo;
+      GLuint iboSize;
       GLuint attributeCount;
       GLuint index0;
       GLuint index1;
@@ -102,11 +104,20 @@ namespace ldk
 
     struct DrawCall
     {
-      GLuint vertexCount;
+      enum 
+      {
+        DRAW = 0,
+        DRAW_INDEXED
+        // 
+      } type;
+
       void* vertices;
+      Renderable* renderable;
+      GLuint indexStart;
+      GLuint vertexCount;
+      GLuint indexCount;
       GLuint textureCount;
       GLuint textureId[LDK_GL_MAX_TEXTURES];
-      Renderable* renderable;
     };
 
     LDK_API Context* createContext(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits);
@@ -118,6 +129,7 @@ namespace ldk
     LDK_API void makeVertexBuffer(VertexBuffer* buffer, uint32 bufferSize, uint32 stride);
     LDK_API void addVertexBufferAttribute(VertexBuffer* buffer, char* name, uint32 size, VertexAttributeType type, uint32 offset);
     LDK_API void makeRenderable(Renderable* renderable, VertexBuffer* vertexBuffer, bool isStatic);
+    LDK_API void makeRenderable(Renderable* renderable, VertexBuffer* vertexBuffer, uint32* indices, uint32 maxIndexCount, bool isStatic);
     LDK_API void pushDrawCall(Context* context, DrawCall* drawCall);
     LDK_API void flush(Context* context);
   } // gl

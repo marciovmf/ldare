@@ -258,12 +258,27 @@ namespace ldk
         glBindTexture(GL_TEXTURE_2D, textureId);
       }
 
-      // Draw
-      uint32 streamStart = renderable->index0;
-      uint32 streamSize = renderable->index1 - streamStart;
-      //TODO(marcio): Figure out the best way to allow indexed rendering
-      //TODO(marcio): Figure out the best way to allow instanced rendering
-      glDrawArrays(buffer->primitive, streamStart, streamSize);
+      //TODO(marcio): implement instanced rendering
+      switch (drawCall->type) 
+      {
+        case DrawCall::DRAW:
+          {
+            uint32 streamStart = renderable->index0;
+            uint32 streamSize = renderable->index1 - streamStart;
+            glDrawArrays(buffer->primitive, streamStart, streamSize);
+          }
+          break;
+        case DrawCall::DRAW_INDEXED:
+          {
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable->ibo);
+            glDrawElements(buffer->primitive, drawCall->indexCount, GL_UNSIGNED_INT, (const GLvoid*)drawCall->indexStart);
+          }
+          break;
+        default:
+            LDK_ASSERT(false, "Uknown render command passed to renderer");
+          break;
+      }
+
      
       // create new fence if necessary
       if (renderable->needNewSync)
@@ -280,6 +295,7 @@ namespace ldk
         glDisableVertexAttribArray(attribute->location);
       }
 
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       glUseProgram(0);
     }
@@ -411,7 +427,6 @@ namespace ldk
         attribute->location = glGetAttribLocation(shader->program, attribName);
       }
 
-      // Generate GPU buffers
       VertexBuffer* buffer = &renderable->buffer;
       for (int i = 0; i < renderable->vboCount; i++) 
       {
@@ -505,6 +520,23 @@ namespace ldk
         renderable->usage = GL_DYNAMIC_DRAW;
         renderable->vboCount = LDK_GL_NUM_VBOS;
       }
+    }
+
+    void makeRenderable(Renderable* renderable, VertexBuffer* vertexBuffer, uint32* indices, uint32 maxIndexCount, bool isStatic)
+    {
+      makeRenderable(renderable, vertexBuffer, isStatic);
+      
+      GLuint ibo;
+      uint32 iboSize = maxIndexCount * sizeof(uint32);
+
+      //NOTE: Index buffers are always static, by now... Do we need it to be dynamic ?
+      glGenBuffers(1, &ibo);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, iboSize, indices, GL_STATIC_DRAW);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+      renderable->ibo = ibo;
+      renderable->iboSize = iboSize;
     }
 
     //
