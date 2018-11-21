@@ -5,7 +5,7 @@
 
 namespace ldk
 {
-	typedef uint32 Shader;
+	typedef uint32 Shader_old;
 	struct Texture
 	{
 		uint32 id;
@@ -15,7 +15,7 @@ namespace ldk
 
 	struct Material
 	{
-		ldk::Shader shader;
+		ldk::Shader_old shader;
 		ldk::Texture texture;
 		int32 depthFunc;
 		int32 blendFuncSrc;

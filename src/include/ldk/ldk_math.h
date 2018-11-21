@@ -1,12 +1,8 @@
-/**
- * win32_math.h
- * ldk math functions and structures
- */
 #ifndef _LDK_MATH_H_
 #define _LDK_MATH_H_
 
-#include <math.h>
 #define PI 3.14159265359L
+#define DEG2RAD (PI/180f)
 #define RADIAN(n) (((n) * PI)/180.0f)
 
 #define MAX(a,b) ((a) > (b) ? a : b)
@@ -48,6 +44,8 @@ namespace ldk
 		Vec2& operator/=(const Vec2& other);
 
 		float magnitude();
+		
+		Vec2 normalize();
 
 		static const Vec2& one();
 
@@ -88,6 +86,8 @@ namespace ldk
 		Vec3& operator/=(const Vec3& other);
 
 		float magnitude();
+		
+		Vec3 normalize();
 
 		static const Vec3& one();
 
@@ -125,6 +125,8 @@ namespace ldk
 		Vec4& operator/=(const Vec4& other);
 
 		float magnitude();
+		
+		Vec4 normalize();
 
 		static const Vec4& one();
 
@@ -170,7 +172,7 @@ namespace ldk
 
 		Mat4& scale(float x, float y, float z);
 
-		inline Mat4& rotate(float rad);
+    void rotate(float x, float y, float z, float angle_rad);
 
 		inline void diagonal(float value);
 

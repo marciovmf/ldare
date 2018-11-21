@@ -22,15 +22,17 @@ RELEASE_LINK_OPTIONS=/link /subsystem:windows $(LIBS)
 CFLAGS=$(DEBUG_COMPILE_OPTIONS)
 LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
-.PHONY: outdirfolder gameassets clean assets
+.PHONY: outdirfolder gameassets clean assets all
 
-ldk: outdirfolder $(LDK_ENGINE) $(LDK_EDITOR) assets 
+all: ldk editor game 
+
+ldk: outdirfolder $(LDK_ENGINE) $(LDK_EDITOR) 
 
 editor: $(LDK_EDITOR)
 
 game: $(LDK_GAME) gameassets
 
-$(LDK_GAME): $(LDK_EDITOR) game/*.cpp
+$(LDK_GAME): game/*.cpp
 	@echo Building game dll...
 	cl game\game.cpp /Fo$(OUTDIR)\ /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /PDB:$(OUTDIR)\ldare_game_%random%.pdb $(OUTDIR)/ldk.lib
 

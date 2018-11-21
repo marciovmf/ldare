@@ -1,130 +1,160 @@
 #include <ldk/ldk.h>
 
-#define SCREEN_WIDTH 1024
-#define SCREEN_HEIGHT 768
+#define STR(s) #s
+
+using namespace ldk;
+
+#define VERTEX_SIZE (6 * sizeof(float))
+
+float mesh[]
+{   
+    // vertex color
+    // front
+    -1.0, -1.0,  1.0,   1.0, 0.0, 0.0,
+     1.0, -1.0,  1.0,   0.0, 1.0, 0.0,
+     1.0,  1.0,  1.0,   0.0, 0.0, 1.0,
+    -1.0,  1.0,  1.0,   1.0, 1.0, 1.0,
+    // back
+    -1.0, -1.0, -1.0,   1.0, 0.0, 0.0,
+     1.0, -1.0, -1.0,   0.0, 1.0, 0.0,
+     1.0,  1.0, -1.0,   0.0, 0.0, 1.0,
+    -1.0,  1.0, -1.0,   1.0, 1.0, 1.0,
+};
 
 struct GameState
 {
-	bool initialized;
-	ldk::Material material;
-	ldk::Material fontMaterial;
-	ldk::Sprite sprite;
-	ldk::Audio bgMusic;
-	ldk::FontAsset* font;
-} *gameState = nullptr;
+  uint32 initialized;
+  ldk::gl::Context* context;
+  ldk::gl::Shader shader;
+  ldk::gl::Renderable renderable;
+  ldk::gl::VertexBuffer buffer;
+  ldk::gl::DrawCall drawCall;
+  ldk::Mat4 modelMatrix;
+  ldk::Mat4 projMatrix;
+};
 
 
-void setupSprite();
-void gameInit(void* memory)
+uint32 indices[] = 
 {
-	LogInfo("Game initialized");
-	gameState = (GameState*)memory;
+		// front
+		0, 1, 2,
+		2, 3, 0,
+		// right
+		1, 5, 6,
+		6, 2, 1,
+		// back
+		7, 6, 5,
+		5, 4, 7,
+		// left
+		4, 0, 3,
+		3, 7, 4,
+		// bottom
+		4, 5, 1,
+		1, 0, 4,
+		// top
+		3, 2, 6,
+		6, 7, 3,
+	};
 
-	if (!gameState->initialized)
-	{
-		gameState->initialized = true;
-		ldk::render::spriteBatchInit();
-		gameState->material = ldk::render::loadMaterial("./assets/sprite.cfg"); 
-		gameState->fontMaterial = ldk::render::loadMaterial("./assets/font.cfg"); 
-		ldk::loadAudio("assets/bgmusic.wav", &gameState->bgMusic);
-		ldk::loadFont("assets/Caviar Dreams.font", &gameState->font);
-		ldk::render::spriteBatchSetFont((const ldk::FontAsset&)*gameState->font);
-	}
-	else
-	{
-		setupSprite();
-	}
+static GameState* _gameState;
+
+// Vertex shader
+char* vs = STR(#version 330\n
+	in vec3 _pos; 
+	in vec3 _color; 
+	out vec3 fragColor;
+  uniform mat4 mmodel;
+  uniform mat4 mprojection;
+  void main()
+  {
+	  gl_Position = mprojection * mmodel * vec4(_pos, 1.0); \n
+	  fragColor = _color;
+  });
+
+// Fragment shader
+char* fs = STR(#version 330\n
+  in vec3 fragColor;
+  out vec4 out_color;
+  void main()
+  {
+	  out_color = vec4(fragColor, 1.0);
+  });
+
+size_t gameInit()
+{
+  return sizeof(GameState);
 }
 
-void setupSprite()
+void gameStart(void* memory)
 {
-	gameState->sprite.position = {SCREEN_WIDTH /2, SCREEN_HEIGHT/2, 0};
-	gameState->sprite.color = { 1.0, 1.0, 1.0, 1.0 };
-	gameState->sprite.width = gameState->sprite.height = 64;
-	gameState->sprite.srcRect = {0,0,100,75};
-	gameState->sprite.angle = 0;
+  _gameState = (GameState*)memory;
+
+  if (_gameState->initialized)
+    return;
+
+  _gameState->context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT ,0);
+  ldk::gl::makeVertexBuffer(&_gameState->buffer, 64, VERTEX_SIZE);
+  ldk::gl::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, ldk::gl::VertexAttributeType::FLOAT, 0);
+  ldk::gl::addVertexBufferAttribute(&_gameState->buffer, "_color", 3, ldk::gl::VertexAttributeType::FLOAT,  3 * sizeof(float));
+  ldk::gl::loadShader(&_gameState->shader, vs, fs);
+
+  uint32 maxIndices = (sizeof(indices) / sizeof (uint32));
+  ldk::gl::makeRenderable(&_gameState->renderable, &_gameState->buffer, indices, maxIndices, true);
+  ldk::gl::setShader(&_gameState->renderable, &_gameState->shader);
+
+  // compose draw call
+  _gameState->drawCall.renderable = &_gameState->renderable;
+  _gameState->drawCall.type = gl::DrawCall::DRAW_INDEXED;
+  _gameState->drawCall.textureCount = 0;
+  _gameState->drawCall.vertexCount = 36;
+  _gameState->drawCall.vertices = mesh;
+  _gameState->drawCall.indexStart = 0;
+  _gameState->drawCall.indexCount = maxIndices;
+  _gameState->initialized = 1;
+
+  // projection
+  _gameState->projMatrix.perspective(RADIAN(45), 4/3, 50.0f, -50.0f);
+  ldk::gl::setShaderParam(&_gameState->shader, "mprojection", &_gameState->projMatrix);
+
+  // model
+  _gameState->modelMatrix.identity();
+  _gameState->modelMatrix.scale(Vec3{10.0, 10.0, 10.0});
+  _gameState->modelMatrix.translate(Vec3{0, 0, -10});
+  ldk::gl::setShaderParam(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
 }
 
-void gameStart()
+void gameUpdate(float deltaTime) 
 {
-	setupSprite();
-	LogInfo("Game started");
-	//ldk::playAudio(&gameState->bgMusic);
-}
+#if 1
+  Vec3 axis = {};
+  if (input::getKey(LDK_KEY_J))
+  {
+    axis.x = 1;
+  }
+  else if (input::getKey(LDK_KEY_K))
+  {
+    axis.y = 1;
+  }
+  else if (input::getKey(LDK_KEY_L))
+  {
+    axis.z = 1;
+  }
 
-float heading = 0;
-float drag = 0.0005f;
-float maxSpeed = 1.0f;
-float acceleration = 0.3f;
-ldk::Vec3 force = {};
-float t = 0;
+  if(axis.x || axis.y || axis.z)
+  {
+    _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(35.0f) * deltaTime);
+    ldk::gl::setShaderParam(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
+  }
+#else
+    _gameState->modelMatrix.rotate(1,1,1, RADIAN(45.0f) * deltaTime);
+    ldk::gl::setShaderParam(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
+#endif
 
-ldk::Vec4 textColor = {0,0,0,0.8f};
-
-void gameUpdate(float deltaTime)
-{
-	ldk::Sprite& sprite = gameState->sprite;
-	ldk::Material& material = gameState->material;
-
-	// steering
-	if (ldk::input::getKey(LDK_KEY_A)) sprite.angle += 5 * deltaTime;
-	if (ldk::input::getKey(LDK_KEY_D)) sprite.angle -= 5 * deltaTime;
-
-	// thrusting
-	if (ldk::input::getKey(LDK_KEY_W))
-	{
-		heading = sprite.angle;
-		force.x += cos(RADIAN(90) + heading) * acceleration * deltaTime;
-		force.y += sin(RADIAN(90) + heading) * acceleration * deltaTime;
-		t = 0;
-	}
-	else
-	{
-		//drag
-		t += drag * deltaTime;
-		force = ldk::lerpVec3(force, ldk::Vec3::zero(), t);
-	}
-
-	float speed = force.magnitude();
-	if (speed > maxSpeed)
-	{
-		speed *= maxSpeed/speed;
-		force *= speed * deltaTime;
-	}
-
-	sprite.position = sprite.position + force;
-
-	// wrap around the screen
-	if (sprite.position.x > SCREEN_WIDTH) sprite.position.x = 0;
-	if (sprite.position.x < 0) sprite.position.x = SCREEN_WIDTH;
-	if (sprite.position.y > SCREEN_HEIGHT) sprite.position.y = 0;
-	if (sprite.position.y < 0) sprite.position.y = SCREEN_HEIGHT;
-	
-	ldk::render::spriteBatchBegin(material);
-	ldk::render::spriteBatchSubmit(sprite);
-	ldk::render::spriteBatchEnd();
-
-	const ldk::Vec2& cursorPos = ldk::input::getMouseCursor();
-	char textBuffer[255];
-	sprintf(textBuffer, "%d,%d", (int)cursorPos.x, (int)cursorPos.y);
-
-	if (ldk::input::getMouseButtonDown(LDK_MOUSE_LEFT))
-		textColor = {1,0,0,0.8f};
-	else if (ldk::input::getMouseButtonDown(LDK_MOUSE_RIGHT))
-		textColor = {0,0,1,0.8f};
-	else if (ldk::input::getMouseButtonUp(LDK_MOUSE_LEFT) || ldk::input::getMouseButtonUp(LDK_MOUSE_RIGHT))
-		textColor = {0,0,0,0.8f};
-
-	ldk::Vec3 textPos = sprite.position;
-	textPos.y += 50;
-	textPos.z = 3;
-
-	ldk::render::spriteBatchBegin(gameState->fontMaterial);
-	ldk::render::spriteBatchText(textPos, 0.8f, textColor, textBuffer);
-	ldk::render::spriteBatchEnd();
+  ldk::gl::pushDrawCall(_gameState->context, &_gameState->drawCall);
+  ldk::gl::flush(_gameState->context);
 }
 
 void gameStop()
 {
-	LogInfo("Game stopped");
+  ldk::gl::destroyContext(_gameState->context);
 }

@@ -14,8 +14,8 @@ namespace ldk
 #define LDK_GAME_FUNCTION_UPDATE "gameUpdate"
 #define LDK_GAME_FUNCTION_STOP "gameStop"
 
-	typedef void (*LDK_PFN_GAME_INIT)(void* memory);
-	typedef void (*LDK_PFN_GAME_START)();
+	typedef size_t (*LDK_PFN_GAME_INIT)();
+	typedef void (*LDK_PFN_GAME_START)(void* memory);
 	typedef void (*LDK_PFN_GAME_UPDATE)(float deltaTime);
 	typedef void (*LDK_PFN_GAME_STOP)();
 
@@ -29,15 +29,15 @@ namespace ldk
 }
 
 #if defined(_LDK_WINDOWS_)
-#	define LDK_GAME_MODULE_NAME "ldk_game.dll"
+  #define LDK_GAME_MODULE_NAME "ldk_game.dll"
 #else
-#		error "Undefined platform"
+  #error "Undefined platform"
 #endif
 
 extern "C"
 {
-	LDK_GAME_CALLBACK void gameInit(void* gameStateMemory);
-	LDK_GAME_CALLBACK void gameStart();
+	LDK_GAME_CALLBACK size_t gameInit();
+	LDK_GAME_CALLBACK void gameStart(void* memory);
 	LDK_GAME_CALLBACK void gameUpdate(float deltaTime);
 	LDK_GAME_CALLBACK void gameStop();
 }
