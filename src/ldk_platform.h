@@ -39,21 +39,23 @@ namespace ldk
 		{
 			WIDTH = 1,
 			HEIGHT,
-			VISIBLE,										// 0 = hidden, > 0 = visible 
+			VISIBLE,										// visible if > 0
 			GL_CONTEXT_VERSION_MINOR,
 			GL_CONTEXT_VERSION_MAJOR,
 			COLOR_BUFFER_BITS,
 			DEPTH_BUFFER_BITS
 		};
 
-		// Error callback function 
-		typedef void (* LDKPlatformErrorFunc)(uint32 errorCode, const char* errorMsg);
+		//---------------------------------------------------------------------------
+    // Event callbacks
+		//---------------------------------------------------------------------------
+		typedef void(*LDKPlatformErrorFunc)(uint32 errorCode, const char* errorMsg);
+		typedef void(*LDKPlatformWindowCloseFunc)(LDKWindow*);
+		typedef void(*LDKPlatformWindowResizeFunc)(LDKWindow*, int32 width, int32 height);
 
-		// Window close callback function 
-		typedef void(* LDKPlatformWindowCloseFunc) (LDKWindow*);
-
-		typedef void(* LDKPlatformWindowResizeFunc) (LDKWindow*, int32 width, int32 height);
-
+		//---------------------------------------------------------------------------
+		// Initialization and finalization
+		//---------------------------------------------------------------------------
 		// Initialize the platform layer
 		LDK_API uint32 initialize();
 
@@ -63,11 +65,15 @@ namespace ldk
 		// Sets error callback for the platform
 		LDK_API void setErrorCallback(LDKPlatformErrorFunc errorCallback);
 
-		// sets the close callback for teh giver window
+
+		//---------------------------------------------------------------------------
+		// Window
+		//---------------------------------------------------------------------------
+		// sets the close callback for the given window
 		// the close flag is set befor this callback, but it is possible to override it with setWindowCloseFlag
 		LDK_API void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback);
 		
-		// sets the reize callback for the given window
+		// sets the resize callback for the given window
 		LDK_API void setWindowResizeCallback(LDKWindow* window, LDKPlatformWindowResizeFunc windowResizeCallback);
 
 		// Creates a window
@@ -88,7 +94,7 @@ namespace ldk
 		// It is usefull for overrinding a closing window and keep it open
 		LDK_API void setWindowCloseFlag(LDKWindow* window, bool flag);
 
-		// Displays a window created with LDKWwindowHing::VISIBLE = 0
+		// Displays a window created with LDKWwindowHint::VISIBLE = 0
 		LDK_API void showWindow(LDKWindow* window);
 
 		// Update the window framebuffer
@@ -100,8 +106,8 @@ namespace ldk
 		// Get the state of keyboard
 		LDK_API const ldk::platform::KeyboardState* getKeyboardState();
 
-		// Get the state of a gamepad.
-		LDK_API const ldk::platform::JoystickState* getJoystickState(uint32 gamepadId);
+		// Get the state of a joystick.
+		LDK_API const ldk::platform::JoystickState* getJoystickState(uint32 joystickId);
 
 		// Updates all windows and OS dependent events
 		LDK_API void pollEvents();
@@ -117,15 +123,14 @@ namespace ldk
 		//---------------------------------------------------------------------------
 		// Shared Library loading/unloading
 		//---------------------------------------------------------------------------
-
 		LDK_API ldk::platform::SharedLib* loadSharedLib(char* sharedLibName);
 
 		LDK_API bool unloadSharedLib(ldk::platform::SharedLib* sharedLib);
 
-		LDK_API const	void* getFunctionFromSharedLib(const ldk::platform::SharedLib*, const char* function);
+		LDK_API const void* getFunctionFromSharedLib(const ldk::platform::SharedLib*, const char* function);
 
 		//---------------------------------------------------------------------------
-		// File and filesystem api
+		// File and filesystem
 		//---------------------------------------------------------------------------
 		LDK_API void* loadFileToBuffer(const char* filename, size_t* bufferSize);
 
@@ -136,20 +141,22 @@ namespace ldk
 		LDK_API bool moveFile(const char* sourceFileName, const char* destFileName);
 		
 		LDK_API bool deleteFile(const char* sourceFileName);
+
 		//---------------------------------------------------------------------------
 		// Memory allocation
 		//---------------------------------------------------------------------------
 		LDK_API void* memoryAlloc(size_t size);
+
 		LDK_API void memoryFree(void* memory);
-		
-		//---------------------------------------------------------------------------
-		// Get the number of ticks since engine initialization
-		//---------------------------------------------------------------------------
-		LDK_API uint64 getTicks(); 
+	
 
 		//---------------------------------------------------------------------------
-		// Get the time in seconds between 2 tick intervals
+		// Time
 		//---------------------------------------------------------------------------
+		// Get the number of ticks since engine initialization
+		LDK_API uint64 getTicks(); 
+
+		// Get the time in seconds between 2 tick intervals
 		LDK_API float getTimeBetweenTicks(uint64 start, uint64 end); 
 	}
 }
