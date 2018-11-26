@@ -9,6 +9,7 @@
 namespace ldk 
 {
 	typedef int8 KeyState;
+
 	namespace platform 
 	{
 		// platform specific window 
@@ -53,6 +54,7 @@ namespace ldk
 		typedef void(*LDKPlatformWindowCloseFunc)(LDKWindow*);
 		typedef void(*LDKPlatformWindowResizeFunc)(LDKWindow*, int32 width, int32 height);
 
+
 		//---------------------------------------------------------------------------
 		// Initialization and finalization
 		//---------------------------------------------------------------------------
@@ -70,7 +72,7 @@ namespace ldk
 		// Window
 		//---------------------------------------------------------------------------
 		// sets the close callback for the given window
-		// the close flag is set befor this callback, but it is possible to override it with setWindowCloseFlag
+		// the close flag is set before this callback, but it is possible to override it with setWindowCloseFlag
 		LDK_API void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback);
 		
 		// sets the resize callback for the given window
@@ -100,6 +102,12 @@ namespace ldk
 		// Update the window framebuffer
 		LDK_API void swapWindowBuffer(LDKWindow* window);
 
+		// Updates all windows and OS dependent events
+		LDK_API void pollEvents();
+
+    //---------------------------------------------------------------------------
+		// Input
+		//---------------------------------------------------------------------------
 		// Get the state of mouse
 		LDK_API const ldk::platform::MouseState* getMouseState();
 
@@ -109,9 +117,6 @@ namespace ldk
 		// Get the state of a joystick.
 		LDK_API const ldk::platform::JoystickState* getJoystickState(uint32 joystickId);
 
-		// Updates all windows and OS dependent events
-		LDK_API void pollEvents();
-
 
 		//---------------------------------------------------------------------------
 		// Audio
@@ -119,6 +124,7 @@ namespace ldk
 		LDK_API uint32 createAudioBuffer(void* fmt, uint32 fmtSize, void* data, uint32 dataSize);
 
 		LDK_API void playAudioBuffer(uint32 audioBufferId);
+
 
 		//---------------------------------------------------------------------------
 		// Shared Library loading/unloading
@@ -128,6 +134,7 @@ namespace ldk
 		LDK_API bool unloadSharedLib(ldk::platform::SharedLib* sharedLib);
 
 		LDK_API const void* getFunctionFromSharedLib(const ldk::platform::SharedLib*, const char* function);
+
 
 		//---------------------------------------------------------------------------
 		// File and filesystem
@@ -141,6 +148,7 @@ namespace ldk
 		LDK_API bool moveFile(const char* sourceFileName, const char* destFileName);
 		
 		LDK_API bool deleteFile(const char* sourceFileName);
+
 
 		//---------------------------------------------------------------------------
 		// Memory allocation
