@@ -47,7 +47,7 @@ namespace ldk
 		};
 
 		//---------------------------------------------------------------------------
-    // Event callbacks
+		// Event callbacks 
 		//---------------------------------------------------------------------------
 		typedef void(*LDKPlatformErrorFunc)(uint32 errorCode, const char* errorMsg);
 		typedef void(*LDKPlatformWindowCloseFunc)(LDKWindow*);
