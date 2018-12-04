@@ -114,13 +114,13 @@ void gameStart(void* memory)
 
   // projection
   _gameState->projMatrix.perspective(RADIAN(45), 4/3, 50.0f, -50.0f);
-  ldk::gl::setShaderParam(&_gameState->shader, "mprojection", &_gameState->projMatrix);
+  ldk::gl::setShaderMatrix4(&_gameState->shader, "mprojection", &_gameState->projMatrix);
 
   // model
   _gameState->modelMatrix.identity();
   _gameState->modelMatrix.scale(Vec3{10.0, 10.0, 10.0});
   _gameState->modelMatrix.translate(Vec3{0, 0, -10});
-  ldk::gl::setShaderParam(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
+  ldk::gl::setShaderMatrix4(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
 }
 
 void gameUpdate(float deltaTime) 
@@ -143,11 +143,11 @@ void gameUpdate(float deltaTime)
   if(axis.x || axis.y || axis.z)
   {
     _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(35.0f) * deltaTime);
-    ldk::gl::setShaderParam(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
+    ldk::gl::setShaderMatrix4(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
   }
 #else
     _gameState->modelMatrix.rotate(1,1,1, RADIAN(45.0f) * deltaTime);
-    ldk::gl::setShaderParam(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
+    ldk::gl::setShaderMatrix4(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
 #endif
 
   ldk::gl::pushDrawCall(_gameState->context, &_gameState->drawCall);

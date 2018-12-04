@@ -373,7 +373,7 @@ namespace ldk
       return program > 0;
     }
 
-    void setShaderParam(Shader* shader, char* name, ldk::Mat4* matrix)
+    void setShaderMatrix4(Shader* shader, char* name, ldk::Mat4* matrix)
     {
       const Uniform* uniform = _findUniform(shader, name);
       
@@ -386,6 +386,67 @@ namespace ldk
         glUniformMatrix4fv(uniform->id, 1, 0, matrix->element);
         glUseProgram(0);
       }
+    }
+
+    void setShaderInt(Shader* shader, char* name, uint32 count, uint32* intParam)
+    {
+      glUseProgram(shader->program);
+      const Uniform* uniform = _findUniform(shader, name);
+
+      switch(count)
+      {
+        case 1:
+          glUniform1i(uniform->location, intParam[0]);
+          break;
+
+        case 2:
+          glUniform2i(uniform->location, intParam[0], intParam[1]);
+          break;
+
+        case 3:
+          glUniform3i(uniform->location, intParam[0], intParam[1], intParam[2]);
+          break;
+
+        case 4:
+          glUniform4i(uniform->location, intParam[0], intParam[1], intParam[2], intParam[3]);
+          break;
+
+        default:
+          LDK_ASSERT(count > 0 && count < 4, "setShaderInt count is between 0 and 4");
+          break;
+      }
+      glUseProgram(0);
+    }
+
+
+    void setShaderFloat(Shader* shader, char* name, uint32 count, float* floatParam)
+    {
+      glUseProgram(shader->program);
+      const Uniform* uniform = _findUniform(shader, name);
+
+      switch(count)
+      {
+        case 1:
+          glUniform1f(uniform->location, floatParam[0]);
+          break;
+
+        case 2:
+          glUniform2f(uniform->location, floatParam[0], floatParam[1]);
+          break;
+
+        case 3:
+          glUniform3f(uniform->location, floatParam[0], floatParam[1], floatParam[2]);
+          break;
+
+        case 4:
+          glUniform4f(uniform->location, floatParam[0], floatParam[1], floatParam[2], floatParam[3]);
+          break;
+
+        default:
+          LDK_ASSERT(count > 0 && count < 4, "setShaderFloat count is between 0 and 4");
+          break;
+      }
+      glUseProgram(0);
     }
 
     void setShader(Renderable* renderable, Shader* shader)

@@ -122,10 +122,11 @@ namespace ldk
 
     LDK_API Context* createContext(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits);
     LDK_API void destroyContext(Context* context);
-
     LDK_API bool loadShader(Shader* shader, char* vertexSource, char* fragmentSource);
-    LDK_API void setShaderParam(Shader* shader, char* name, ldk::Mat4* matrix);
     LDK_API void setShader(Renderable* renderable, Shader* shader);
+    LDK_API void setShaderMatrix4(Shader* shader, char* name, ldk::Mat4* matrix);
+    LDK_API void setShaderInt(Shader* shader, char* name, uint32 count, uint32* intParam);
+    LDK_API void setShaderFloat(Shader* shader, char* name, uint32 count, float* floatParam);
     LDK_API void makeVertexBuffer(VertexBuffer* buffer, uint32 bufferSize, uint32 stride);
     LDK_API void addVertexBufferAttribute(VertexBuffer* buffer, char* name, uint32 size, VertexAttributeType type, uint32 offset);
     LDK_API void makeRenderable(Renderable* renderable, VertexBuffer* vertexBuffer, bool isStatic);
