@@ -487,8 +487,8 @@ namespace ldk
 
 #define GET_GAMEPAD_BUTTON(btn) do {\
   isDown = (buttons & XINPUT_GAMEPAD_##btn) > 0;\
-  wasDown = gamepad.button[LDK_JOYSTICK_##btn] & LDK_KEYSTATE_PRESSED;\
-  gamepad.button[LDK_JOYSTICK_##btn] = ((isDown != wasDown) << 0x01) | isDown;\
+  wasDown = gamepad.button[ldk::input::LDK_JOYSTICK_##btn] & LDK_KEYSTATE_PRESSED;\
+  gamepad.button[ldk::input::LDK_JOYSTICK_##btn] = ((isDown != wasDown) << 0x01) | isDown;\
 } while(0)
         GET_GAMEPAD_BUTTON(DPAD_UP);			
         GET_GAMEPAD_BUTTON(DPAD_DOWN);
@@ -515,10 +515,10 @@ namespace ldk
         int32 axisY = gamepadState.Gamepad.sThumbLY;
         int32 deadZone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
 
-        gamepad.axis[LDK_JOYSTICK_AXIS_LX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+        gamepad.axis[ldk::input::LDK_JOYSTICK_AXIS_LX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
         GAMEPAD_AXIS_VALUE(axisX);
 
-        gamepad.axis[LDK_JOYSTICK_AXIS_LY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+        gamepad.axis[ldk::input::LDK_JOYSTICK_AXIS_LY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
         GAMEPAD_AXIS_VALUE(axisY);
 
         // Right thumb axis
@@ -526,10 +526,10 @@ namespace ldk
         axisY = gamepadState.Gamepad.sThumbRY;
         deadZone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
 
-        gamepad.axis[LDK_JOYSTICK_AXIS_RX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
+        gamepad.axis[ldk::input::LDK_JOYSTICK_AXIS_RX] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :
         GAMEPAD_AXIS_VALUE(axisX);
 
-        gamepad.axis[LDK_JOYSTICK_AXIS_RY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+        gamepad.axis[ldk::input::LDK_JOYSTICK_AXIS_RY] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
         GAMEPAD_AXIS_VALUE(axisY);
 
 
@@ -538,10 +538,10 @@ namespace ldk
         axisY = gamepadState.Gamepad.bRightTrigger;
         deadZone = XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
 
-        gamepad.axis[LDK_JOYSTICK_AXIS_LTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :	
+        gamepad.axis[ldk::input::LDK_JOYSTICK_AXIS_LTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisX, deadZone) ? 0.0f :	
         axisX/(float) XINPUT_MAX_TRIGGER_VALUE;
 
-        gamepad.axis[LDK_JOYSTICK_AXIS_RTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
+        gamepad.axis[ldk::input::LDK_JOYSTICK_AXIS_RTRIGGER] = GAMEPAD_AXIS_IS_DEADZONE(axisY, deadZone) ? 0.0f :	
         axisY/(float) XINPUT_MAX_TRIGGER_VALUE;
 
 #undef GAMEPAD_AXIS_IS_DEADZONE
@@ -932,16 +932,16 @@ namespace ldk
             _platform.mouseState.cursor = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)}; 
     
             int8 isDown = (msg.wParam & MK_LBUTTON) == MK_LBUTTON;
-            _platform.mouseState.button[LDK_MOUSE_LEFT] =
-              ((_platform.mouseState.button[LDK_MOUSE_LEFT] != isDown) << 1) | isDown;
+            _platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] =
+              ((_platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] != isDown) << 1) | isDown;
     
             isDown = (msg.wParam & MK_MBUTTON) == MK_MBUTTON;
-            _platform.mouseState.button[LDK_MOUSE_MIDDLE] =
-              ((_platform.mouseState.button[LDK_MOUSE_MIDDLE] != isDown) << 1) | isDown;
+            _platform.mouseState.button[ldk::input::LDK_MOUSE_MIDDLE] =
+              ((_platform.mouseState.button[ldk::input::LDK_MOUSE_MIDDLE] != isDown) << 1) | isDown;
     
             isDown = (msg.wParam & MK_RBUTTON) == MK_RBUTTON;
-            _platform.mouseState.button[LDK_MOUSE_RIGHT] =
-              ((_platform.mouseState.button[LDK_MOUSE_RIGHT] != isDown) << 1) | isDown;
+            _platform.mouseState.button[ldk::input::LDK_MOUSE_RIGHT] =
+              ((_platform.mouseState.button[ldk::input::LDK_MOUSE_RIGHT] != isDown) << 1) | isDown;
     
             break;
         }

@@ -24,3 +24,4 @@
 #include "ldk_asset.cpp"
 #include "ldk_cfg.cpp"
 #include "ldk_renderer_gl.cpp"
+#include "ldk_game.cpp"

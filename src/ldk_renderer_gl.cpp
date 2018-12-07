@@ -90,7 +90,7 @@ namespace ldk
       return shaderProgram;
     }
 
-    GLuint _internalToGlType(uint32 glType)
+    static GLuint _internalToGlType(uint32 glType)
     {
       switch(glType)
       {
@@ -108,7 +108,7 @@ namespace ldk
       }
     }
 
-    VertexAttributeType _glTypeToInternal(uint32 glType)
+    static VertexAttributeType _glTypeToInternal(uint32 glType)
     {
       switch (glType)
       {
@@ -144,7 +144,7 @@ namespace ldk
     }
 
     //TODO(marcio): Implement sorting here...
-    void _sortDrawCalls(DrawCall* calls, uint32 count) { }
+    static void _sortDrawCalls(DrawCall* calls, uint32 count) { }
 
     static void* _mapBuffer(Renderable* renderable, uint32 count)
     {
@@ -417,7 +417,6 @@ namespace ldk
       }
       glUseProgram(0);
     }
-
 
     void setShaderFloat(Shader* shader, char* name, uint32 count, float* floatParam)
     {

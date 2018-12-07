@@ -10,6 +10,10 @@
 
 namespace ldk
 {
+
+  /// @defgroup Math Math
+  /// @details Math Functions
+  /// @{
 	struct Rectangle
 	{
 		float x, y, w, h;
@@ -192,6 +196,7 @@ namespace ldk
 	
 	LDK_API Vec4 lerpVec4(const Vec4& start, const Vec4& end, float t);
 
+    /// @}
 } // ldk
 
 #endif // _LDK_MATH_H_

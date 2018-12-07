@@ -80,9 +80,11 @@ char* fs = STR(#version 330\n
 	  out_color = vec4(fragColor, 1.0);
   });
 
-size_t gameInit()
+LDKGameSettings gameInit()
 {
-  return sizeof(GameState);
+  LDKGameSettings settings = ldk::loadGameSettings();
+  settings.preallocMemorySize = sizeof(GameState);
+  return settings;
 }
 
 void gameStart(void* memory)
@@ -127,15 +129,15 @@ void gameUpdate(float deltaTime)
 {
 #if 1
   Vec3 axis = {};
-  if (input::getKey(LDK_KEY_J))
+  if (input::getKey(ldk::input::LDK_KEY_J))
   {
     axis.x = 1;
   }
-  else if (input::getKey(LDK_KEY_K))
+  else if (input::getKey(ldk::input::LDK_KEY_K))
   {
     axis.y = 1;
   }
-  else if (input::getKey(LDK_KEY_L))
+  else if (input::getKey(ldk::input::LDK_KEY_L))
   {
     axis.z = 1;
   }

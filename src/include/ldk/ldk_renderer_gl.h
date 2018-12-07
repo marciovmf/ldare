@@ -25,6 +25,8 @@ namespace ldk
 
   namespace gl
   {
+/// @defgroup GL GL
+/// @{
     struct Shader;
     struct DrawCall;
     struct Context;
@@ -120,7 +122,9 @@ namespace ldk
       GLuint textureId[LDK_GL_MAX_TEXTURES];
     };
 
+    //Function: createContext
     LDK_API Context* createContext(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits);
+    //Function: destroyContext
     LDK_API void destroyContext(Context* context);
     LDK_API bool loadShader(Shader* shader, char* vertexSource, char* fragmentSource);
     LDK_API void setShader(Renderable* renderable, Shader* shader);
@@ -133,6 +137,7 @@ namespace ldk
     LDK_API void makeRenderable(Renderable* renderable, VertexBuffer* vertexBuffer, uint32* indices, uint32 maxIndexCount, bool isStatic);
     LDK_API void pushDrawCall(Context* context, DrawCall* drawCall);
     LDK_API void flush(Context* context);
+///@}
   } // gl
 } // ldk
 

@@ -3,18 +3,6 @@
 #include "ldk_platform.h"
 #include "ldk_memory.h"
 
-#define LDK_DEFAULT_GAME_WINDOW_TITLE "LDK Window"
-#define LDK_DEFAULT_CONFIG_FILE "ldk.cfg"
-
-struct GameConfig
-{
-	int32 width;
-	int32 height;
-	bool fullscreen;
-	float aspect;
-	char* title;
-} defaultConfig;
-
 static int64 lastGameDllTime = 0;
 
 void windowCloseCallback(ldk::platform::LDKWindow* window)
@@ -31,12 +19,12 @@ void windowResizeCallback(ldk::platform::LDKWindow* window, int32 width, int32 h
 
 static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window)
 {
-	if (ldk::input::isKeyDown(LDK_KEY_ESCAPE))
+	if (ldk::input::isKeyDown(ldk::input::LDK_KEY_ESCAPE))
 	{
 		ldk::platform::setWindowCloseFlag(window, true);
 	}
 	
-	if (ldk::input::isKeyDown(LDK_KEY_F12))
+	if (ldk::input::isKeyDown(ldk::input::LDK_KEY_F12))
 	{
 		ldk::platform::toggleFullScreen(window, !ldk::platform::isFullScreen(window));
 	}
@@ -82,58 +70,14 @@ bool reloadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
 	return false;
 }
 
-GameConfig loadGameConfig()
-{
-	defaultConfig.width = defaultConfig.height = 600;
-	defaultConfig.aspect = 1.777;
-	defaultConfig.title = LDK_DEFAULT_GAME_WINDOW_TITLE;
-
-	ldk::VariantSectionRoot* root = ldk::config_parseFile((const char8*) LDK_DEFAULT_CONFIG_FILE);
-
-	if (root)
-	{
-		ldk::VariantSection* sectionDisplay =
-			ldk::config_getSection(root,"display");
-
-		if (sectionDisplay != nullptr)
-		{
-			ldk::config_getBool(sectionDisplay, "fullscreen", &defaultConfig.fullscreen);
-			ldk::config_getInt(sectionDisplay, "width", &defaultConfig.width);
-			ldk::config_getString(sectionDisplay, "title", &defaultConfig.title);
-			ldk::config_getInt(sectionDisplay, "height", &defaultConfig.height);
-			ldk::config_getFloat(sectionDisplay, "aspect", &defaultConfig.aspect);
-			ldk::VariantSection* sectionGame = ldk::config_getSection(root,"game");
-		}
-
-	}
-	return defaultConfig;
-}
-
 uint32 ldkMain(uint32 argc, char** argv)
 {
 	ldk::Game game = {};
 	ldk::platform::SharedLib* gameSharedLib;
-	GameConfig gameConfig;
 
 	if (! ldk::platform::initialize())
 	{
 		LogError("Error initializing platform layer");
-		return LDK_EXIT_FAIL;
-	}
-
-	gameConfig = loadGameConfig();
-
-	uint32 windowHints[] = { 
-		(uint32)ldk::platform::WindowHint::WIDTH,  gameConfig.width,
-		(uint32)ldk::platform::WindowHint::HEIGHT, gameConfig.height,
-		0};
-
-	ldk::platform::LDKWindow* window =
-		ldk::platform::createWindow(windowHints, gameConfig.title, nullptr);
-
-	if (!window)
-	{
-		LogError("Error creating main window");
 		return LDK_EXIT_FAIL;
 	}
 
@@ -143,18 +87,34 @@ uint32 ldkMain(uint32 argc, char** argv)
 		return LDK_EXIT_FAIL;
 	}
 
+	// preallocate memory for game state
+  LDKGameSettings gameSettings = game.init();
+
+	uint32 windowHints[] = { 
+		(uint32)ldk::platform::WindowHint::WIDTH,  gameSettings.displayWidth,
+		(uint32)ldk::platform::WindowHint::HEIGHT, gameSettings.displayHeight,
+		0};
+
+	ldk::platform::LDKWindow* window =
+		ldk::platform::createWindow(windowHints, gameSettings.name, nullptr);
+
+	if (!window)
+	{
+		LogError("Error creating main window");
+		return LDK_EXIT_FAIL;
+	}
+
 	ldk::platform::setWindowCloseCallback(window, windowCloseCallback);
 	ldk::platform::setWindowResizeCallback(window, windowResizeCallback);
-	ldk::platform::toggleFullScreen(window, gameConfig.fullscreen);
+	ldk::platform::toggleFullScreen(window, gameSettings.fullScreen);
 
-	//ldk::render::setViewportAspectRatio(gameConfig.width, gameConfig.height, gameConfig.width, gameConfig.height);
+	//ldk::render::setViewportAspectRatio(gameSetting.width, gameSetting.height, gameSetting.width, gameSetting.height);
 
 
-	// preallocate memory for game state
-	size_t gameStateMemorySize = game.init();
 	void* gameStateMemory = nullptr;
-  gameStateMemory = malloc(gameStateMemorySize);
-  ldk::ldk_memory_set(gameStateMemory, 0, (size_t)gameStateMemorySize);
+  size_t gameMemorySize = gameSettings.preallocMemorySize;
+  gameStateMemory = malloc(gameMemorySize);
+  ldk::ldk_memory_set(gameStateMemory, 0, (size_t)gameMemorySize);
 
 	game.start(gameStateMemory);
 	float deltaTime;

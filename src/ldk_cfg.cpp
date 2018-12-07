@@ -8,7 +8,7 @@
 #define LDK_CFG_MAX_IDENTIFIER_SIZE 63
 namespace ldk
 {
-	struct _IniBufferStream
+	struct ConfigBufferReader
 	{
 		char* buffer;
 		uint32 line;
@@ -22,8 +22,12 @@ namespace ldk
 			return pos >= eofAddr;
 		}
 
-		_IniBufferStream(void* buffer, size_t size):
-			buffer((char*)buffer), line(1), column(1), pos((char*)buffer), eofAddr((char*)buffer+size) {}
+		ConfigBufferReader(void* buffer, size_t size):
+			buffer((char*)buffer),
+      line(1),
+      column(1),
+      pos((char*)buffer),
+      eofAddr((char*)buffer+size) {}
 
 		char peek()
 		{
@@ -123,7 +127,7 @@ namespace ldk
 	uint32 pushVariantSection(Heap& heap, Identifier& identifier);
 	int32 pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal);
 	int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, Literal& literal);
-	void postProccessStringArrays(VariantSectionRoot*);
+	void postProccessStringArrays(const VariantSectionRoot*);
 
 	inline bool isLetter(char c)
 	{
@@ -135,7 +139,7 @@ namespace ldk
 		return c >= 48 && c <= 57;
 	}
 
-	static void skipWhiteSpace(_IniBufferStream& stream)
+	static void skipWhiteSpace(ConfigBufferReader& stream)
 	{
 		char c = stream.peek();
 		while ( c == ' ' || c == '\t' || c == '\r')
@@ -145,7 +149,7 @@ namespace ldk
 		}
 	}
 
-	static void skipComment(_IniBufferStream& stream)
+	static void skipComment(ConfigBufferReader& stream)
 	{
 		char c = stream.peek();
 
@@ -159,7 +163,7 @@ namespace ldk
 		}
 	}
 
-	static void skipEmptyLines(_IniBufferStream& stream)
+	static void skipEmptyLines(ConfigBufferReader& stream)
 	{
 		char c;
 		do
@@ -173,7 +177,7 @@ namespace ldk
 			stream.ungetc();
 	}
 
-	static bool parseIdentifier(_IniBufferStream& stream, Identifier* identifier)
+	static bool parseIdentifier(ConfigBufferReader& stream, Identifier* identifier)
 	{
 		char* identifierText = stream.pos;
 		uint32 identifierLength = 0;
@@ -209,8 +213,7 @@ namespace ldk
 		return false;
 	}
 
-	// Returns -1 if unary '-', or +1 if unary '+'
-	static bool parseUnarySignal(_IniBufferStream& stream, int32* signal)
+	static bool parseUnarySignal(ConfigBufferReader& stream, int32* signal)
 	{
 		char c = stream.peek();
 		if ( c == '-')
@@ -230,7 +233,7 @@ namespace ldk
 		return false;
 	}
 
-	static bool parseNumericLiteral(_IniBufferStream& stream, Literal* literal)
+	static bool parseNumericLiteral(ConfigBufferReader& stream, Literal* literal)
 	{
 		int32 signal;
 		parseUnarySignal(stream, &signal);
@@ -306,7 +309,7 @@ namespace ldk
 		return false;
 	}
 
-	inline bool parseStringLiteral(_IniBufferStream& stream, Literal& literal)
+	inline bool parseStringLiteral(ConfigBufferReader& stream, Literal& literal)
 	{
 		uint32 stringLen = 0;
 		char* stringStart = stream.pos+1;
@@ -343,13 +346,11 @@ namespace ldk
 		return true;
 	}
 
-	//
-	// Parse single RValue, except Arrays
-	// It does NOT persist the parsed value
-	//
+  // Parse single RValue, except Arrays. It does NOT persist the parsed value
 	static bool parseSingleRValue(Heap& parsedDataBuffer,
-			_IniBufferStream& stream, Identifier& identifier, Literal& literal)
+			ConfigBufferReader& stream, Identifier& identifier, Literal& literal)
 	{
+
 		skipWhiteSpace(stream);
 		char c = stream.peek();
 		// Bool literal
@@ -393,7 +394,7 @@ namespace ldk
 	}
 
 	static bool parseRValue(Heap& parsedDataBuffer,
-			_IniBufferStream& stream, Identifier& identifier, Literal& literal, int32 currentSectionOffset)
+			ConfigBufferReader& stream, Identifier& identifier, Literal& literal, int32 currentSectionOffset)
 	{
 		skipEmptyLines(stream);
 		char c = stream.peek();
@@ -469,7 +470,7 @@ namespace ldk
 	}
 
 	// parse identifier + '=' + rvalue
-	bool parseAssignment(Heap& parsedDataBuffer, _IniBufferStream& stream, Statement* statement, int32 currentSectionOffset)
+	bool parseAssignment(Heap& parsedDataBuffer, ConfigBufferReader& stream, Statement* statement, int32 currentSectionOffset)
 	{
 		char c;
 		statement->type = StatementType::ASSIGNMENT;
@@ -493,7 +494,7 @@ namespace ldk
 	}
 
 	// parse [ + identifier + ]
-	static bool parseSectionDeclaration(Heap& parsedDataBuffer, _IniBufferStream& stream, Statement* statement)
+	static bool parseSectionDeclaration(Heap& parsedDataBuffer, ConfigBufferReader& stream, Statement* statement)
 	{
 		char c = stream.getc();
 
@@ -521,7 +522,7 @@ namespace ldk
 		return false;
 	}
 
-	static bool parseStatement(Heap& parsedDataBuffer, _IniBufferStream& stream, Statement* statement, int32 currentSectionOffset)
+	static bool parseStatement(Heap& parsedDataBuffer, ConfigBufferReader& stream, Statement* statement, int32 currentSectionOffset)
 	{
 		skipWhiteSpace(stream);
 		skipComment(stream);
@@ -757,9 +758,10 @@ namespace ldk
 		return pushVariantSection(heap, rootSectionIdentifier);
 	}
 
-	VariantSectionRoot* config_parseBuffer(void* buffer, size_t size)
+
+	const VariantSectionRoot* configParseBuffer(void* buffer, size_t size)
 	{
-		_IniBufferStream stream(buffer, size);
+		ConfigBufferReader stream(buffer, size);
 		Heap heap;
 		ldk_memory_allocHeap(&heap, LDK_CFG_DEFAULT_BUFFER_SIZE);
 
@@ -790,29 +792,29 @@ namespace ldk
 
 		if (noError)
 		{
-			postProccessStringArrays((VariantSectionRoot*)heap.memory);
+			postProccessStringArrays((const VariantSectionRoot*)heap.memory);
 			return (VariantSectionRoot*) heap.memory;
 		}
 		else
 			return nullptr;
 	}
 
-	VariantSectionRoot* config_parseFile(const char* fileName)
+	const VariantSectionRoot* configParseFile(const char* fileName)
 	{
 		size_t fileSize;
 		void* buffer = platform::loadFileToBuffer(fileName, &fileSize);
 		LogInfo("Loading config file '%s'", fileName);
 		if (!buffer)
 		{
-			return nullptr;
+		  return nullptr;
 		}
 
-		VariantSectionRoot* root = config_parseBuffer(buffer, fileSize);
+		const VariantSectionRoot* root = configParseBuffer(buffer, fileSize);
 		platform::memoryFree(buffer);
 		return root;
 	}
 
-	VariantSection* config_getSection(VariantSectionRoot* rootSection, const char* name)
+	const VariantSection* configGetSection(const VariantSectionRoot* rootSection, const char* name)
 	{
 		int32 hash = stringToHash((char*)name);
 		//First section is ALWAYS after the section root
@@ -830,7 +832,7 @@ namespace ldk
 		return nullptr;
 	}
 
-	Variant* config_getVariant(const VariantSection* section, const char* key)
+	Variant* configGetVariant(const VariantSection* section, const char* key)
 	{
 		int32 hash = stringToHash((char*)key);
 		//Variant* v = (ldk::Variant*) (((char*)section) + sizeof(ldk::VariantSection));
@@ -847,9 +849,9 @@ namespace ldk
 		return nullptr;
 	}
 
-	int32 config_getArray(VariantSection* section, const char* key, void** array, VariantType type)
+	int32 configGetArray(const VariantSection* section, const char* key, void** array, VariantType type)
 	{
-		Variant* v = config_getVariant(section, key);
+		Variant* v = configGetVariant(section, key);
 		if (v != nullptr && v->arrayCount)
 		{
 			*array = ++v; // array data 
@@ -859,13 +861,13 @@ namespace ldk
 	}
 
 	// places an array of pointers before the actual strings on a variant string array
-	void postProccessStringArrays(VariantSectionRoot* root)
+	void postProccessStringArrays(const VariantSectionRoot* root)
 	{
-		ldk::VariantSection* section = ldk::config_getFirstSection((VariantSectionRoot*)root);
+		const ldk::VariantSection* section = ldk::configGetFirstSection((const VariantSectionRoot*)root);
 		
 		while(section != nullptr)
 		{
-			ldk::Variant* variant = ldk::config_getFirstVariant(section);
+			const ldk::Variant* variant = ldk::configGetFirstVariant(section);
 			while (variant)
 			{
 				if (variant->arrayCount > 0 && variant->type == VariantType::STRING)
@@ -889,16 +891,16 @@ namespace ldk
 					}
 				}
 
-				variant = ldk::config_getNextVariant(section, variant);
+				variant = ldk::configGetNextVariant(section, variant);
 			}
 
-			section = ldk::config_getNextSection(root, section);
+			section = ldk::configGetNextSection(root, section);
 		} 
 	}
 	
-	bool config_getInt(VariantSection* section, const char* key, int32* intValue)
+	bool configGetInt(const VariantSection* section, const char* key, int32* intValue)
 	{
-		Variant* v = config_getVariant(section, key);
+		Variant* v = configGetVariant(section, key);
 		if (v != nullptr && v->type == VariantType::INT)
 		{
 			*intValue = *(int*)(v+1);
@@ -908,9 +910,9 @@ namespace ldk
 		return false;
 	}
 
-	bool config_getBool(VariantSection* section, const char* key, bool* boolValue)
+	bool configGetBool(const VariantSection* section, const char* key, bool* boolValue)
 	{
-		Variant* v = config_getVariant(section, key);
+		Variant* v = configGetVariant(section, key);
 		if (v != nullptr && v->type == VariantType::BOOL)
 		{
 			*boolValue = *(bool*)(v+1);
@@ -920,9 +922,9 @@ namespace ldk
 		return false;
 	}
 
-	bool config_getFloat(VariantSection* section, const char* key, float* floatValue)
+	bool configGetFloat(const VariantSection* section, const char* key, float* floatValue)
 	{
-		Variant* v = config_getVariant(section, key);
+		Variant* v = configGetVariant(section, key);
 		if (v != nullptr && v->type == VariantType::FLOAT)
 		{
 			*floatValue = *(float*)(v+1);
@@ -932,9 +934,9 @@ namespace ldk
 		return false;
 	}
 
-	const bool config_getString(VariantSection* section, const char* key, char** stringValue)
+	bool configGetString(const VariantSection* section, const char* key, char** stringValue)
 	{
-		Variant* v = config_getVariant(section, key);
+		Variant* v = configGetVariant(section, key);
 		if (v != nullptr && v->type == VariantType::STRING)
 		{
 			*stringValue = ((char*)++v);
@@ -944,24 +946,24 @@ namespace ldk
 		return false;
 	}
 
-	int32 config_getIntArray(VariantSection* section, const char* key, int32** array)
+	int32 configGetIntArray(const VariantSection* section, const char* key, int32** array)
 	{
-		return config_getArray(section, key,(void**) array, VariantType::INT);
+		return configGetArray(section, key,(void**) array, VariantType::INT);
 	}
 
-	int32 config_getFloatArray(VariantSection* section, const char* key, float** array)
+	int32 configGetFloatArray(const VariantSection* section, const char* key, float** array)
 	{
-		return config_getArray(section, key,(void**) array, VariantType::FLOAT);
+		return configGetArray(section, key,(void**) array, VariantType::FLOAT);
 	}
 
-	int32 config_getBoolArray(VariantSection* section, const char* key, bool** array)
+	int32 configGetBoolArray(const VariantSection* section, const char* key, bool** array)
 	{
-		return config_getArray(section, key,(void**) array, VariantType::BOOL);
+		return configGetArray(section, key,(void**) array, VariantType::BOOL);
 	}
 
-	int32 config_getStringArray(VariantSection* section, const char* key, char*** array)
+	int32 configGetStringArray(const VariantSection* section, const char* key, char*** array)
 	{
-		ldk::Variant* v = config_getVariant(section, key);
+		ldk::Variant* v = configGetVariant(section, key);
 		if (v && v->arrayCount > 0 && v->type == VariantType::STRING)
 		{
 			int32 ptrTableSize = sizeof(char*) * v->arrayCount;
@@ -971,17 +973,17 @@ namespace ldk
 		return 0;
 	}
 
-	void config_dispose(VariantSectionRoot* root)
+	void config_dispose(const VariantSectionRoot* root)
 	{
 		ldk::ldk_memory_freeHeap((Heap*) root);
 	}
 
-	VariantSection* config_getFirstSection(VariantSectionRoot* root)
+	const VariantSection* configGetFirstSection(const VariantSectionRoot* root)
 	{
-				return (VariantSection*)(++root);
+				return (const VariantSection*)(++root);
 	}
 	
-	VariantSection* config_getNextSection(VariantSectionRoot* root, VariantSection* section)
+	const VariantSection* configGetNextSection(const VariantSectionRoot* root, const VariantSection* section)
 	{
 
 		VariantSection* endOfLastSection =(VariantSection*) (((char*) root) + root->totalSize);
@@ -990,25 +992,25 @@ namespace ldk
 		if ((char*) section < (char*) root || (char*) section > (char*) endOfLastSection)
 			return nullptr;
 
-		VariantSection* nextSection = (VariantSection*) (((char*) section) + section->totalSize);
+		const VariantSection* nextSection = (const VariantSection*) (((char*) section) + section->totalSize);
 		if ( nextSection < endOfLastSection)
 				return nextSection;
 
 		return nullptr;
 	}
 
-	Variant* config_getFirstVariant(VariantSection* section)
+	const Variant* configGetFirstVariant(const VariantSection* section)
 	{
 		if (section->variantCount > 0)
-			return (Variant*)++section; // first section is immediately after section header
+			return (const Variant*) (Variant*)++section; // first section is immediately after section header
 
 		return nullptr;
 	}
 
-	Variant* config_getNextVariant(VariantSection* section, Variant* variant)
+	const Variant* configGetNextVariant(const VariantSection* section, const Variant* variant)
 	{
 		Variant* endOfLastVariant = (Variant*)(section->totalSize + (char*)section);
-		Variant* nextVariant = (Variant*) (variant->size + (char*) variant);
+		const Variant* nextVariant = (const Variant*) (variant->size + (char*) variant);
 
 		if (nextVariant < endOfLastVariant)
 			return nextVariant;
