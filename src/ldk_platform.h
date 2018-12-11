@@ -140,7 +140,11 @@ namespace ldk
 		//---------------------------------------------------------------------------
 		// File and filesystem
 		//---------------------------------------------------------------------------
-		LDK_API void* loadFileToBuffer(const char* filename, size_t* bufferSize);
+    
+    // Loads a whole file to a buffer
+		LDK_API void* loadFileToBuffer(const char* fileName, size_t* fileSize);
+
+		LDK_API void* loadFileToBufferOffset(const char* fileName, size_t* fileSize, size_t additionalSize, size_t offset);
 
 		LDK_API int64 getFileWriteTime(const char* fileName);
 		

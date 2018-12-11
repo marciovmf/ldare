@@ -995,7 +995,8 @@ namespace ldk
       free(memory);
     }
     
-    void* loadFileToBuffer(const char* fileName, size_t* bufferSize)
+
+		void* loadFileToBufferOffset(const char* fileName, size_t* fileSize, size_t additionalSize, size_t offset)
     {
       HANDLE hFile = CreateFile((LPCSTR)fileName,
           GENERIC_READ,
@@ -1012,16 +1013,15 @@ namespace ldk
         LogError("Could not open file '%s'", fileName);
         return nullptr;
       }
+   
+      int32 fileSizeLocal = GetFileSize(hFile, 0);
+      size_t totalSize = fileSizeLocal + additionalSize;
     
-      int32 fileSize = GetFileSize(hFile, 0);
-    
-      if ( bufferSize != nullptr) { *bufferSize = fileSize; }
-      //TODO: alloc memory from the proper Heap
-      //Alloc one extra byte for null terminating the buffer.
-      void *buffer = memoryAlloc(fileSize + 1);
+      
+      char *buffer = (char*) memoryAlloc(totalSize);
       uint32 bytesRead;
     
-      if (!buffer || ReadFile(hFile, buffer, fileSize, (LPDWORD)&bytesRead, 0) == 0)
+      if (!buffer || ReadFile(hFile, buffer + offset, (int32)fileSize, (LPDWORD)&bytesRead, 0) == 0)
       {
         CloseHandle(hFile);
         err = GetLastError();
@@ -1029,12 +1029,18 @@ namespace ldk
         return nullptr;
       }
     
-      // Null terminate the buffer
-      *(((char*)buffer)+fileSize) = 0;
       CloseHandle(hFile);
-      return buffer;
+      
+      if (fileSize != nullptr) { *fileSize = fileSizeLocal; }
+      return buffer; 
     }
+		
     
+		void* loadFileToBuffer(const char* fileName, size_t* fileSize)
+    {
+      return loadFileToBufferOffset(fileName, fileSize, 0, 0);
+    }
+
     int64 getFileWriteTime(const char* fileName)
     {
       FILETIME writeTime;

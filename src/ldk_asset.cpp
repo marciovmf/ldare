@@ -55,13 +55,22 @@ struct BITMAP_FILE_HEADER
 	// Material functions
 	//---------------------------------------------------------------------------
 
-	bool loadBitmap(const char* file, ldk::Bitmap* bitmap)
+  ldk::Bitmap* loadBitmap(const char* file)
 	{	
-		LogInfo("Loading texture: %s", file);
-		bitmap->bmpFileMemoryToRelease_ = ldk::platform::loadFileToBuffer(file, &bitmap->bmpMemorySize_);
-		if (!bitmap->bmpFileMemoryToRelease_ || bitmap->bmpMemorySize_ == 0) { return false; }
+		LogInfo("Loading bitmap: %s", file);
+    size_t bufferSize = 0;
+    const size_t bitmapStructSize = sizeof(ldk::Bitmap);
+    const int8* buffer = (int8*) ldk::platform::loadFileToBufferOffset(
+        file, 
+        &bufferSize
+        ,bitmapStructSize
+        ,bitmapStructSize);
 
-		BITMAP_FILE_HEADER *bitmapHeader = (BITMAP_FILE_HEADER*)bitmap->bmpFileMemoryToRelease_;
+    if (!buffer || bufferSize == 0) { return false; }
+
+    // bitmap data starts after the ldk::Bitmap struct data
+		BITMAP_FILE_HEADER *bitmapHeader =
+      (BITMAP_FILE_HEADER*)(buffer + bitmapStructSize);
 
 		//NOTE: compression info at https://msdn.microsoft.com/en-us/library/cc250415.aspx
 		if (bitmapHeader->FileType != BITMAP_FILE_HEADER_SIGNATURE
@@ -69,10 +78,12 @@ struct BITMAP_FILE_HEADER
 				|| bitmapHeader->BitsPerPixel != 16 && bitmapHeader->BitsPerPixel != 32)
 		{
 
-			ldk::freeAsset(bitmap->bmpFileMemoryToRelease_, bitmap->bmpMemorySize_);
+			ldk::freeAsset((void*)buffer);
 			LogError("Unsupported bitmap type.");
-			return false;
+			return nullptr;
 		}
+
+    ldk::Bitmap* bitmap = (ldk::Bitmap*)buffer;
 		bitmap->bitsPerPixel = bitmapHeader->BitsPerPixel;
 		bitmap->pixels = (uint8*)(bitmapHeader) + bitmapHeader->BitmapOffset;
 		bitmap->width = bitmapHeader->Width;
@@ -103,7 +114,7 @@ struct BITMAP_FILE_HEADER
 			}
 		}
 
-		return true;
+		return bitmap;
 	}
 
 	bool loadFont(const char* file, ldk::FontAsset** font)
@@ -117,10 +128,9 @@ struct BITMAP_FILE_HEADER
 		return true;
 	}
 
-	void freeAsset(void* memory, size_t size)
+	void freeAsset(void* asset)
 	{
-		//TODO: This is a bit hacky. I do not whant to free knwo static memory
-		ldk::platform::memoryFree(memory);
+		ldk::platform::memoryFree(asset);
 	}
 
 	//---------------------------------------------------------------------------
@@ -145,20 +155,22 @@ struct BITMAP_FILE_HEADER
 		return nullptr;
 	}
 
-	bool loadAudio(const char* file, ldk::Audio* audio)
+  ldk::Audio* loadAudio(const char* file)
 	{
-		audio->audioFileMemoryToRelease_ = ldk::platform::loadFileToBuffer(file, (size_t*) &audio->audioMemorySize_);
+    size_t bufferSize;
+    size_t audioStructSize = sizeof(ldk::Audio);
+    int8* buffer = (int8*)ldk::platform::loadFileToBufferOffset(file, &bufferSize, audioStructSize, audioStructSize);
 
-		if (! audio->audioFileMemoryToRelease_ || audio->audioMemorySize_ == 0)
-			return false; 
+		if (!buffer || bufferSize == 0) return false; 
 
-		RIFFAudioHeaderChunk* riffHeader = (RIFFAudioHeaderChunk*) audio->audioFileMemoryToRelease_;
-		void* riffData = ((uint8*)audio->audioFileMemoryToRelease_ + sizeof(RIFFAudioHeaderChunk));
+    ldk::Audio* audio = (ldk::Audio*)buffer;
+		RIFFAudioHeaderChunk* riffHeader = (RIFFAudioHeaderChunk*) (buffer + audioStructSize);
+		void* riffData = ((uint8*) buffer + audioStructSize + sizeof(RIFFAudioHeaderChunk));
 
 		if (riffHeader->signature != RIFF_FOURCC_RIFF || riffHeader->chunkType != RIFF_FORMAT_WAVE)
 		{
 			LogError("Invalid wave file");
-			freeAsset(audio->audioFileMemoryToRelease_, audio->audioMemorySize_);
+			freeAsset(buffer);
 		}
 
 		// find 'fmt' chunk
@@ -167,7 +179,8 @@ struct BITMAP_FILE_HEADER
 		if ( fmt == nullptr) 
 		{
 			LogError("Error loading wave format table");
-			return false;
+			freeAsset(buffer);
+			return nullptr;
 		}
 
 		// find 'data' chunk
@@ -176,11 +189,12 @@ struct BITMAP_FILE_HEADER
 		if ( data == nullptr) 
 		{
 			LogError("Error loading wave data table");
-			return false;
+			freeAsset(buffer);
+			return nullptr;
 		}
 
 		audio->id = ldk::platform::createAudioBuffer(fmt, fmtSize, data, dataSize);
-		return true;
+		return (ldk::Audio*) buffer;
 	}
 
 	void playAudio(const ldk::Audio* audio)

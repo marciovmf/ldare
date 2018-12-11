@@ -29,8 +29,6 @@ namespace ldk
 	{
 		//TODO: Remove this when memory/asset manager is done
 		uint32 id;
-		void*  audioFileMemoryToRelease_;
-		size_t audioMemorySize_;
 	};
 
 	struct Bitmap
@@ -39,9 +37,6 @@ namespace ldk
 		uint32 height;
 		uint32 bitsPerPixel;
 		uchar *pixels;
-		//TODO: Remove this when memory/asset manager is done
-		void*  bmpFileMemoryToRelease_;
-		size_t bmpMemorySize_;
 	};
 
 #define LDK_ASSET_TYPE_FONT 0x1
@@ -87,11 +82,11 @@ namespace ldk
 		//TODO: add font kerning information here
 	};
 	
-	LDK_API bool loadBitmap(const char* file, ldk::Bitmap* bitmap);
-	LDK_API bool loadAudio(const char* file, ldk::Audio* audio);
+	LDK_API ldk::Bitmap* loadBitmap(const char* file);
+	LDK_API ldk::Audio* loadAudio(const char* file);
 	LDK_API bool loadFont(const char* file, ldk::FontAsset** fontAsset);
 	LDK_API void playAudio(const ldk::Audio* audio);
-	LDK_API void freeAsset(void* memory, size_t size);
+	LDK_API void freeAsset(void* memory);
 } // namespace ldk
 
 #endif // __LDK_ASSET_H_
