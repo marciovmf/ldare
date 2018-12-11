@@ -108,7 +108,7 @@ void gameStart(void* memory)
       ,_gameState->bmpTexture->width
       ,_gameState->bmpTexture->height);
 
-  int32 textureId = ldk::gl::createTexture(_gameState->Bitmap);
+  //int32 textureId = ldk::gl::createTexture(_gameState->Bitmap);
 
   ldk::freeAsset((void*) _gameState->bmpTexture);
 
