@@ -7,7 +7,8 @@ Each and every single feature is written from scratch with absolutely no third p
 
 Current features include a fast sprite renderer (no fancy stuff yet), Text rendering, spritesheet support, joystick support, a basic material system, wav audio playback and runtime game reloading. In other words, yes, it is already possible to make small games wit it.
  
-Check [here](https://github.com/marciovmf/ldare/projects/2) for the development roadmap.
+Check [here](https://github.com/marciovmf/ldare/projects/2) for the development roadmap and
+[here](https://marciovmf.github.io/ldk/html/index.html) for the avaliable documentation so far.
 
 ![latest screenshot](screenshot.gif)
 
