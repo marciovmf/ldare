@@ -50,7 +50,7 @@ tool: src\win32\tools\ldk_tool_font.cpp
 assets:
 	@echo copying standard assets ...
 	@xcopy assets $(OUTDIR)\assets /Y /I /E /F > NUL
-	@copy /Y ldk.cfg $(OUTDIR) > NUL
+	@copy /Y ldk_game.cfg $(OUTDIR) > NUL
 
 gameassets: 
 	@echo copying game assets ...
