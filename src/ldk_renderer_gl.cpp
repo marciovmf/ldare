@@ -6,6 +6,46 @@ namespace ldk
 {
   namespace gl
   {
+
+#ifdef _LDK_DEBUG_
+#define checkGlError() checkNoGlError(__FILE__, __LINE__)
+#else
+#define checkGlError() 
+#endif
+
+    static int32 checkNoGlError(const char* file, uint32 line)
+    {
+      const char* error = "UNKNOWN ERROR CODE";
+      GLenum err = glGetError();
+      int32 success = 1;
+      uchar noerror = 1;
+      while(err!=GL_NO_ERROR)
+      {
+        switch(err)
+        {
+          case GL_INVALID_OPERATION:      error="INVALID_OPERATION";      break;
+          case GL_INVALID_ENUM:           error="INVALID_ENUM";           break;
+          case GL_INVALID_VALUE:          error="INVALID_VALUE";          break;
+          case GL_OUT_OF_MEMORY:          error="OUT_OF_MEMORY";          break;
+          case GL_INVALID_FRAMEBUFFER_OPERATION:  error="INVALID_FRAMEBUFFER_OPERATION";  break;
+        }
+        success=0;
+        LogError("GL ERROR %s at %s:%d",error, file, line);
+        noerror=0;
+        err=glGetError();
+      }
+      return success;
+    }
+
+    static void clearGlError()
+    {
+      GLenum err;
+      do
+      {
+        err = glGetError();
+      }while (err != GL_NO_ERROR);
+    }
+
     //
     // Internal functions
     //
@@ -229,8 +269,10 @@ namespace ldk
           _uploadVertexData(drawCall);
       }
 
+      clearGlError();
       VertexBuffer* buffer = &(renderable->buffer);
       glUseProgram(renderable->shader->program);
+      checkGlError();
 
       uint32 currentVboIndex = renderable->currentVboIndex;
       uint32 vbo = renderable->vbos[currentVboIndex];
@@ -239,7 +281,7 @@ namespace ldk
       // Set buffer format
       uint32 vertexStride = buffer->stride;
       uint32 attributeCount = buffer->attributeCount;
-      for (int i = 0; i < attributeCount; i++) 
+      for (int i = 0; i < attributeCount; ++i) 
       {
         VertexAttribute* attribute = buffer->attributes + i;    
         glEnableVertexAttribArray(attribute->location);
@@ -249,13 +291,16 @@ namespace ldk
               (void*)((size_t) attribute->offset));
       }
 
+      clearGlError();
       // enable/bind textures
       uint32 textureCount = drawCall->textureCount;
-      for (int i = 0; i < textureCount; i++) 
+      for (int i = 0; i < textureCount; ++i) 
       {
         glActiveTexture(GL_TEXTURE0 + i) ;
+        checkGlError();
         uint32 textureId = drawCall->textureId[i];
         glBindTexture(GL_TEXTURE_2D, textureId);
+        checkGlError();
       }
 
       //TODO(marcio): implement instanced rendering
@@ -312,7 +357,7 @@ namespace ldk
           return uniform;
       }
 
-      LogWarning("Could not find uniform '%s' on shader, name");
+      LogWarning("Could not find uniform '%s' on shader", name);
       return nullptr;
     }
 
@@ -390,7 +435,10 @@ namespace ldk
 
     void setShaderInt(Shader* shader, char* name, uint32 count, uint32* intParam)
     {
+      clearGlError();
       glUseProgram(shader->program);
+      checkGlError();
+
       const Uniform* uniform = _findUniform(shader, name);
 
       switch(count)
@@ -415,7 +463,14 @@ namespace ldk
           LDK_ASSERT(count > 0 && count < 4, "setShaderInt count is between 0 and 4");
           break;
       }
+
+      checkGlError();
       glUseProgram(0);
+    }
+
+    void setShaderTexture(Shader* shader, char* name, const int32* textureId)
+    {
+      setShaderInt(shader, name, 1, (uint32*) textureId);
     }
 
     void setShaderFloat(Shader* shader, char* name, uint32 count, float* floatParam)
@@ -455,7 +510,7 @@ namespace ldk
 
       if(renderable->attributeCount != renderable->buffer.attributeCount)
       {
-        LogWarning("Shader and buffer layout has different attribute count");
+        LogWarning("Shader and buffer layout has different attribute count %d/%d", renderable->attributeCount, renderable->buffer.attributeCount);
       }
 
       uint32 attribType = 0;
@@ -629,6 +684,26 @@ namespace ldk
       // reset draw call count for this frame
       context->drawCallCount = 0;
     }
+
+    int32 createTexture(const Bitmap* bitmap)
+    {
+      GLuint textureId;
+      glGenTextures(1, &textureId);
+      clearGlError();
+      glBindTexture(GL_TEXTURE_2D, textureId);
+      checkGlError();
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      clearGlError();
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
+      checkGlError();
+      glBindTexture(GL_TEXTURE_2D, 0);
+      checkGlError();
+      return textureId;
+    }
+
 
   } // gl
 } // ldk

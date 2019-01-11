@@ -802,7 +802,7 @@ namespace ldk
 	const VariantSectionRoot* configParseFile(const char* fileName)
 	{
 		size_t fileSize;
-		void* buffer = platform::loadFileToBuffer(fileName, &fileSize);
+		void* buffer = platform::loadFileToBufferOffset(fileName, &fileSize, 1, 0);
 		LogInfo("Loading config file '%s'", fileName);
 		if (!buffer)
 		{
