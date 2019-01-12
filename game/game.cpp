@@ -22,7 +22,6 @@ uint32 indices[] =
 struct GameState
 {
   uint32 initialized;
-  ldk::Bitmap* bmpTexture;
   ldk::gl::Context* context;
   ldk::gl::Shader shader;
   ldk::gl::Renderable renderable;
@@ -31,7 +30,6 @@ struct GameState
   ldk::Mat4 modelMatrix;
   ldk::Mat4 projMatrix;
 };
-
 
 static GameState* _gameState;
 
@@ -78,25 +76,17 @@ void gameStart(void* memory)
   if (_gameState->initialized)
     return;
 
-
   _gameState->context = ldk::gl::createContext(255, GL_COLOR_BUFFER_BIT ,0);
   ldk::gl::makeVertexBuffer(&_gameState->buffer, 64, VERTEX_SIZE);
   ldk::gl::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, ldk::gl::VertexAttributeType::FLOAT, 0);
   ldk::gl::addVertexBufferAttribute(&_gameState->buffer, "_uuv", 2, ldk::gl::VertexAttributeType::FLOAT,  3 * sizeof(float));
   ldk::gl::loadShader(&_gameState->shader, vs, fs);
 
-  _gameState->bmpTexture = ldk::loadBitmap("Assets/test.bmp");
-  if(_gameState->bmpTexture)
-  {
-    LogInfo( "Loaded bmp %dx%d"
-        ,_gameState->bmpTexture->width
-        ,_gameState->bmpTexture->height);
-  }
-
-  int32 textureId = ldk::gl::createTexture(_gameState->bmpTexture);
-  ldk::freeAsset((void*) _gameState->bmpTexture);
+  // create a texture from bitmap
+  auto bmp = ldk::loadBitmap("Assets/test.bmp");
+  int32 textureId = ldk::gl::createTexture(bmp);
+  ldk::freeAsset((void*) bmp);
   ldk::gl::setShaderInt(&_gameState->shader, "_mainTexture", 0);
-
 
   uint32 maxIndices = (sizeof(indices) / sizeof (uint32));
   ldk::gl::makeRenderable(&_gameState->renderable, &_gameState->buffer, indices, maxIndices, true);

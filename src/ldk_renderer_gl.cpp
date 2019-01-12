@@ -517,6 +517,7 @@ namespace ldk
           break;
       }
       glUseProgram(0);
+      checkGlError();
     }
 
     void setShader(Renderable* renderable, Shader* shader)
@@ -556,6 +557,7 @@ namespace ldk
         LDK_ASSERT(attribute->type == _glTypeToInternal(attribType), "No matching attribute type");
         // cache attribute location
         attribute->location = glGetAttribLocation(shader->program, attribName);
+        checkGlError();
       }
 
       VertexBuffer* buffer = &renderable->buffer;
@@ -671,6 +673,7 @@ namespace ldk
 
       renderable->ibo = ibo;
       renderable->iboSize = iboSize;
+      checkGlError();
     }
 
     //
@@ -702,6 +705,7 @@ namespace ldk
 
       // reset draw call count for this frame
       context->drawCallCount = 0;
+      checkGlError();
     }
 
     int32 createTexture(const Bitmap* bitmap)
@@ -711,12 +715,12 @@ namespace ldk
       glBindTexture(GL_TEXTURE_2D, textureId);
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
       glGenerateMipmap(GL_TEXTURE_2D);
-      checkGlError();
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
       glBindTexture(GL_TEXTURE_2D, 0);
+      checkGlError();
       return textureId;
     }
 
