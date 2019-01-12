@@ -1,6 +1,5 @@
 #include <ldk/ldk.h>
 
-
 using namespace ldk;
 
 float mesh[]
@@ -61,7 +60,7 @@ char* fs = STR(#version 330 core\n
     vec4 solidColor = vec4(1.0, 1.0, 1.0, 1.0); 
 
     vec4 textureColor = texture(_mainTexture, fragCoord);
-    out_color = mix(solidColor, textureColor, 0.5);
+    out_color = mix(solidColor, textureColor, 0.9);
   });
 
 
@@ -95,8 +94,8 @@ void gameStart(void* memory)
   }
 
   int32 textureId = ldk::gl::createTexture(_gameState->bmpTexture);
-  //ldk::freeAsset((void*) _gameState->bmpTexture);
-  ldk::gl::setShaderTexture(&_gameState->shader, "_mainTexture", &textureId);
+  ldk::freeAsset((void*) _gameState->bmpTexture);
+  ldk::gl::setShaderInt(&_gameState->shader, "_mainTexture", 0);
 
 
   uint32 maxIndices = (sizeof(indices) / sizeof (uint32));

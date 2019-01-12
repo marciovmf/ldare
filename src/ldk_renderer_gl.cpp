@@ -13,8 +13,18 @@ namespace ldk
 #define checkGlError() 
 #endif
 
+    static void clearGlError()
+    {
+      GLenum err;
+      do
+      {
+        err = glGetError();
+      }while (err != GL_NO_ERROR);
+    }
+
     static int32 checkNoGlError(const char* file, uint32 line)
     {
+      clearGlError();
       const char* error = "UNKNOWN ERROR CODE";
       GLenum err = glGetError();
       int32 success = 1;
@@ -37,14 +47,6 @@ namespace ldk
       return success;
     }
 
-    static void clearGlError()
-    {
-      GLenum err;
-      do
-      {
-        err = glGetError();
-      }while (err != GL_NO_ERROR);
-    }
 
     //
     // Internal functions
@@ -433,6 +435,15 @@ namespace ldk
       }
     }
 
+    void setShaderInt(Shader* shader, char* name, uint32 intParam)
+    {
+      clearGlError();
+      glUseProgram(shader->program);
+      const Uniform* uniform = _findUniform(shader, name);
+      glUniform1i(uniform->location, intParam);
+      checkGlError();
+    }
+
     void setShaderInt(Shader* shader, char* name, uint32 count, uint32* intParam)
     {
       clearGlError();
@@ -468,9 +479,14 @@ namespace ldk
       glUseProgram(0);
     }
 
-    void setShaderTexture(Shader* shader, char* name, const int32* textureId)
+
+    void setShaderFloat(Shader* shader, char* name, float floatParam)
     {
-      setShaderInt(shader, name, 1, (uint32*) textureId);
+      clearGlError();
+      glUseProgram(shader->program);
+      const Uniform* uniform = _findUniform(shader, name);
+      glUniform1f(uniform->location, floatParam);
+      checkGlError();
     }
 
     void setShaderFloat(Shader* shader, char* name, uint32 count, float* floatParam)
@@ -581,6 +597,9 @@ namespace ldk
       glGenVertexArrays(1, &vao);
       glBindVertexArray(vao);
 
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
       return context;
     }
 
@@ -689,18 +708,15 @@ namespace ldk
     {
       GLuint textureId;
       glGenTextures(1, &textureId);
-      clearGlError();
       glBindTexture(GL_TEXTURE_2D, textureId);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
+      glGenerateMipmap(GL_TEXTURE_2D);
       checkGlError();
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      clearGlError();
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
-      checkGlError();
       glBindTexture(GL_TEXTURE_2D, 0);
-      checkGlError();
       return textureId;
     }
 
