@@ -74,8 +74,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 {
 	ldk::Game game = {};
 	ldk::platform::SharedLib* gameSharedLib;
-
-	if (! ldk::platform::initialize())
+	
+  if (! ldk::platform::initialize())
 	{
 		LogError("Error initializing platform layer");
 		return LDK_EXIT_FAIL;

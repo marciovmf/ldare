@@ -50,7 +50,7 @@ tool: src\win32\tools\ldk_tool_font.cpp
 assets:
 	@echo copying standard assets ...
 	@xcopy assets $(OUTDIR)\assets /Y /I /E /F > NUL
-	@copy /Y ldk.cfg $(OUTDIR) > NUL
+	@copy /Y ldk_game.cfg $(OUTDIR) > NUL
 
 gameassets: 
 	@echo copying game assets ...
@@ -65,7 +65,7 @@ package:
 	@IF NOT EXIST "$(OUTDIR)\ldk\include" mkdir "$(OUTDIR)\ldk\include"
 	@xcopy assets $(OUTDIR)\ldk\assets /Y /I /E /F
 	xcopy "$(LDKSDK)" "$(OUTDIR)\ldk\include" /E /F /Y /I 
-	copy /Y "ldk.cfg" "$(OUTDIR)\ldk\ldk.cfg"
+	copy /Y "ldk_game.cfg" "$(OUTDIR)\ldk\ldk_game.cfg"
 	copy /Y "$(OUTDIR)\*.exe" "$(OUTDIR)\ldk\"
 	copy /Y "$(OUTDIR)\*.dll" "$(OUTDIR)\ldk\"
 	copy /Y "$(OUTDIR)\*.lib" "$(OUTDIR)\ldk\lib\"

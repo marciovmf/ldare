@@ -65,6 +65,7 @@ PFNGLUSEPROGRAMPROC glUseProgram;
 PFNGLFLUSHPROC glFlush;
 PFNGLVIEWPORTPROC glViewport;
 PFNGLGENTEXTURESPROC glGenTextures;
+PFNGLDELETETEXTURESPROC glDeleteTextures;
 PFNGLBINDTEXTUREPROC glBindTexture;
 PFNGLTEXPARAMETERFPROC glTexParameteri;
 PFNGLTEXIMAGE2DPROC glTexImage2D;
@@ -348,6 +349,7 @@ namespace ldk
       FETCH_GL_FUNC(PFNGLFLUSHPROC, glFlush);
       FETCH_GL_FUNC(PFNGLVIEWPORTPROC, glViewport);
       FETCH_GL_FUNC(PFNGLGENTEXTURESPROC, glGenTextures);
+      FETCH_GL_FUNC(PFNGLDELETETEXTURESPROC, glDeleteTextures);
       FETCH_GL_FUNC(PFNGLBINDTEXTUREPROC, glBindTexture);
       FETCH_GL_FUNC(PFNGLTEXPARAMETERFPROC, glTexParameteri);
       FETCH_GL_FUNC(PFNGLTEXIMAGE2DPROC, glTexImage2D);
@@ -982,9 +984,8 @@ namespace ldk
     {
       //TODO: Do proper memory management here
       LDK_ASSERT(size>0, "allocation size must be greater than zero");
-      void* mem =
+      void* mem = malloc(size);
         //VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-        malloc(size);
       if (mem==0) { LogError("Error allocating memory"); }
       return mem;
     }
@@ -994,8 +995,8 @@ namespace ldk
       //TODO: Do proper memory management here
       free(memory);
     }
-    
-    void* loadFileToBuffer(const char* fileName, size_t* bufferSize)
+
+		void* loadFileToBufferOffset(const char* fileName, size_t* fileSize, size_t additionalSize, size_t offset)
     {
       HANDLE hFile = CreateFile((LPCSTR)fileName,
           GENERIC_READ,
@@ -1012,29 +1013,34 @@ namespace ldk
         LogError("Could not open file '%s'", fileName);
         return nullptr;
       }
+   
+      int32 fileSizeLocal = GetFileSize(hFile, 0);
+      size_t totalSize = fileSizeLocal + additionalSize;
     
-      int32 fileSize = GetFileSize(hFile, 0);
-    
-      if ( bufferSize != nullptr) { *bufferSize = fileSize; }
-      //TODO: alloc memory from the proper Heap
-      //Alloc one extra byte for null terminating the buffer.
-      void *buffer = memoryAlloc(fileSize + 1);
-      uint32 bytesRead;
-    
-      if (!buffer || ReadFile(hFile, buffer, fileSize, (LPDWORD)&bytesRead, 0) == 0)
+      
+      char* buffer = (char*) memoryAlloc(totalSize);
+      uint32 bytesRead = 0;
+  
+      int32 readSuccess = ReadFile(hFile, (LPVOID)(buffer + offset), (int32)fileSizeLocal, (LPDWORD)&bytesRead, 0);
+      if (!buffer || !readSuccess)
       {
-        CloseHandle(hFile);
         err = GetLastError();
+        CloseHandle(hFile);
         LogError("%d Could not read file '%s'", err, fileName);
         return nullptr;
       }
     
-      // Null terminate the buffer
-      *(((char*)buffer)+fileSize) = 0;
       CloseHandle(hFile);
-      return buffer;
+      
+      if (fileSize != nullptr) { *fileSize = bytesRead; }
+      return buffer; 
     }
-    
+		
+		void* loadFileToBuffer(const char* fileName, size_t* fileSize)
+    {
+      return loadFileToBufferOffset(fileName, fileSize, 0, 0);
+    }
+
     int64 getFileWriteTime(const char* fileName)
     {
       FILETIME writeTime;
