@@ -5,25 +5,25 @@
 
 namespace ldk
 {
-	typedef uint32 Shader_old;
-	struct Texture
-	{
-		uint32 id;
-		uint32 width;
-		uint32 height;
-	};
-
-	struct Material
-	{
-		ldk::Shader_old shader;
-		ldk::Texture texture;
-		int32 depthFunc;
-		int32 blendFuncSrc;
-		int32 blendFuncDst;
-    Vec4  blendConstantColor;
-		int32 stencilFunc;
-		int32 cullMode;
-	};
+//	typedef uint32 Shader_old;
+//	struct Texture
+//	{
+//		uint32 id;
+//		uint32 width;
+//		uint32 height;
+//	};
+//
+//	struct Material
+//	{
+//		ldk::Shader_old shader;
+//		ldk::Texture texture;
+//		int32 depthFunc;
+//		int32 blendFuncSrc;
+//		int32 blendFuncDst;
+//    Vec4  blendConstantColor;
+//		int32 stencilFunc;
+//		int32 cullMode;
+//	};
 	
 	struct Audio
 	{
@@ -36,7 +36,7 @@ namespace ldk
 		uint32 width;
 		uint32 height;
 		uint32 bitsPerPixel;
-		uchar *pixels;
+		const uchar *pixels;
 	};
 
 #define LDK_ASSET_TYPE_FONT 0x1

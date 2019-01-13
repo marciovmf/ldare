@@ -4,8 +4,50 @@
 
 namespace ldk
 {
-  namespace gl
+  namespace renderer
   {
+
+#ifdef _LDK_DEBUG_
+#define checkGlError() checkNoGlError(__FILE__, __LINE__)
+#else
+#define checkGlError() 
+#endif
+
+    static void clearGlError()
+    {
+      GLenum err;
+      do
+      {
+        err = glGetError();
+      }while (err != GL_NO_ERROR);
+    }
+
+    static int32 checkNoGlError(const char* file, uint32 line)
+    {
+      clearGlError();
+      const char* error = "UNKNOWN ERROR CODE";
+      GLenum err = glGetError();
+      int32 success = 1;
+      uchar noerror = 1;
+      while(err!=GL_NO_ERROR)
+      {
+        switch(err)
+        {
+          case GL_INVALID_OPERATION:      error="INVALID_OPERATION";      break;
+          case GL_INVALID_ENUM:           error="INVALID_ENUM";           break;
+          case GL_INVALID_VALUE:          error="INVALID_VALUE";          break;
+          case GL_OUT_OF_MEMORY:          error="OUT_OF_MEMORY";          break;
+          case GL_INVALID_FRAMEBUFFER_OPERATION:  error="INVALID_FRAMEBUFFER_OPERATION";  break;
+        }
+        success=0;
+        LogError("GL ERROR %s at %s:%d",error, file, line);
+        noerror=0;
+        err=glGetError();
+      }
+      return success;
+    }
+
+
     //
     // Internal functions
     //
@@ -90,21 +132,59 @@ namespace ldk
       return shaderProgram;
     }
 
-    static GLuint _internalToGlType(uint32 glType)
+    static GLuint _internalToGlType(VertexAttributeType glType)
     {
       switch(glType)
       {
-        case VertexAttributeType::INT:
-          return GL_INT;
         case VertexAttributeType::FLOAT:
           return GL_FLOAT;
-        case VertexAttributeType::BOOL:
-          return GL_BOOL;
+        case VertexAttributeType::BYTE:
+          return GL_BYTE;
+        case VertexAttributeType::UNSIGNED_BYTE:
+          return GL_UNSIGNED_BYTE;
+        case VertexAttributeType::SHORT:
+          return GL_SHORT;
+        case VertexAttributeType::UNSIGNED_SHORT:
+          return GL_UNSIGNED_SHORT;
+        case VertexAttributeType::INT:
+          return GL_INT;
+        case VertexAttributeType::UNSIGNED_INT:
+          return GL_UNSIGNED_INT;
+        case VertexAttributeType::DOUBLE:
+          return GL_DOUBLE;
         case VertexAttributeType::SAMPLER:
-          return GL_SAMPLER;
-        case VertexAttributeType::UNKNOWN:
+          return GL_SAMPLER_2D;
         default:
           return GL_INVALID_ENUM;
+      }
+    }
+
+    static GLuint _internalTypeSize(VertexAttributeType type)
+    {
+      switch(type)
+      {
+        case VertexAttributeType::FLOAT:
+          return sizeof(GLfloat);
+        case VertexAttributeType::BYTE:
+          return sizeof(GLbyte);
+        case VertexAttributeType::UNSIGNED_BYTE:
+          return sizeof(GLubyte);
+        case VertexAttributeType::SHORT:
+          return sizeof(GLshort);
+        case VertexAttributeType::UNSIGNED_SHORT:
+          return sizeof(GLushort);
+        case VertexAttributeType::INT:
+        case VertexAttributeType::SAMPLER:
+          return sizeof(GLint);
+        case VertexAttributeType::BOOL:
+          return sizeof(GLboolean);
+        case VertexAttributeType::UNSIGNED_INT:
+          return sizeof(GLuint);
+        case VertexAttributeType::DOUBLE:
+          return sizeof(GLdouble);
+        default:
+          LogWarning("Unknown vertex attribute type");
+          return sizeof(GLfloat);
       }
     }
 
@@ -112,12 +192,6 @@ namespace ldk
     {
       switch (glType)
       {
-        case GL_INT:
-        case GL_INT_VEC2:
-        case GL_INT_VEC3:
-        case GL_INT_VEC4:
-          return VertexAttributeType::INT;
-
         case GL_FLOAT:
         case GL_FLOAT_VEC2:
         case GL_FLOAT_VEC3:
@@ -127,11 +201,50 @@ namespace ldk
         case GL_FLOAT_MAT4:
           return VertexAttributeType::FLOAT;
 
+        case GL_BYTE:
+          return VertexAttributeType::BYTE;
+
+        case GL_UNSIGNED_BYTE:
+          return VertexAttributeType::UNSIGNED_BYTE;
+
+        case GL_SHORT:
+          return VertexAttributeType::SHORT;
+
+        case GL_UNSIGNED_SHORT:
+          return VertexAttributeType::UNSIGNED_SHORT;
+
+        case GL_INT:
+        case GL_INT_VEC2:
+        case GL_INT_VEC3:
+        case GL_INT_VEC4:
+          return VertexAttributeType::INT;
+
+        case GL_UNSIGNED_INT:
+        case GL_UNSIGNED_INT_VEC2:
+        case GL_UNSIGNED_INT_VEC3:
+        case GL_UNSIGNED_INT_VEC4:
+          return VertexAttributeType::UNSIGNED_INT;
+
         case GL_BOOL:
         case GL_BOOL_VEC2:
         case GL_BOOL_VEC3:
         case GL_BOOL_VEC4:
           return VertexAttributeType::BOOL;
+
+        case GL_DOUBLE:
+        case GL_DOUBLE_VEC2:
+        case GL_DOUBLE_VEC3:
+        case GL_DOUBLE_VEC4:
+        case GL_DOUBLE_MAT2:  
+        case GL_DOUBLE_MAT3: 
+        case GL_DOUBLE_MAT4:
+        case GL_DOUBLE_MAT2x3:
+        case GL_DOUBLE_MAT2x4:
+        case GL_DOUBLE_MAT3x2:
+        case GL_DOUBLE_MAT3x4:
+        case GL_DOUBLE_MAT4x2:
+        case GL_DOUBLE_MAT4x3:
+          return VertexAttributeType::DOUBLE;
 
         case GL_SAMPLER_2D:
         case GL_SAMPLER_3D:
@@ -229,8 +342,10 @@ namespace ldk
           _uploadVertexData(drawCall);
       }
 
+      clearGlError();
       VertexBuffer* buffer = &(renderable->buffer);
       glUseProgram(renderable->shader->program);
+      checkGlError();
 
       uint32 currentVboIndex = renderable->currentVboIndex;
       uint32 vbo = renderable->vbos[currentVboIndex];
@@ -239,7 +354,7 @@ namespace ldk
       // Set buffer format
       uint32 vertexStride = buffer->stride;
       uint32 attributeCount = buffer->attributeCount;
-      for (int i = 0; i < attributeCount; i++) 
+      for (int i = 0; i < attributeCount; ++i) 
       {
         VertexAttribute* attribute = buffer->attributes + i;    
         glEnableVertexAttribArray(attribute->location);
@@ -249,13 +364,16 @@ namespace ldk
               (void*)((size_t) attribute->offset));
       }
 
+      clearGlError();
       // enable/bind textures
       uint32 textureCount = drawCall->textureCount;
-      for (int i = 0; i < textureCount; i++) 
+      for (int i = 0; i < textureCount; ++i) 
       {
         glActiveTexture(GL_TEXTURE0 + i) ;
+        checkGlError();
         uint32 textureId = drawCall->textureId[i];
         glBindTexture(GL_TEXTURE_2D, textureId);
+        checkGlError();
       }
 
       //TODO(marcio): implement instanced rendering
@@ -312,7 +430,7 @@ namespace ldk
           return uniform;
       }
 
-      LogWarning("Could not find uniform '%s' on shader, name");
+      LogWarning("Could not find uniform '%s' on shader", name);
       return nullptr;
     }
 
@@ -379,7 +497,7 @@ namespace ldk
       
       if(uniform)
       {
-        LDK_ASSERT((uniform->type == ldk::gl::VertexAttributeType::FLOAT
+        LDK_ASSERT((uniform->type == ldk::renderer::VertexAttributeType::FLOAT
            && uniform->size == 1), "Mismatching uniform types");
 
         glUseProgram(shader->program);
@@ -388,9 +506,21 @@ namespace ldk
       }
     }
 
+    void setShaderInt(Shader* shader, char* name, uint32 intParam)
+    {
+      clearGlError();
+      glUseProgram(shader->program);
+      const Uniform* uniform = _findUniform(shader, name);
+      glUniform1i(uniform->location, intParam);
+      checkGlError();
+    }
+
     void setShaderInt(Shader* shader, char* name, uint32 count, uint32* intParam)
     {
+      clearGlError();
       glUseProgram(shader->program);
+      checkGlError();
+
       const Uniform* uniform = _findUniform(shader, name);
 
       switch(count)
@@ -415,7 +545,19 @@ namespace ldk
           LDK_ASSERT(count > 0 && count < 4, "setShaderInt count is between 0 and 4");
           break;
       }
+
+      checkGlError();
       glUseProgram(0);
+    }
+
+
+    void setShaderFloat(Shader* shader, char* name, float floatParam)
+    {
+      clearGlError();
+      glUseProgram(shader->program);
+      const Uniform* uniform = _findUniform(shader, name);
+      glUniform1f(uniform->location, floatParam);
+      checkGlError();
     }
 
     void setShaderFloat(Shader* shader, char* name, uint32 count, float* floatParam)
@@ -446,6 +588,7 @@ namespace ldk
           break;
       }
       glUseProgram(0);
+      checkGlError();
     }
 
     void setShader(Renderable* renderable, Shader* shader)
@@ -455,7 +598,7 @@ namespace ldk
 
       if(renderable->attributeCount != renderable->buffer.attributeCount)
       {
-        LogWarning("Shader and buffer layout has different attribute count");
+        LogWarning("Shader and buffer layout has different attribute count %d/%d", renderable->attributeCount, renderable->buffer.attributeCount);
       }
 
       uint32 attribType = 0;
@@ -485,6 +628,7 @@ namespace ldk
         LDK_ASSERT(attribute->type == _glTypeToInternal(attribType), "No matching attribute type");
         // cache attribute location
         attribute->location = glGetAttribLocation(shader->program, attribName);
+        checkGlError();
       }
 
       VertexBuffer* buffer = &renderable->buffer;
@@ -514,7 +658,7 @@ namespace ldk
       context->settingsBits = settingsBits;
       context->maxDrawCalls = maxDrawCalls;
       context->drawCallCount = 0;
-      context->drawCalls = (ldk::gl::DrawCall*) LDK_GL_ALLOC(sizeof(ldk::gl::DrawCall) * maxDrawCalls);
+      context->drawCalls = (ldk::renderer::DrawCall*) LDK_GL_ALLOC(sizeof(ldk::renderer::DrawCall) * maxDrawCalls);
 
       if(!context->drawCalls)
       {
@@ -525,6 +669,9 @@ namespace ldk
       GLuint vao;
       glGenVertexArrays(1, &vao);
       glBindVertexArray(vao);
+
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
       return context;
     }
@@ -538,11 +685,10 @@ namespace ldk
     //
     // Buffer functions
     //
-
-    void makeVertexBuffer(VertexBuffer* buffer, uint32 bufferSize, uint32 stride) 
+    void makeVertexBuffer(VertexBuffer* buffer, uint32 bufferSize) 
     {
       buffer->size = bufferSize;
-      buffer->stride = stride;
+      buffer->stride = 0;
       buffer->primitive = GL_TRIANGLES; // only primitive supported by now
       buffer->attributeCount = 0;
     }
@@ -560,6 +706,9 @@ namespace ldk
       attribute.name = name;
 
       int32 index = buffer->attributeCount++;
+
+      size_t typeSize = _internalTypeSize(type);
+      buffer->stride += size * typeSize;
       VertexAttribute* attributeSlot = &buffer->attributes[index];
       *attributeSlot = attribute;
     }
@@ -597,6 +746,7 @@ namespace ldk
 
       renderable->ibo = ibo;
       renderable->iboSize = iboSize;
+      checkGlError();
     }
 
     //
@@ -617,7 +767,7 @@ namespace ldk
       glEnable(GL_CULL_FACE);
       glDepthFunc(GL_LESS);
 
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      glClear(context->clearBits);
 
       // execute draw calls
       for (int i = 0; i < drawCallCount; i++) 
@@ -628,7 +778,33 @@ namespace ldk
 
       // reset draw call count for this frame
       context->drawCallCount = 0;
+      checkGlError();
     }
 
-  } // gl
+    Texture createTexture(const Bitmap* bitmap)
+    {
+      GLuint textureId;
+      glGenTextures(1, &textureId);
+      glBindTexture(GL_TEXTURE_2D, textureId);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
+      glGenerateMipmap(GL_TEXTURE_2D);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glBindTexture(GL_TEXTURE_2D, 0);
+      checkGlError();
+
+      return textureId;
+    }
+
+   void destroyTexture(Texture texture)
+   {
+      glBindTexture(GL_TEXTURE_2D, 0);
+      glDeleteTextures(1, &texture);
+      checkGlError();
+   }
+
+
+  } // renderer
 } // ldk

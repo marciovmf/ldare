@@ -3,7 +3,7 @@ namespace ldk
 {
 
 #define LDK_DEFAULT_GAME_WINDOW_TITLE "LDK Game"
-#define LDK_DEFAULT_CONFIG_FILE "ldk_game.cfg"
+#define LDK_DEFAULT_CONFIG_FILE "assets/ldk_game.cfg"
 
   LDKGameSettings loadGameSettings()
   {
