@@ -2,6 +2,7 @@
 #include <ldk/ldk.h>
 #include "ldk_platform.h"
 #include "ldk_memory.h"
+#include <string.h> // for memset()
 
 static int64 lastGameDllTime = 0;
 
@@ -114,7 +115,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 	void* gameStateMemory = nullptr;
   size_t gameMemorySize = gameSettings.preallocMemorySize;
   gameStateMemory = malloc(gameMemorySize);
-  ldk::ldk_memory_set(gameStateMemory, 0, (size_t)gameMemorySize);
+  memset(gameStateMemory, 0, (size_t)gameMemorySize);
 
 	game.start(gameStateMemory);
 	float deltaTime;

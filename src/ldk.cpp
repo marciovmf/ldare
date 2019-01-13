@@ -5,8 +5,8 @@
 #endif // _LDK_ENGINE_
 
 #include <ldk/ldk.h>
-#include "ldk_memory.h"
 #include "ldk_platform.h"
+#include "ldk_memory.h"
 
 
 // platform specific implementation
