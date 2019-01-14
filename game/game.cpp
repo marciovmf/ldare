@@ -22,9 +22,9 @@ uint32 indices[] =
 struct GameState
 {
   uint32 initialized;
+  ldk::renderer::Material material;
   ldk::renderer::Texture textureId;
   ldk::renderer::Context* context;
-  ldk::renderer::Shader shader;
   ldk::renderer::Renderable renderable;
   ldk::renderer::VertexBuffer buffer;
   ldk::renderer::DrawCall drawCall;
@@ -84,38 +84,44 @@ void gameStart(void* memory)
   ldk::renderer::makeVertexBuffer(&_gameState->buffer, 64);
   ldk::renderer::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, ldk::renderer::VertexAttributeType::FLOAT, 0);
   ldk::renderer::addVertexBufferAttribute(&_gameState->buffer, "_uuv", 2, ldk::renderer::VertexAttributeType::FLOAT,  3 * sizeof(float));
-  ldk::renderer::loadShader(&_gameState->shader, vs, fs);
 
-  // create a texture from bitmap
+  // Load Textures from bmp
   auto bmp = ldk::loadBitmap("Assets/test.bmp");
   _gameState->textureId = ldk::renderer::createTexture(bmp);
   ldk::freeAsset((void*) bmp);
-  ldk::renderer::setShaderInt(&_gameState->shader, "_mainTexture", 0); // assign to texture slot 0
 
+  // Initialize material
+  makeMaterial(&_gameState->material, vs, fs);
+  _gameState->material.textureCount = 1;
+  _gameState->material.texture[0] = _gameState->textureId;
+
+  // create a renderable and set material
   uint32 maxIndices = (sizeof(indices) / sizeof (uint32));
   ldk::renderer::makeRenderable(&_gameState->renderable, &_gameState->buffer, indices, maxIndices, true);
-  ldk::renderer::setShader(&_gameState->renderable, &_gameState->shader);
+  ldk::renderer::setMaterial(&_gameState->renderable, &_gameState->material);
 
   // compose draw call
   _gameState->drawCall.renderable = &_gameState->renderable;
   _gameState->drawCall.type = renderer::DrawCall::DRAW_INDEXED;
-  _gameState->drawCall.textureCount = 1;
-  _gameState->drawCall.textureId[0] = _gameState->textureId;
   _gameState->drawCall.vertexCount = sizeof(mesh)/VERTEX_SIZE;
   _gameState->drawCall.vertices = mesh;
   _gameState->drawCall.indexStart = 0;
   _gameState->drawCall.indexCount = maxIndices;
   _gameState->initialized = 1;
 
-  // projection
+  // set shader attributes:
+  // assign to texture slot 0
+  ldk::renderer::setShaderInt(&_gameState->material.shader, "_mainTexture", 0); 
+
+  // projection 
   _gameState->projMatrix.perspective(RADIAN(45), 4/3, 50.0f, -50.0f);
-  ldk::renderer::setShaderMatrix4(&_gameState->shader, "mprojection", &_gameState->projMatrix);
+  ldk::renderer::setShaderMatrix4(&_gameState->material.shader, "mprojection", &_gameState->projMatrix);
 
   // model
   _gameState->modelMatrix.identity();
   _gameState->modelMatrix.scale(Vec3{10.0, 10.0, 10.0});
   _gameState->modelMatrix.translate(Vec3{0, 0, -10});
-  ldk::renderer::setShaderMatrix4(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
+  ldk::renderer::setShaderMatrix4(&_gameState->material.shader, "mmodel", &_gameState->modelMatrix);
 }
 
 void gameUpdate(float deltaTime) 
@@ -138,7 +144,7 @@ void gameUpdate(float deltaTime)
   if(axis.x || axis.y || axis.z)
   {
     _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(35.0f) * deltaTime);
-    ldk::renderer::setShaderMatrix4(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
+    ldk::renderer::setShaderMatrix4(&_gameState->material.shader, "mmodel", &_gameState->modelMatrix);
   }
 #else
     _gameState->modelMatrix.rotate(1,1,1, RADIAN(45.0f) * deltaTime);

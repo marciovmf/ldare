@@ -344,7 +344,7 @@ namespace ldk
 
       clearGlError();
       VertexBuffer* buffer = &(renderable->buffer);
-      glUseProgram(renderable->shader->program);
+      glUseProgram(renderable->material->shader.program);
       checkGlError();
 
       uint32 currentVboIndex = renderable->currentVboIndex;
@@ -366,12 +366,13 @@ namespace ldk
 
       clearGlError();
       // enable/bind textures
-      uint32 textureCount = drawCall->textureCount;
+      Material& material = *drawCall->renderable->material;
+      uint32 textureCount = material.textureCount;
       for (int i = 0; i < textureCount; ++i) 
       {
-        glActiveTexture(GL_TEXTURE0 + i) ;
+        glActiveTexture(GL_TEXTURE0 + i);
         checkGlError();
-        uint32 textureId = drawCall->textureId[i];
+        uint32 textureId = material.texture[i];
         glBindTexture(GL_TEXTURE_2D, textureId);
         checkGlError();
       }
@@ -434,6 +435,8 @@ namespace ldk
       return nullptr;
     }
 
+
+
     //TODO:We need a way to add textures to a material. This is how I think i
     //should be:
     // Texture loadTexture(Context* context, ImageAsset* imageAsset);
@@ -489,6 +492,12 @@ namespace ldk
       shader->program = program;
       shader->uniformCount = uniformCount;
       return program > 0;
+    }
+
+    bool makeMaterial(Material* material, char* vertexSource, char* fragmentSource)
+    {
+      material->textureCount = 0;
+      return loadShader(&material->shader, vertexSource, fragmentSource);
     }
 
     void setShaderMatrix4(Shader* shader, char* name, ldk::Mat4* matrix)
@@ -591,9 +600,12 @@ namespace ldk
       checkGlError();
     }
 
-    void setShader(Renderable* renderable, Shader* shader)
+    void setMaterial(Renderable* renderable, Material* material)
     {
-      renderable->shader = shader;
+
+      renderable->material = material;
+      Shader* shader = &material->shader;
+
       glGetProgramiv(shader->program, GL_ACTIVE_ATTRIBUTES, (GLint*) &renderable->attributeCount);
 
       if(renderable->attributeCount != renderable->buffer.attributeCount)
@@ -626,7 +638,6 @@ namespace ldk
 
         LDK_ASSERT(attribute, "No matching attribute found");
         LDK_ASSERT(attribute->type == _glTypeToInternal(attribType), "No matching attribute type");
-        // cache attribute location
         attribute->location = glGetAttribLocation(shader->program, attribName);
         checkGlError();
       }

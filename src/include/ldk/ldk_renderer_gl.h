@@ -74,6 +74,13 @@ namespace ldk
       Uniform uniforms[LDK_GL_MAX_UNIFORM_COUNT];
     };
 
+    struct Material
+    {
+      Shader shader; 
+      GLuint textureCount;
+      Texture texture[LDK_GL_MAX_TEXTURES];
+    };
+
     struct VertexBuffer
     {
       GLuint size;
@@ -100,7 +107,7 @@ namespace ldk
     struct Renderable
     {
       VertexBuffer buffer;
-      Shader* shader;
+      Material* material;
       RenderQueue renderQueue; 
       GLuint ibo;
       GLuint iboSize;
@@ -129,8 +136,6 @@ namespace ldk
       GLuint indexStart;
       GLuint vertexCount;
       GLuint indexCount;
-      GLuint textureCount;
-      Texture textureId[LDK_GL_MAX_TEXTURES];
     };
 
 
@@ -145,17 +150,18 @@ namespace ldk
     ///@param name - The name of the section to get
     LDK_API void destroyContext(Context* context);
 
-    ///@brief Loads a shader to gpu
-    ///@param shader - a pointer to a Shader struct. @see Shader.
+    ///@brief Initializes a Material with the given shaders
+    ///@param material - a pointer to a Material struct. @see Material.
     ///@param vertexSource - vertex shader source;
     ///@param fragmentSource - fragment shader source;
-    ///@returns true if shader compile successfuly
-    LDK_API bool loadShader(Shader* shader, char* vertexSource, char* fragmentSource);
+    ///@returns true if shaders compile successfuly
+    LDK_API bool  makeMaterial(Material* material, char* vertexSource, char* fragmentSource);
 
     ///@brief Assigns a shader to a renderable
     ///@param renderable - The Renderable to assing a shader to
     ///@param shader - The shader to assign to the renderable
-    LDK_API void setShader(Renderable* renderable, Shader* shader);
+    //LDK_API void setShader(Renderable* renderable, Shader* shader);
+    LDK_API void setMaterial(Renderable* renderable, Material* material);
 
     ///@brief Set a Matrix4 shader parameter.
     ///@param shader - The shader to send the value to
