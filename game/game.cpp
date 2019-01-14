@@ -22,14 +22,14 @@ uint32 indices[] =
 struct GameState
 {
   uint32 initialized;
-  ldk::renderer::Material material;
-  ldk::renderer::Texture textureId;
-  ldk::renderer::Context* context;
-  ldk::renderer::Renderable renderable;
-  ldk::renderer::VertexBuffer buffer;
-  ldk::renderer::DrawCall drawCall;
-  ldk::Mat4 modelMatrix;
-  ldk::Mat4 projMatrix;
+  renderer::Material material;
+  renderer::Texture textureId;
+  renderer::Context* context;
+  renderer::Renderable renderable;
+  renderer::VertexBuffer buffer;
+  renderer::DrawCall drawCall;
+  Mat4 modelMatrix;
+  Mat4 projMatrix;
 };
 
 static GameState* _gameState;
@@ -78,27 +78,26 @@ void gameStart(void* memory)
     return;
 
   _gameState->context =
-    ldk::renderer::createContext(255, ldk::renderer::Context::COLOR_BUFFER | ldk::renderer::Context::DEPTH_BUFFER, 0);
+  renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
 
   // Make vertex buffer
-  ldk::renderer::makeVertexBuffer(&_gameState->buffer, 64);
-  ldk::renderer::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, ldk::renderer::VertexAttributeType::FLOAT, 0);
-  ldk::renderer::addVertexBufferAttribute(&_gameState->buffer, "_uuv", 2, ldk::renderer::VertexAttributeType::FLOAT,  3 * sizeof(float));
+  renderer::makeVertexBuffer(&_gameState->buffer, 64);
+  renderer::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, renderer::VertexAttributeType::FLOAT, 0);
+  renderer::addVertexBufferAttribute(&_gameState->buffer, "_uuv", 2, renderer::VertexAttributeType::FLOAT,  3 * sizeof(float));
 
   // Load Textures from bmp
-  auto bmp = ldk::loadBitmap("Assets/test.bmp");
-  _gameState->textureId = ldk::renderer::createTexture(bmp);
-  ldk::freeAsset((void*) bmp);
+  auto bmp = loadBitmap("Assets/test.bmp");
+  _gameState->textureId = renderer::createTexture(bmp);
+  freeAsset((void*) bmp);
 
   // Initialize material
   makeMaterial(&_gameState->material, vs, fs);
-  _gameState->material.textureCount = 1;
-  _gameState->material.texture[0] = _gameState->textureId;
+  renderer::setTexture(&_gameState->material, "_mainTexture", _gameState->textureId); 
 
-  // create a renderable and set material
+  // create a renderable and assign a material to it
   uint32 maxIndices = (sizeof(indices) / sizeof (uint32));
-  ldk::renderer::makeRenderable(&_gameState->renderable, &_gameState->buffer, indices, maxIndices, true);
-  ldk::renderer::setMaterial(&_gameState->renderable, &_gameState->material);
+  renderer::makeRenderable(&_gameState->renderable, &_gameState->buffer, indices, maxIndices, true);
+  renderer::setMaterial(&_gameState->renderable, &_gameState->material);
 
   // compose draw call
   _gameState->drawCall.renderable = &_gameState->renderable;
@@ -108,25 +107,20 @@ void gameStart(void* memory)
   _gameState->drawCall.indexStart = 0;
   _gameState->drawCall.indexCount = maxIndices;
   _gameState->initialized = 1;
-
-  // set shader attributes:
-  // assign to texture slot 0
-  ldk::renderer::setShaderInt(&_gameState->material.shader, "_mainTexture", 0); 
-
+ 
+  // Calculate matrices and send them to shader uniforms  
   // projection 
   _gameState->projMatrix.perspective(RADIAN(45), 4/3, 50.0f, -50.0f);
-  ldk::renderer::setShaderMatrix4(&_gameState->material.shader, "mprojection", &_gameState->projMatrix);
-
+  renderer::setMatrix4(&_gameState->material, "mprojection", &_gameState->projMatrix);
   // model
   _gameState->modelMatrix.identity();
   _gameState->modelMatrix.scale(Vec3{10.0, 10.0, 10.0});
   _gameState->modelMatrix.translate(Vec3{0, 0, -10});
-  ldk::renderer::setShaderMatrix4(&_gameState->material.shader, "mmodel", &_gameState->modelMatrix);
+  renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
 }
 
 void gameUpdate(float deltaTime) 
 {
-#if 1
   Vec3 axis = {};
   if (input::getKey(ldk::input::LDK_KEY_J))
   {
@@ -144,12 +138,8 @@ void gameUpdate(float deltaTime)
   if(axis.x || axis.y || axis.z)
   {
     _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(35.0f) * deltaTime);
-    ldk::renderer::setShaderMatrix4(&_gameState->material.shader, "mmodel", &_gameState->modelMatrix);
+    ldk::renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
   }
-#else
-    _gameState->modelMatrix.rotate(1,1,1, RADIAN(45.0f) * deltaTime);
-    ldk::renderer::setShaderMatrix4(&_gameState->shader, "mmodel", &_gameState->modelMatrix);
-#endif
 
   ldk::renderer::pushDrawCall(_gameState->context, &_gameState->drawCall);
   ldk::renderer::flush(_gameState->context);

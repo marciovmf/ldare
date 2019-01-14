@@ -7,13 +7,14 @@ namespace ldk
   namespace renderer
   {
 
-#ifdef _LDK_DEBUG_
-#define checkGlError() checkNoGlError(__FILE__, __LINE__)
-#else
-#define checkGlError() 
-#endif
+    //
+    // Internal functions
+    //
 
-    static void clearGlError()
+#ifdef _LDK_DEBUG_
+#define checkGlError() _checkNoGlError(__FILE__, __LINE__)
+
+    static void _clearGlError()
     {
       GLenum err;
       do
@@ -22,9 +23,9 @@ namespace ldk
       }while (err != GL_NO_ERROR);
     }
 
-    static int32 checkNoGlError(const char* file, uint32 line)
+    static int32 _checkNoGlError(const char* file, uint32 line)
     {
-      clearGlError();
+      _clearGlError();
       const char* error = "UNKNOWN ERROR CODE";
       GLenum err = glGetError();
       int32 success = 1;
@@ -47,10 +48,9 @@ namespace ldk
       return success;
     }
 
-
-    //
-    // Internal functions
-    //
+#else
+#define checkGlError() 
+#endif
 
     static GLboolean _checkShaderProgramLink(GLuint program)
     {
@@ -273,8 +273,7 @@ namespace ldk
       }
       else
       {
-        //TODO(marcio): Should usage be part of VertextBuffer instead of
-        //Renderable ?
+        //TODO(marcio): Should usage be part of VertextBuffer instead of Renderable ?
         LDK_ASSERT(renderable->usage != GL_STATIC_DRAW, "Static buffers can not be overflown");
 
         // We are trying to write past the current buffer. Lets cycle buffers...
@@ -342,7 +341,6 @@ namespace ldk
           _uploadVertexData(drawCall);
       }
 
-      clearGlError();
       VertexBuffer* buffer = &(renderable->buffer);
       glUseProgram(renderable->material->shader.program);
       checkGlError();
@@ -364,7 +362,6 @@ namespace ldk
               (void*)((size_t) attribute->offset));
       }
 
-      clearGlError();
       // enable/bind textures
       Material& material = *drawCall->renderable->material;
       uint32 textureCount = material.textureCount;
@@ -448,7 +445,7 @@ namespace ldk
     // Shader functions
     //
 
-    bool loadShader(Shader* shader, char* vertexSource, char* fragmentSource)
+    static bool loadShader(Shader* shader, char* vertexSource, char* fragmentSource)
     {
       uint32 vertexShader = _compileShader((const char*)vertexSource, GL_VERTEX_SHADER);
       uint32 fragmentShader = _compileShader((const char*)fragmentSource, GL_FRAGMENT_SHADER);
@@ -500,8 +497,9 @@ namespace ldk
       return loadShader(&material->shader, vertexSource, fragmentSource);
     }
 
-    void setShaderMatrix4(Shader* shader, char* name, ldk::Mat4* matrix)
+    void setMatrix4(Material* material, char* name, ldk::Mat4* matrix)
     {
+      Shader* shader = &material->shader;
       const Uniform* uniform = _findUniform(shader, name);
       
       if(uniform)
@@ -515,18 +513,18 @@ namespace ldk
       }
     }
 
-    void setShaderInt(Shader* shader, char* name, uint32 intParam)
+    void setInt(Material* material, char* name, uint32 intParam)
     {
-      clearGlError();
+      Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
       glUniform1i(uniform->location, intParam);
       checkGlError();
     }
 
-    void setShaderInt(Shader* shader, char* name, uint32 count, uint32* intParam)
+    void setInt(Material* material, char* name, uint32 count, uint32* intParam)
     {
-      clearGlError();
+      Shader* shader = &material->shader;
       glUseProgram(shader->program);
       checkGlError();
 
@@ -559,18 +557,18 @@ namespace ldk
       glUseProgram(0);
     }
 
-
-    void setShaderFloat(Shader* shader, char* name, float floatParam)
+    void setFloat(Material* material, char* name, float floatParam)
     {
-      clearGlError();
+      Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
       glUniform1f(uniform->location, floatParam);
       checkGlError();
     }
 
-    void setShaderFloat(Shader* shader, char* name, uint32 count, float* floatParam)
+    void setFloat(Material* material, char* name, uint32 count, float* floatParam)
     {
+      Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
 
@@ -598,6 +596,33 @@ namespace ldk
       }
       glUseProgram(0);
       checkGlError();
+    }
+
+    bool setTexture(Material* material, char* name, Texture texture)
+    {
+      // Find the thexture slot or allocate a new one if this is a new texture
+      uint32 textureSlot = -1;
+      for(int i=0; i < material->textureCount; i++)
+      {
+        if (texture == material->texture[i])
+        {
+          textureSlot = i;
+          break;
+        }
+      }
+
+      if (textureSlot == -1)
+      {
+        if (LDK_GL_MAX_TEXTURES <= material->textureCount) 
+          return false;
+        
+        textureSlot = material->textureCount;
+        material->texture[textureSlot] = texture;
+        material->textureCount++;
+      }
+
+      setInt(material, name, textureSlot); 
+      return true;
     }
 
     void setMaterial(Renderable* renderable, Material* material)
@@ -653,7 +678,6 @@ namespace ldk
       }
 
       glBindBuffer(GL_ARRAY_BUFFER, 0);
-
     }
 
     //
@@ -815,7 +839,6 @@ namespace ldk
       glDeleteTextures(1, &texture);
       checkGlError();
    }
-
 
   } // renderer
 } // ldk
