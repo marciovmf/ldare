@@ -14,7 +14,7 @@ namespace ldk
   /// @defgroup Math Math
   /// @details Math Functions
   /// @{
-	struct Rectangle
+	struct Rect
 	{
 		float x, y, w, h;
 	};

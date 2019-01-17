@@ -30,7 +30,6 @@ namespace ldk
     struct DrawCall;
     struct Context;
     struct VertexBuffer;
-    typedef uint32 Texture;
 
     enum VertexAttributeType
     {
@@ -74,6 +73,13 @@ namespace ldk
       Uniform uniforms[LDK_GL_MAX_UNIFORM_COUNT];
     };
 
+    struct Texture
+    {
+      uint32 id;
+      uint16 width;
+      uint16 height;
+    };
+
     struct Material
     {
       Shader shader; 
@@ -84,7 +90,7 @@ namespace ldk
 
     struct VertexBuffer
     {
-      GLuint size;
+      GLuint capacity;
       GLuint stride;
       GLuint attributeCount;
       GLuint primitive;
@@ -199,9 +205,9 @@ namespace ldk
 
     ///@brief Initializes a VertexBuffer structure.
     ///@param buffer - The vertex buffer structur to initialize
-    ///@param bufferSize - The buffer size in bytes
+    ///@param capacity - maximum number of vertex entries on this buffer. The size of a single vertex depends on the buffer attributes.
     ///@param stride - Vertex data Stride.
-    LDK_API void makeVertexBuffer(VertexBuffer* buffer, uint32 bufferSize);
+    LDK_API void makeVertexBuffer(VertexBuffer* buffer, uint32 capacity);
 
     ///@brief Adds an attribute to a VertexBuffer. @see VertexBuffer
     ///@param buffer - The buffer to add the attribute to

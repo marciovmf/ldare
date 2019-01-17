@@ -81,7 +81,7 @@ void gameStart(void* memory)
   renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
 
   // Make vertex buffer
-  renderer::makeVertexBuffer(&_gameState->buffer, 64);
+  renderer::makeVertexBuffer(&_gameState->buffer, 4);
   renderer::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, renderer::VertexAttributeType::FLOAT, 0);
   renderer::addVertexBufferAttribute(&_gameState->buffer, "_uuv", 2, renderer::VertexAttributeType::FLOAT,  3 * sizeof(float));
 

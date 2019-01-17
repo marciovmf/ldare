@@ -262,11 +262,11 @@ namespace ldk
     static void* _mapBuffer(Renderable* renderable, uint32 count)
     {
       VertexBuffer* buffer = &renderable->buffer;
-      LDK_ASSERT(buffer->size >= count, "Buffer too small. Make buffer larger or draw less data.");
+      LDK_ASSERT(buffer->capacity >= count, "Buffer too small. Make buffer larger or draw less data.");
 
       uint32 dataEndOffset = renderable->index1 + count;
 
-      if( dataEndOffset <= buffer->size)
+      if( dataEndOffset <= buffer->capacity)
       {
         renderable->index0 = renderable->index1;  // begin writting past last data written
         renderable->index1 = dataEndOffset;       // data written will spread this much
@@ -369,7 +369,7 @@ namespace ldk
       {
         glActiveTexture(GL_TEXTURE0 + i);
         checkGlError();
-        uint32 textureId = material.texture[i];
+        uint32 textureId = material.texture[i].id;
         glBindTexture(GL_TEXTURE_2D, textureId);
         checkGlError();
       }
@@ -604,7 +604,7 @@ namespace ldk
       uint32 textureSlot = -1;
       for(int i=0; i < material->textureCount; i++)
       {
-        if (texture == material->texture[i])
+        if (texture.id == material->texture[i].id)
         {
           textureSlot = i;
           break;
@@ -673,7 +673,7 @@ namespace ldk
         GLuint* vbo = renderable->vbos + i;
         glGenBuffers(1, vbo);
         glBindBuffer(GL_ARRAY_BUFFER, *vbo);
-        glBufferData(GL_ARRAY_BUFFER, buffer->size * buffer->stride, NULL, renderable->usage);
+        glBufferData(GL_ARRAY_BUFFER, buffer->capacity * buffer->stride, NULL, renderable->usage);
         renderable->fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
       }
 
@@ -720,9 +720,9 @@ namespace ldk
     //
     // Buffer functions
     //
-    void makeVertexBuffer(VertexBuffer* buffer, uint32 bufferSize) 
+    void makeVertexBuffer(VertexBuffer* buffer, uint32 vertexCount) 
     {
-      buffer->size = bufferSize;
+      buffer->capacity = vertexCount;
       buffer->stride = 0;
       buffer->primitive = GL_TRIANGLES; // only primitive supported by now
       buffer->attributeCount = 0;
@@ -830,13 +830,19 @@ namespace ldk
       glBindTexture(GL_TEXTURE_2D, 0);
       checkGlError();
 
-      return textureId;
+      Texture texture;
+      texture.id = textureId;
+      texture.width = bitmap->width;
+      texture.height = bitmap->height;
+      return texture;
     }
 
    void destroyTexture(Texture texture)
    {
       glBindTexture(GL_TEXTURE_2D, 0);
-      glDeleteTextures(1, &texture);
+      glDeleteTextures(1, &texture.id);
+      texture.id = 0;
+      texture.width = texture.height = 0;
       checkGlError();
    }
 
