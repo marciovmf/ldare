@@ -278,7 +278,7 @@ namespace ldk
 
         // We are trying to write past the current buffer. Lets cycle buffers...
         ++renderable->currentVboIndex;
-        renderable->currentVboIndex = renderable->currentVboIndex & renderable->vboCount;
+        renderable->currentVboIndex = renderable->currentVboIndex % renderable->vboCount;
       
         // make sure this buffer is note being used by GPU
         GLsync fence = renderable->fences[renderable->currentVboIndex];
