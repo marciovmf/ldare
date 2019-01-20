@@ -1,33 +1,17 @@
 #include <ldk/ldk.h>
+#include <stdlib.h>
 
+#define MAX_SPRITES 5000
 using namespace ldk;
-
-float mesh[]
-{   
-    // Coord    UV
-    0.0, 0.0, 0.0, 0.0, 0.0,
-    2.0, 0.0, 0.0, 1.0, 0.0,
-    2.0, 2.0, 0.0, 1.0, 1.0,
-    0.0, 2.0, 0.0, 0.0, 1.0
-};
-
-#define VERTEX_SIZE (5 * sizeof(float))
-
-uint32 indices[] = 
-{
-		0, 1, 2,
-    2, 3, 0
-};
 
 struct GameState
 {
   uint32 initialized;
+  renderer::Sprite sprite;
   renderer::Material material;
   renderer::Texture textureId;
   renderer::Context* context;
-  renderer::Renderable renderable;
-  renderer::VertexBuffer buffer;
-  renderer::DrawCall drawCall;
+  renderer::SpriteBatch* spriteBatch;
   Mat4 modelMatrix;
   Mat4 projMatrix;
 };
@@ -74,19 +58,16 @@ void gameStart(void* memory)
 {
   _gameState = (GameState*)memory;
 
+  srand((uint64)memory << 32);
+
   if (_gameState->initialized)
     return;
 
   _gameState->context =
   renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
 
-  // Make vertex buffer
-  renderer::makeVertexBuffer(&_gameState->buffer, 4);
-  renderer::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, renderer::VertexAttributeType::FLOAT, 0);
-  renderer::addVertexBufferAttribute(&_gameState->buffer, "_uuv", 2, renderer::VertexAttributeType::FLOAT,  3 * sizeof(float));
-
   // Load Textures from bmp
-  auto bmp = loadBitmap("Assets/test.bmp");
+  auto bmp = loadBitmap("Assets/ldk.bmp");
   _gameState->textureId = renderer::createTexture(bmp);
   freeAsset((void*) bmp);
 
@@ -94,59 +75,41 @@ void gameStart(void* memory)
   makeMaterial(&_gameState->material, vs, fs);
   renderer::setTexture(&_gameState->material, "_mainTexture", _gameState->textureId); 
 
-  // create a renderable and assign a material to it
-  uint32 maxIndices = (sizeof(indices) / sizeof (uint32));
-  renderer::makeRenderable(&_gameState->renderable, &_gameState->buffer, indices, maxIndices, true);
-  renderer::setMaterial(&_gameState->renderable, &_gameState->material);
-
-  // compose draw call
-  _gameState->drawCall.renderable = &_gameState->renderable;
-  _gameState->drawCall.type = renderer::DrawCall::DRAW_INDEXED;
-  _gameState->drawCall.vertexCount = sizeof(mesh)/VERTEX_SIZE;
-  _gameState->drawCall.vertices = mesh;
-  _gameState->drawCall.indexStart = 0;
-  _gameState->drawCall.indexCount = maxIndices;
-  _gameState->initialized = 1;
- 
   // Calculate matrices and send them to shader uniforms  
   // projection 
-  _gameState->projMatrix.perspective(RADIAN(45), 4/3, 50.0f, -50.0f);
+  _gameState->projMatrix.orthographic(0, 1024, 0, 768, -10, 10);
   renderer::setMatrix4(&_gameState->material, "mprojection", &_gameState->projMatrix);
   // model
   _gameState->modelMatrix.identity();
-  _gameState->modelMatrix.scale(Vec3{10.0, 10.0, 10.0});
-  _gameState->modelMatrix.translate(Vec3{0, 0, -10});
+  _gameState->modelMatrix.scale(Vec3{1.0, 1.0, 1.0});
+  _gameState->modelMatrix.translate(Vec3{0, 0, -2});
   renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
+
+  // Initialize the sprite batch
+  _gameState->spriteBatch = renderer::createSpriteBatch( _gameState->context, MAX_SPRITES); // Max 32 sprites, for now...
+  renderer::makeSprite(&_gameState->sprite, &_gameState->material,  1, 1, 127, 127);
 }
 
 void gameUpdate(float deltaTime) 
 {
-  Vec3 axis = {};
-  if (input::getKey(ldk::input::LDK_KEY_J))
+  renderer::spriteBatchBegin(_gameState->spriteBatch);
+  for(uint32 i=0; i < MAX_SPRITES; i++)
   {
-    axis.x = 1;
-  }
-  else if (input::getKey(ldk::input::LDK_KEY_K))
-  {
-    axis.y = 1;
-  }
-  else if (input::getKey(ldk::input::LDK_KEY_L))
-  {
-    axis.z = 1;
-  }
+    // Random position, rotation and scale
+    float randomX = (rand() % 1024); 
+    float randomY = (rand() % 1024);
+    float randomScale = (rand() % (5 - 0 + 1)) + 0;
+    float randomAngle = RADIAN(rand() % 90);
 
-  if(axis.x || axis.y || axis.z)
-  {
-    _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(35.0f) * deltaTime);
-    ldk::renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
+    renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite, 
+        randomX, randomY, 0.3f * randomScale, 0.3f * randomScale, randomAngle);
   }
-
-  ldk::renderer::pushDrawCall(_gameState->context, &_gameState->drawCall);
-  ldk::renderer::flush(_gameState->context);
+  renderer::spriteBatchEnd(_gameState->spriteBatch);
 }
 
 void gameStop()
 {
   ldk::renderer::destroyTexture(_gameState->textureId);
   ldk::renderer::destroyContext(_gameState->context);
+  ldk::renderer::destroySpriteBatch(_gameState->spriteBatch);
 }

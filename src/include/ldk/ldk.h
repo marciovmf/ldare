@@ -35,6 +35,7 @@
 #include "ldk_game.h"
 #include "ldk_asset.h"
 #include "ldk_renderer_gl.h"
+#include "ldk_sprite_batch.h"
 //#include "ldk_random.h"
 #endif //_LDK_H_
 

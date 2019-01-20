@@ -23,5 +23,6 @@
 #include "ldk_joystick.cpp"
 #include "ldk_asset.cpp"
 #include "ldk_cfg.cpp"
+#include "ldk_sprite_batch.cpp"
 #include "ldk_renderer_gl.cpp"
 #include "ldk_game.cpp"
