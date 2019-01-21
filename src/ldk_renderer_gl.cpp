@@ -627,6 +627,10 @@ namespace ldk
 
     void setMaterial(Renderable* renderable, Material* material)
     {
+      if (renderable->material == material)
+      {
+        return;
+      }
 
       renderable->material = material;
       Shader* shader = &material->shader;

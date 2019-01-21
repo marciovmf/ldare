@@ -9,6 +9,8 @@ namespace ldk
     /// @defgroup Mouse Mouse input
     /// @details Mouse input handling
     /// @{
+
+    // bottom left corner is (0,0)
 		LDK_API const ldk::Vec2& getMouseCursor();
 		LDK_API bool getMouseButton(uint16 mouseButton);
 		LDK_API bool getMouseButtonDown(uint16 mouseButton);
