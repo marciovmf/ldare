@@ -19,9 +19,17 @@ namespace ldk
       uint32 height;
     };
 
+    enum Anchor
+    {
+      BOTTOM_LEFT,
+      TOP_LEFT,
+      TOP_RIGHT,
+      BOTTOM_RIGHT,
+      CENTER
+    };
 
     LDK_API void makeSprite(Sprite* sprite, const Material* material, uint32 x, uint32 y, uint32 width, uint32 height);
-    LDK_API SpriteBatch* createSpriteBatch(Context* context, uint32 maxSprites);
+    LDK_API SpriteBatch* createSpriteBatch(Context* context, uint32 maxSprites, Anchor anchor = Anchor::CENTER);
     LDK_API void spriteBatchBegin(SpriteBatch* spriteBatch);
     LDK_API void spriteBatchDraw(SpriteBatch* spriteBatch,const Sprite* sprite, float x, float y, float scaleX = 1.0f, float scaleY = 1.0f, float angle = 0.0f);
     LDK_API void spriteBatchEnd(SpriteBatch* spriteBatch);

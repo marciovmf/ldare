@@ -9,7 +9,7 @@ struct GameState
   uint32 initialized;
   renderer::Sprite sprite;
   renderer::Material material;
-  renderer::Texture textureId;
+  renderer::Texture texture;
   renderer::Context* context;
   renderer::SpriteBatch* spriteBatch;
   Mat4 modelMatrix;
@@ -68,16 +68,16 @@ void gameStart(void* memory)
 
   // Load Textures from bmp
   auto bmp = loadBitmap("Assets/ldk.bmp");
-  _gameState->textureId = renderer::createTexture(bmp);
+  _gameState->texture = renderer::createTexture(bmp);
   freeAsset((void*) bmp);
 
   // Initialize material
   makeMaterial(&_gameState->material, vs, fs);
-  renderer::setTexture(&_gameState->material, "_mainTexture", _gameState->textureId); 
+  renderer::setTexture(&_gameState->material, "_mainTexture", _gameState->texture); 
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
-  _gameState->projMatrix.orthographic(0, 1024, 0, 768, -10, 10);
+  _gameState->projMatrix.orthographic(0, 300, 0, 300, -10, 10);
   renderer::setMatrix4(&_gameState->material, "mprojection", &_gameState->projMatrix);
   // model
   _gameState->modelMatrix.identity();
@@ -86,30 +86,40 @@ void gameStart(void* memory)
   renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
 
   // Initialize the sprite batch
-  _gameState->spriteBatch = renderer::createSpriteBatch( _gameState->context, MAX_SPRITES); // Max 32 sprites, for now...
+  _gameState->spriteBatch = renderer::createSpriteBatch( _gameState->context, MAX_SPRITES,
+      //renderer::Anchor::BOTTOM_LEFT); 
+      //renderer::Anchor::BOTTOM_RIGHT); 
+      renderer::Anchor::CENTER);
+      //renderer::Anchor::TOP_RIGHT);
+      //renderer::Anchor::TOP_LEFT);
   renderer::makeSprite(&_gameState->sprite, &_gameState->material,  1, 1, 127, 127);
 }
 
 void gameUpdate(float deltaTime) 
 {
   renderer::spriteBatchBegin(_gameState->spriteBatch);
-  for(uint32 i=0; i < MAX_SPRITES; i++)
-  {
-    // Random position, rotation and scale
-    float randomX = (rand() % 1024); 
-    float randomY = (rand() % 1024);
-    float randomScale = (rand() % (5 - 0 + 1)) + 0;
-    float randomAngle = RADIAN(rand() % 90);
+ // for(uint32 i=0; i < MAX_SPRITES; i++)
+ // {
+ //   // Random position, rotation and scale
+ //   float randomX = (rand() % 1024); 
+ //   float randomY = (rand() % 1024);
+ //   float randomScale = (rand() % (5 - 0 + 1)) + 0;
+ //   float randomAngle = RADIAN(rand() % 90);
+ //   renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite, 
+ //       randomX, randomY, 0.3f * randomScale, 0.3f * randomScale, randomAngle);
+ // }
 
-    renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite, 
-        randomX, randomY, 0.3f * randomScale, 0.3f * randomScale, randomAngle);
-  }
+    renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite,
+        150, 
+        150,
+        1.0f, 1.0f, 
+        RADIAN(45.0f));
   renderer::spriteBatchEnd(_gameState->spriteBatch);
 }
 
 void gameStop()
 {
-  ldk::renderer::destroyTexture(_gameState->textureId);
+  ldk::renderer::destroyTexture(_gameState->texture);
   ldk::renderer::destroyContext(_gameState->context);
   ldk::renderer::destroySpriteBatch(_gameState->spriteBatch);
 }

@@ -22,6 +22,10 @@ namespace ldk
       uint32 state;
       uint32 *indices;
       SpriteVertexData *vertices;
+      Vec2 anchorTL;
+      Vec2 anchorTR;
+      Vec2 anchorBL;
+      Vec2 anchorBR;
     };
 
     void makeSprite(Sprite* sprite, const Material* material, uint32 x, uint32 y, uint32 width, uint32 height)
@@ -61,7 +65,7 @@ namespace ldk
       renderer::flush(spriteBatch->context);
     }
 
-    SpriteBatch* createSpriteBatch(Context* context, uint32 maxSprites)
+    SpriteBatch* createSpriteBatch(Context* context, uint32 maxSprites, Anchor anchor)
     {
       const uint32 numIndices = 6 * maxSprites;
       const uint32 indexBufferSize = numIndices * sizeof(uint32);
@@ -95,6 +99,41 @@ namespace ldk
 
 				offset+=4; // 4 offsets per sprite
 			}
+
+      // Calculate anchor points
+      switch(anchor)
+      {
+        case Anchor::BOTTOM_LEFT: 
+          spriteBatch->anchorBL = Vec2{0.0f, 0.0f};
+          spriteBatch->anchorBR = Vec2{1.0f, 0.0f};
+          spriteBatch->anchorTL = Vec2{0.0f, 1.0f};
+          spriteBatch->anchorTR = Vec2{1.0f, 1.0f};
+       break;
+        case Anchor::TOP_LEFT: 
+          spriteBatch->anchorBL = Vec2{0, -1.0f};
+          spriteBatch->anchorBR = Vec2{1.0f, -1.0f};
+          spriteBatch->anchorTL = Vec2{0.0f, 0.0f};
+          spriteBatch->anchorTR = Vec2{1.0f, 0.0f};
+       break;
+        case Anchor::TOP_RIGHT: 
+          spriteBatch->anchorBL = Vec2{-1.0f, -1.0f};
+          spriteBatch->anchorBR = Vec2{0.0f, -1.f};
+          spriteBatch->anchorTL = Vec2{-1.0f, 0.0f};
+          spriteBatch->anchorTR = Vec2{0.0f, 0.0f};
+       break;
+        case Anchor::BOTTOM_RIGHT: 
+          spriteBatch->anchorBL = Vec2{-1.0f, 0.0f};
+          spriteBatch->anchorBR = Vec2{0.0f, 0.0f};
+          spriteBatch->anchorTL = Vec2{-1.0f, 1.0f};
+          spriteBatch->anchorTR = Vec2{0.0f, 1.0f};
+       break;
+        case Anchor::CENTER: 
+          spriteBatch->anchorBL = Vec2{-0.5f,-0.5f};
+          spriteBatch->anchorBR = Vec2{0.5f, -0.5f};
+          spriteBatch->anchorTL = Vec2{-0.5f, 0.5f};
+          spriteBatch->anchorTR = Vec2{0.5f, 0.5f};
+       break;
+      }
 
       makeRenderable(&spriteBatch->renderable, &spriteBatch->buffer, spriteBatch->indices, numIndices, false);
       return spriteBatch;
@@ -138,13 +177,7 @@ namespace ldk
         LogWarning("Passed material does not have any attached texture.");
         return;
       }
-
-      // origin is top-left corner
 			// sprite vertex order 0,1,2,2,3,0
-			// 1 -- 2
-			// |    |
-			// 0 -- 3
-
 			// map pixel coord to texture space
       Texture texture = material->texture[0];
 			Rect uvRect;
@@ -154,44 +187,83 @@ namespace ldk
 			uvRect.y = 1 - (sprite->y /(float) texture.height); 
 			uvRect.h = sprite->height / (float) texture.height;
 
-			float halfWidth = (sprite->width * scaleX) / 2;
-			float halfHeight = (sprite->height * scaleY) / 2;
+      float width = (sprite->width);
+      float height = (sprite->height);
 			float s = sin(angle);
 			float c = cos(angle);
 			float z = 0.0f;
 
+      Vec2& anchorTL = spriteBatch->anchorTL;
+      Vec2& anchorTR = spriteBatch->anchorTR;
+      Vec2& anchorBL = spriteBatch->anchorBL;
+      Vec2& anchorBR = spriteBatch->anchorBR;
+      
 			SpriteVertexData* vertexData = spriteBatch->vertices + spriteBatch->spriteCount * 4;
 
-			// top left
-			vertexData->uv = { uvRect.x, uvRect.y};
-			float x = -halfWidth;
-			float y = halfHeight;
-			vertexData->position = 
-				Vec3{(x * c - y * s) + posX, (x * s + y * c) + posY,	z};
-			vertexData++;
+      if (angle == 0.0f)
+      {
+        // top left
+        vertexData->uv = { uvRect.x, uvRect.y};
+        vertexData->position = 
+          Vec3{posX + anchorTL.x * width * scaleX, posY + anchorTL.y * height * scaleY, z};
+        vertexData++;
 
-			// bottom left
-			vertexData->uv = { uvRect.x, uvRect.y - uvRect.h};
-			x = -halfWidth;
-			y = -halfHeight;
-			vertexData->position = 
-				Vec3{(x * c - y * s) + posX, (x * s + y * c) + posY, z};
-			vertexData++;
+        // bottom left
+        vertexData->uv = { uvRect.x, uvRect.y - uvRect.h};
+        vertexData->position = 
+          Vec3{posX + anchorBL.x * width * scaleX, posY + anchorBL.y * height * scaleY, z};
+        vertexData++;
 
-			// bottom right
-			vertexData->uv = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};
-			x = halfWidth;
-			y = -halfHeight;
-			vertexData->position = 	
-				Vec3{(x * c - y * s) + posX, (x * s + y * c) + posY,	z};
-			vertexData++;
+        // bottom right
+        vertexData->uv = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};
+        vertexData->position = 	
+          Vec3{posX + anchorBR.x * width * scaleX, posY + anchorBR.y * height * scaleY, z};
+        vertexData++;
 
-			// top right
-			vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
-			x = halfWidth;
-			y = halfHeight;
-			vertexData->position = 
-				Vec3{(x * c - y * s) + posX, (x * s + y * c) + posY,	z};
+        // top right
+        vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
+        vertexData->position = 
+          Vec3{posX + anchorTR.x * width * scaleX, posY + anchorTR.y * height * scaleY, z};
+      }
+      else
+      {	
+        float halfWidth = width;
+        float halfHeight = width;
+
+        // top left
+        vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
+
+        float x1 = (anchorTL.x * width * scaleX);
+        float y1 = (anchorTL.y * height * scaleY);
+        vertexData->position = 
+          Vec3{(x1 * c - y1 * s) + posX, (x1 * s + y1 * c) + posY, z};
+        vertexData++;
+
+        // bottom left
+        vertexData->uv = { uvRect.x, uvRect.y};
+        x1 = (anchorBL.x * width * scaleX);
+        y1 = (anchorBL.y * height * scaleY);
+        vertexData->position = 
+          Vec3{(x1 * c - y1 * s) + posX, (x1 * s + y1 * c) + posY, z};
+        vertexData++;
+
+        // bottom right
+        vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
+        x1 = (anchorBR.x * width * scaleX);
+        y1 = (anchorBR.y * height * scaleY);
+        vertexData->position = 	
+          Vec3{(x1 * c - y1 * s) + posX, (x1 * s + y1 * c) + posY, z};
+        vertexData++;
+
+        // top right
+        vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
+        x1 = (anchorTR.x * width * scaleX);
+        y1 = (anchorTR.y * height * scaleY);
+        vertexData->position = 
+          Vec3{(x1 * c - y1 * s) + posX, (x1 * s + y1 * c) + posY, z};
+
+      }
+
       
       spriteBatch->spriteCount++;
     }
