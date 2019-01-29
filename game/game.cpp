@@ -110,10 +110,11 @@ void gameUpdate(float deltaTime)
  // }
 
     renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite,
-        150, 
-        150,
+        150 - 64,
+        150 - 64,
         1.0f, 1.0f, 
-        RADIAN(45.0f));
+        RADIAN(0.0f)
+        ,150.0f, 150.0f);
   renderer::spriteBatchEnd(_gameState->spriteBatch);
 }
 
