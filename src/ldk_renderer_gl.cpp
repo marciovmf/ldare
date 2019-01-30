@@ -820,17 +820,81 @@ namespace ldk
       checkGlError();
     }
 
-    Texture createTexture(const Bitmap* bitmap)
+    static GLenum _internalToGlMinFilter(TextureFilter filter)
+    {
+      switch(filter)
+      {
+        case LINEAR:
+          return GL_LINEAR;
+        case NEAREST:
+          return GL_NEAREST;
+        case MIPMAPLINEARLINEAR:
+          return GL_LINEAR_MIPMAP_LINEAR;
+        case MIPMAPLINEARNEAREST:
+          return GL_LINEAR_MIPMAP_NEAREST;
+        case MIPMAPNEARESTLINEAR:
+          return GL_NEAREST_MIPMAP_LINEAR;
+        case MIPMAPNEARESTNEAREST:
+          return GL_NEAREST_MIPMAP_NEAREST;
+        default:
+          LogError("Unknown TextureFilter");
+          return GL_INVALID_ENUM;
+      }
+    }
+
+
+    static GLenum _internalToGlMagFilter(TextureFilter filter)
+    {
+      switch(filter)
+      {
+        case LINEAR:
+          return GL_LINEAR;
+        case NEAREST:
+          return GL_NEAREST;
+        case MIPMAPLINEARLINEAR:
+        case MIPMAPLINEARNEAREST:
+        case MIPMAPNEARESTLINEAR:
+        case MIPMAPNEARESTNEAREST:
+          LogWarning("Invald TextureFilter for magFilter. Use LINEAR or NEAREST");
+            return GL_NEAREST;
+        default:
+          LogError("Unknown TextureFilter");
+          return GL_INVALID_ENUM;
+      }
+    }
+
+    static GLenum _internalToGlWrap(TextureWrap wrap)
+    {
+      switch(wrap)
+      {
+        case CLAMPTOEDGE:
+          return GL_CLAMP_TO_EDGE;
+        case MIRROREDREPEAT:
+          return GL_MIRRORED_REPEAT;
+        case REPEAT:
+          return GL_REPEAT;
+        default:
+          LogError("Unknown TextureWrap");
+          return GL_INVALID_ENUM;
+      }
+    }
+
+    Texture createTexture(const ldk::Bitmap* bitmap
+        ,TextureFilter minFilter 
+        ,TextureFilter magFilter
+        ,TextureWrap uWrap
+        ,TextureWrap vWrap)
     {
       GLuint textureId;
       glGenTextures(1, &textureId);
       glBindTexture(GL_TEXTURE_2D, textureId);
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
+
       glGenerateMipmap(GL_TEXTURE_2D);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, _internalToGlMinFilter(minFilter));
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, _internalToGlMagFilter(magFilter));
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, _internalToGlWrap(uWrap));
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, _internalToGlWrap(vWrap));
       glBindTexture(GL_TEXTURE_2D, 0);
       checkGlError();
 

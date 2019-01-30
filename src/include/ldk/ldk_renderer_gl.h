@@ -73,11 +73,33 @@ namespace ldk
       Uniform uniforms[LDK_GL_MAX_UNIFORM_COUNT];
     };
 
+    enum TextureFilter
+    {
+      LINEAR,
+      NEAREST,
+      MIPMAPLINEARLINEAR,
+      MIPMAPLINEARNEAREST,
+      MIPMAPNEARESTLINEAR,
+      MIPMAPNEARESTNEAREST,
+    };
+
+    enum TextureWrap
+    {
+      CLAMPTOEDGE,
+      MIRROREDREPEAT,
+      REPEAT 
+//      CLAMPTOBORDER ?
+    };
+
     struct Texture
     {
       uint32 id;
       uint16 width;
       uint16 height;
+      TextureFilter minFilter;
+      TextureFilter magFilter;
+      TextureWrap uWrap;
+      TextureWrap vWrap;
     };
 
     struct Material
@@ -244,8 +266,16 @@ namespace ldk
 
     ///@brief Crates a gpu texture from a bitmap
     ///@param bitmap - The bitmap to create the texture from
-    ///@returns the gpu texture id.
-    LDK_API Texture createTexture(const ldk::Bitmap* bitmap);
+    ///@param minFilter - min filter
+    ///@param magFilter - max filter
+    ///@param uWrap - wrap mode on u axis
+    ///@param vWrap - wrap mode on v axis
+    ///@returns the gpu texture 
+    LDK_API Texture createTexture(const ldk::Bitmap* bitmap
+        ,TextureFilter minFilter = TextureFilter::LINEAR
+        ,TextureFilter magFilter = TextureFilter::LINEAR
+        ,TextureWrap uWrap = TextureWrap::CLAMPTOEDGE
+        ,TextureWrap vWrap = TextureWrap::CLAMPTOEDGE);
 
     ///@brief Destroys a gpu texture. Use this to release gpu memory.
     ///@param texture - The gpu texture id.

@@ -1,7 +1,7 @@
 #include <ldk/ldk.h>
 #include <stdlib.h>
 
-#define MAX_SPRITES 5000
+#define MAX_SPRITES 50000 * 2
 using namespace ldk;
 
 struct GameState
@@ -77,7 +77,7 @@ void gameStart(void* memory)
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
-  _gameState->projMatrix.orthographic(0, 300, 0, 300, -10, 10);
+  _gameState->projMatrix.orthographic(0, 800, 0, 800, -10, 10);
   renderer::setMatrix4(&_gameState->material, "mprojection", &_gameState->projMatrix);
   // model
   _gameState->modelMatrix.identity();
@@ -98,23 +98,24 @@ void gameStart(void* memory)
 void gameUpdate(float deltaTime) 
 {
   renderer::spriteBatchBegin(_gameState->spriteBatch);
- // for(uint32 i=0; i < MAX_SPRITES; i++)
- // {
- //   // Random position, rotation and scale
- //   float randomX = (rand() % 1024); 
- //   float randomY = (rand() % 1024);
- //   float randomScale = (rand() % (5 - 0 + 1)) + 0;
- //   float randomAngle = RADIAN(rand() % 90);
- //   renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite, 
- //       randomX, randomY, 0.3f * randomScale, 0.3f * randomScale, randomAngle);
- // }
+  for(uint32 i=0; i < MAX_SPRITES; i++)
+  {
+    // Random position, rotation and scale
+    float randomX = (rand() % 800); 
+    float randomY = (rand() % 800);
+    float randomAngle = RADIAN(rand() % 90);
+    renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite, 
+        randomX - 64, 
+        randomY - 64, 
+        1.0f, 1.0f, randomAngle, randomX, randomY);
+  }
 
-    renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite,
-        150 - 64,
-        150 - 64,
-        1.0f, 1.0f, 
-        RADIAN(0.0f)
-        ,150.0f, 150.0f);
+    //renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite,
+    //    150 - 64,
+    //    150 - 64,
+    //    1.0f, 1.0f, 
+    //    RADIAN(90.0f)
+    //    ,150.0f, 150.0f);
   renderer::spriteBatchEnd(_gameState->spriteBatch);
 }
 
