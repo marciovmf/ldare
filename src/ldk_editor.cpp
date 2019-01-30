@@ -4,6 +4,13 @@
 #include "ldk_memory.h"
 #include <string.h> // for memset()
 
+
+struct FrameTime
+{
+  uint32 frameCount;
+  float time;
+};
+
 static int64 lastGameDllTime = 0;
 
 void windowCloseCallback(ldk::platform::LDKWindow* window)
@@ -122,10 +129,13 @@ uint32 ldkMain(uint32 argc, char** argv)
 	int64 startTime = 0;
 	int64 endTime = 0;
 
+  FrameTime frameTime = {};
+
 	float gameReloadCheckTimeout = 0;
 	while (!ldk::platform::windowShouldClose(window))
 	{
 		deltaTime = ldk::platform::getTimeBetweenTicks(startTime, endTime);
+
 
 		startTime = ldk::platform::getTicks();
 		ldk::platform::pollEvents();
@@ -136,6 +146,16 @@ uint32 ldkMain(uint32 argc, char** argv)
 		ldkHandleKeyboardInput(window);
 
 		//ldk::render::updateRenderer(deltaTime);
+
+    frameTime.time += deltaTime;
+    if (++frameTime.frameCount == 60)
+    {
+
+      LogInfo("Avg FrameTime = %fms", frameTime.time / 60 );
+      frameTime.time =
+        frameTime.frameCount = 0;
+    }
+
 		game.update(deltaTime);
 		ldk::platform::swapWindowBuffer(window);
 		endTime = ldk::platform::getTicks();
