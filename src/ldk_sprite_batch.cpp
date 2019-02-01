@@ -22,10 +22,6 @@ namespace ldk
       uint32 state;
       uint32 *indices;
       SpriteVertexData *vertices;
-      Vec2 anchorTL;
-      Vec2 anchorTR;
-      Vec2 anchorBL;
-      Vec2 anchorBR;
     };
 
     void makeSprite(Sprite* sprite, const Material* material, uint32 x, uint32 y, uint32 width, uint32 height)
@@ -65,7 +61,7 @@ namespace ldk
       renderer::flush(spriteBatch->context);
     }
 
-    SpriteBatch* createSpriteBatch(Context* context, uint32 maxSprites, Anchor anchor)
+    SpriteBatch* createSpriteBatch(Context* context, uint32 maxSprites)
     {
       const uint32 numIndices = 6 * maxSprites;
       const uint32 indexBufferSize = numIndices * sizeof(uint32);
@@ -99,17 +95,6 @@ namespace ldk
 				spriteBatch->indices[i+5] = offset + 1;
 				offset+=4; // 4 offsets per sprite
 			}
-
-      // Calculate anchor points
-      switch(anchor)
-      {
-        case Anchor::BOTTOM_LEFT: 
-          spriteBatch->anchorBL = Vec2{0.0f, 0.0f};
-          spriteBatch->anchorBR = Vec2{1.0f, 0.0f};
-          spriteBatch->anchorTL = Vec2{0.0f, 1.0f};
-          spriteBatch->anchorTR = Vec2{1.0f, 1.0f};
-       break;
-      }
 
       makeRenderable(&spriteBatch->renderable, &spriteBatch->buffer, spriteBatch->indices, numIndices, false);
       return spriteBatch;

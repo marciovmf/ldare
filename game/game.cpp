@@ -68,7 +68,12 @@ void gameStart(void* memory)
 
   // Load Textures from bmp
   auto bmp = loadBitmap("Assets/ldk.bmp");
-  _gameState->texture = renderer::createTexture(bmp);
+ 
+  _gameState->texture = renderer::createTexture(bmp,
+      renderer::TextureFilter::NEAREST,
+      renderer::TextureFilter::NEAREST,
+      renderer::TextureWrap::CLAMPTOEDGE);
+
   freeAsset((void*) bmp);
 
   // Initialize material
@@ -86,12 +91,7 @@ void gameStart(void* memory)
   renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
 
   // Initialize the sprite batch
-  _gameState->spriteBatch = renderer::createSpriteBatch( _gameState->context, MAX_SPRITES,
-      //renderer::Anchor::BOTTOM_LEFT); 
-      //renderer::Anchor::BOTTOM_RIGHT); 
-      renderer::Anchor::CENTER);
-      //renderer::Anchor::TOP_RIGHT);
-      //renderer::Anchor::TOP_LEFT);
+  _gameState->spriteBatch = renderer::createSpriteBatch( _gameState->context, MAX_SPRITES);
   renderer::makeSprite(&_gameState->sprite, &_gameState->material,  1, 1, 127, 127);
 }
 
@@ -101,8 +101,8 @@ void gameUpdate(float deltaTime)
   for(uint32 i=0; i < MAX_SPRITES; i++)
   {
     // Random position, rotation and scale
-    float randomX = (rand() % 800); 
-    float randomY = (rand() % 800);
+    float randomX = (rand() % 1920); 
+    float randomY = (rand() % 1080);
     float randomAngle = RADIAN(rand() % 90);
     renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite, 
         randomX - 64, 
@@ -110,12 +110,10 @@ void gameUpdate(float deltaTime)
         1.0f, 1.0f, randomAngle, randomX, randomY);
   }
 
-    //renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite,
-    //    150 - 64,
-    //    150 - 64,
-    //    1.0f, 1.0f, 
-    //    RADIAN(90.0f)
-    //    ,150.0f, 150.0f);
+//  renderer::spriteBatchDraw(_gameState->spriteBatch, &_gameState->sprite,
+//      150,
+//      150,
+//      2.0f, 2.0f);
   renderer::spriteBatchEnd(_gameState->spriteBatch);
 }
 

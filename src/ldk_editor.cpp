@@ -8,6 +8,7 @@
 struct FrameTime
 {
   uint32 frameCount;
+  float maxAvgTime;
   float time;
 };
 
@@ -151,9 +152,13 @@ uint32 ldkMain(uint32 argc, char** argv)
     if (++frameTime.frameCount == 60)
     {
 
-      LogInfo("Avg FrameTime = %fms", frameTime.time / 60 );
-      frameTime.time =
-        frameTime.frameCount = 0;
+      float avgTime = ( frameTime.time / 60 ) * 1000;
+      if(frameTime.maxAvgTime < avgTime) frameTime.maxAvgTime = avgTime;
+
+      LogInfo("Max Avg = %fms, Avg %fms", frameTime.maxAvgTime, avgTime);
+      
+      frameTime.time = frameTime.frameCount = 0;
+
     }
 
 		game.update(deltaTime);
