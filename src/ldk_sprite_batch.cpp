@@ -86,13 +86,13 @@ namespace ldk
 			int32 offset = 0;
 			for(int32 i=0; i < indexBufferSize; i+=6)
 			{
-				spriteBatch->indices[i] 	 = offset;
-				spriteBatch->indices[i+1] = offset +1;
-				spriteBatch->indices[i+2] = offset +2;
-				spriteBatch->indices[i+3] = offset +2;
-				spriteBatch->indices[i+4] = offset +3;
-				spriteBatch->indices[i+5] = offset +0;
 
+				spriteBatch->indices[i+0] = offset + 0;
+				spriteBatch->indices[i+1] = offset + 1;
+				spriteBatch->indices[i+2] = offset + 2;
+				spriteBatch->indices[i+3] = offset + 0;
+				spriteBatch->indices[i+4] = offset + 3;
+				spriteBatch->indices[i+5] = offset + 1;
 				offset+=4; // 4 offsets per sprite
 			}
 
@@ -112,14 +112,18 @@ namespace ldk
       spriteBatch->spriteCount = 0;
     }
 
+
     void spriteBatchDraw(
         SpriteBatch* spriteBatch,
         const Sprite* sprite,
+        // Bottom left corner of sprite
         float posX,
         float posY,
         float scaleX,
         float scaleY,
-        float angle)
+        float angle,
+        float rotX,
+        float rotY)
     {
       // Flush the batch if material changed or the buffer is full
       if (spriteBatch->currentMaterial == nullptr)
@@ -138,13 +142,7 @@ namespace ldk
         LogWarning("Passed material does not have any attached texture.");
         return;
       }
-
-      // origin is top-left corner
 			// sprite vertex order 0,1,2,2,3,0
-			// 1 -- 2
-			// |    |
-			// 0 -- 3
-
 			// map pixel coord to texture space
       Texture texture = material->texture[0];
 			Rect uvRect;
@@ -154,44 +152,78 @@ namespace ldk
 			uvRect.y = 1 - (sprite->y /(float) texture.height); 
 			uvRect.h = sprite->height / (float) texture.height;
 
-			float halfWidth = (sprite->width * scaleX) / 2;
-			float halfHeight = (sprite->height * scaleY) / 2;
+      float width = (sprite->width);
+      float height = (sprite->height);
 			float s = sin(angle);
 			float c = cos(angle);
 			float z = 0.0f;
-
+      
 			SpriteVertexData* vertexData = spriteBatch->vertices + spriteBatch->spriteCount * 4;
 
-			// top left
-			vertexData->uv = { uvRect.x, uvRect.y};
-			float x = -halfWidth;
-			float y = halfHeight;
-			vertexData->position = 
-				Vec3{(x * c - y * s) + posX, (x * s + y * c) + posY,	z};
-			vertexData++;
+      if (angle == 0.0f)
+      {
+        // bottom left
+        vertexData->uv = { uvRect.x, uvRect.y - uvRect.h};
+        vertexData->position = 
+          Vec3{posX, posY, z};
+        vertexData++;
 
-			// bottom left
-			vertexData->uv = { uvRect.x, uvRect.y - uvRect.h};
-			x = -halfWidth;
-			y = -halfHeight;
-			vertexData->position = 
-				Vec3{(x * c - y * s) + posX, (x * s + y * c) + posY, z};
-			vertexData++;
+        // top right
+        vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
+        vertexData->position = 
+          Vec3{posX + width * scaleX, posY + height * scaleY, z};
+        vertexData++;
 
-			// bottom right
-			vertexData->uv = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};
-			x = halfWidth;
-			y = -halfHeight;
-			vertexData->position = 	
-				Vec3{(x * c - y * s) + posX, (x * s + y * c) + posY,	z};
-			vertexData++;
+        // top left
+        vertexData->uv = { uvRect.x, uvRect.y};
+        vertexData->position = 
+          Vec3{posX, posY + height * scaleY, z};
+        vertexData++;
 
-			// top right
-			vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
-			x = halfWidth;
-			y = halfHeight;
-			vertexData->position = 
-				Vec3{(x * c - y * s) + posX, (x * s + y * c) + posY,	z};
+        // bottom right
+        vertexData->uv = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};
+        vertexData->position = 	
+          Vec3{posX + width * scaleX, posY, z};
+
+      }
+      else
+      {	
+        float halfWidth = width;
+        float halfHeight = width;
+
+        // bottom left
+        vertexData->uv = { uvRect.x, uvRect.y};
+        float x1 = posX - rotX;
+        float y1 = posY - rotY;
+        vertexData->position = 
+          Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
+        vertexData++;
+
+        // top right
+        vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
+        x1 = (width * scaleX) + posX - rotX;
+        y1 = (height * scaleY) + posY - rotY;
+        vertexData->position = 
+          Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
+        vertexData++;
+
+        // top left
+        vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
+        x1 = posX - rotX;
+        y1 = (height * scaleY) + posY - rotY;
+        vertexData->position = 
+          Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
+        vertexData++;
+
+        // bottom right
+        vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
+        x1 = (width * scaleX) + posX - rotX;
+        y1 = posY - rotY;
+        vertexData->position = 	
+          Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
+
+      }
+
       
       spriteBatch->spriteCount++;
     }
