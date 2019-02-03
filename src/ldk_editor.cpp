@@ -155,7 +155,7 @@ uint32 ldkMain(uint32 argc, char** argv)
       float avgTime = ( frameTime.time / 60 ) * 1000;
       if(frameTime.maxAvgTime < avgTime) frameTime.maxAvgTime = avgTime;
 
-      LogInfo("Max Avg = %fms, Avg %fms", frameTime.maxAvgTime, avgTime);
+      //LogInfo("Max Avg = %fms, Avg %fms", frameTime.maxAvgTime, avgTime);
       
       frameTime.time = frameTime.frameCount = 0;
 

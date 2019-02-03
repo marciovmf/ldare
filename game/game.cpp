@@ -1,3 +1,9 @@
+//NOTE(marcio): Game logic consides the board grows top bottom. The larger the
+//piece Y value, the lower the piece screen position (since sprite batch draws bottom up)
+//sprite origin is bottom left
+//screen origin is bottom left
+//mouse position coords are bottom left
+
 #include <ldk/ldk.h>
 using namespace ldk;
 
@@ -11,10 +17,11 @@ static const uint32 GAME_GRID_SIZE = 8;
 static const uint32 SCREEN_HEIGHT = 768;
 static const uint32 GAME_BOARD_OFFSET_X = 0;
 static const uint32 GAME_BOARD_OFFSET_Y = SCREEN_HEIGHT;
-static const uint32 GAME_MOVE_ANIMATION_SPEED = 400;
+static const uint32 GAME_MOVE_ANIMATION_SPEED = 1;
 static const uint32 GAME_SCALE_ANIMATION_SPEED = 5;
 static const uint32 GAME_TIME_LIMIT_SECONDS = 60;
-static const uint32 GAME_GRID_PIECE_SIZE = 45;
+static const uint32 GAME_GRID_PIECE_SIZE = 100;
+ 
 
 #define STR(s) #s
 // Vertex shader
@@ -86,17 +93,19 @@ struct Piece
   };
 
   PieceType type;
-  float x;
-  float y;
+  float column; // column
+  float row; // row
   float scale;
+  float animationTime;
   bool match;
 
   Piece(){ }
 
-  Piece(float x, float y)
-    : x(x)
-      , y(y)
+  Piece(float column, float row)
+    : column(column)
+      , row(row)
       , scale(1.0f)
+      , animationTime(0.0f)
       , match(false)
   {
     SetRandomPieceType();
@@ -107,6 +116,7 @@ struct Piece
     type = (Piece::PieceType)(rand() % (int)Piece::PieceType::PICE_TYPE_COUNT);
   }
 };
+
 
 // Global game state variables
 static struct GameState
@@ -137,11 +147,17 @@ inline renderer::Sprite PieceTypeToTexture(Piece::PieceType type)
   return _gameState->sprite[(int32) type];
 }
 
+inline void pieceToScreenPosition(int row, int column, Vec2* position)
+{
+  position->x = column * GAME_GRID_PIECE_SIZE;
+  position->y = GAME_GRID_SIZE * (GAME_GRID_PIECE_SIZE) - (row + 1) * GAME_GRID_PIECE_SIZE;
+}
+
 inline Piece* getPieceUnderCursor(int cursorX, int cursorY)
 {
-  const int32 halfPieceSize = (int32) (GAME_GRID_PIECE_SIZE / 2);
-  int column = (cursorX - GAME_BOARD_OFFSET_X - GAME_GRID_PIECE_SIZE) / GAME_GRID_PIECE_SIZE;
-  int row = (GAME_BOARD_OFFSET_Y - cursorY - halfPieceSize) / GAME_GRID_PIECE_SIZE;
+  const int totalGridSize = (GAME_GRID_PIECE_SIZE * GAME_GRID_SIZE);
+  int column = (cursorX * GAME_GRID_SIZE)/ totalGridSize;
+  int row = GAME_GRID_SIZE - 1 - ((cursorY * GAME_GRID_SIZE)/ totalGridSize);
 
   if (row >= 0 && row < GAME_GRID_SIZE &&
       column >= 0 && column < GAME_GRID_SIZE)
@@ -154,8 +170,8 @@ inline Piece* getPieceUnderCursor(int cursorX, int cursorY)
 
 void Swap(Piece& pieceA, Piece& pieceB)
 {
-  std::swap(_gameState->pieceA->x, _gameState->pieceB->x);
-  std::swap(_gameState->pieceA->y, _gameState->pieceB->y);
+  std::swap(_gameState->pieceA->column, _gameState->pieceB->column);
+  std::swap(_gameState->pieceA->row, _gameState->pieceB->row);
   std::swap(_gameState->pieceA->type, _gameState->pieceB->type);
 }
 
@@ -166,33 +182,35 @@ void Swap(Piece& pieceA, Piece& pieceB)
 inline bool UpdatePieceMovementAnimation(float deltaTime, int speed)
 {
   bool isAnimating = false;
-  const float step = speed * deltaTime;
+  const float step = speed * deltaTime / 2;
 
   for (int column = 0; column < GAME_GRID_SIZE; column++)
   {
     for (int row = 0; row < GAME_GRID_SIZE; row++)
     {
+      const float step = 1.0f / 64;
+
       Piece& piece = _gameState->grid[column][row];
 
-      float idealX = (float)column * GAME_GRID_PIECE_SIZE;
-      float idealY = (float)row * GAME_GRID_PIECE_SIZE;
+      float idealX = (float)column;
+      float idealY = (float)row;
 
-      float deltaX = piece.x - idealX;
-      float deltaY = piece.y - idealY;
+      float deltaX = piece.column - idealX;
+      float deltaY = piece.row - idealY;
+
+      int directionX = (int) (deltaX / std::abs(deltaX));
+      int directionY = (int) (deltaY / std::abs(deltaY));
 
       const float onePixelThreshold = 1.0f;
       if ((std::abs(deltaX) < onePixelThreshold) && (std::abs(deltaY) < onePixelThreshold))
       {
-        piece.x = idealX;
-        piece.y = idealY;
+        piece.column = idealX;
+        piece.row = idealY;
         continue;
       }
 
-      int directionX = (int)(deltaX / std::abs(deltaX));
-      int directionY = (int)(deltaY / std::abs(deltaY));
-
-      if (deltaX) piece.x -= directionX * step;
-      if (deltaY) piece.y -= directionY * step;
+      if (deltaX) piece.column -= directionX * step;
+      if (deltaY) piece.row -= directionY * step;
 
       if (deltaX || deltaY)
       {
@@ -322,7 +340,7 @@ inline void UpdateGrid()
       {
         newPiece.match = false;
         newPiece.SetRandomPieceType();
-        newPiece.y -= (row + pieceOffset++ + 1) * GAME_GRID_PIECE_SIZE;
+        newPiece.row -= (row + pieceOffset++ + 1) ;//* GAME_GRID_PIECE_SIZE;
         newPiece.scale = 1.0f;
       }
     }
@@ -372,10 +390,11 @@ inline bool UpdateSwapInput()
   if (trySwapping)
   {
     _gameState->pieceB = pieceUnderCursor;
-    float dx = std::abs(_gameState->pieceA->x - pieceUnderCursor->x);
-    float dy = std::abs(_gameState->pieceA->y - pieceUnderCursor->y);
+    float dx = std::abs(_gameState->pieceA->column - pieceUnderCursor->column);
+    float dy = std::abs(_gameState->pieceA->row - pieceUnderCursor->row);
 
-    if ((dx == GAME_GRID_PIECE_SIZE && dy == 0) || (dy == GAME_GRID_PIECE_SIZE && dx == 0))
+    //if ((dx == GAME_GRID_PIECE_SIZE && dy == 0) || (dy == GAME_GRID_PIECE_SIZE && dx == 0))
+    if ((dx == 1.0f && dy == 0) || (dy == 1.0f && dx == 0))
     {
       Swap(*_gameState->pieceA, *_gameState->pieceB);
       _gameState->clickCount = 0;
@@ -403,35 +422,37 @@ inline void DrawGameplay()
 
   ldk::renderer::spriteBatchBegin(_gameState->spriteBatch);
 
-  const int halfPieceSize = GAME_GRID_PIECE_SIZE / 2;
+  for (int column = 0; column < GAME_GRID_SIZE; column++)
+  {
+    for (int row = 0; row < GAME_GRID_SIZE; row++)
+    {
+      float highlight = 0.0f;
+      Piece& piece = _gameState->grid[column][row];
+  		const auto sprite = PieceTypeToTexture(piece.type);
 
-//  for (int column = 0; column < GAME_GRID_SIZE; column++)
-//  {
-//  	for (int row = 0; row < GAME_GRID_SIZE; row++)
-//  	{
-//      float angle = 0.0f;
-//      Piece& piece = _gameState->grid[column][row];
-//  		const auto sprite = PieceTypeToTexture(piece.type);
-//
-//      //if( row == 0 ) scale = 0.5f;
-//      //else 
-//        if (&piece == pieceUnderCursor)
-//        angle = RADIAN(90.0f);
-//
-//      ldk::renderer::spriteBatchDraw(_gameState->spriteBatch,
-//          &sprite,
-//          GAME_BOARD_OFFSET_X + piece.x + halfPieceSize,
-//          GAME_BOARD_OFFSET_Y - piece.y - halfPieceSize, 1.0f, 1.0f, angle);
-//  	}
-//  
-//  }
+      if (&piece == pieceUnderCursor)
+        highlight = 3.0f;
 
-    ldk::renderer::spriteBatchDraw(_gameState->spriteBatch,
-        &_gameState->sprite[BACKGROUND], 
-        0,
-        0,//GAME_BOARD_OFFSET_Y,
-        1.0f,
-        1.0f);
+      Vec2 piecePos;
+      pieceToScreenPosition(piece.row, piece.column, &piecePos);
+
+      ldk::renderer::spriteBatchDraw(_gameState->spriteBatch
+          , &sprite
+          , piecePos.x + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
+          , piecePos.y + highlight + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
+          , GAME_GRID_PIECE_SIZE * piece.scale
+          , GAME_GRID_PIECE_SIZE * piece.scale
+          , 0);
+  	}
+  
+  }
+
+//    ldk::renderer::spriteBatchDraw(_gameState->spriteBatch,
+//        &_gameState->sprite[BACKGROUND], 
+//        0,
+//        0,//GAME_BOARD_OFFSET_Y,
+//        1.0f,
+//        1.0f);
 
   //std::string elasedTimeText = std::to_string((int)_gameState->remainingGameTime);
   //mEngine.Write("Time:", 100, 50);
@@ -477,12 +498,11 @@ void newGame()
   unsigned int seed = (unsigned int)std::time(0);
   std::srand(seed);
 
-  const int32 halfPieceSize = GAME_GRID_PIECE_SIZE / 2;
   for (int column = 0; column < GAME_GRID_SIZE; column++)
   {
     for (int row = 0; row < GAME_GRID_SIZE; row++)
     {
-      Piece& piece = Piece((float)column * GAME_GRID_SIZE , (float)row * GAME_GRID_SIZE );
+      Piece& piece = Piece((float)column, (float)row);
 
       bool hMatchRisk = false;
       bool vMatchRisk = false;
@@ -507,11 +527,16 @@ void newGame()
       {
         piece.SetRandomPieceType();
       }
+
+      // remove
+      if (row > 4 )
+        piece.type = Piece::PieceType::BLUE;
+
+      // / remove
       _gameState->grid[column][row] = piece;
     }
   }
 }
-
 
 //
 // LDK Callbacks
@@ -519,7 +544,12 @@ void newGame()
 
 LDKGameSettings gameInit()
 {
-  LDKGameSettings settings = ldk::loadGameSettings();
+  LDKGameSettings settings;
+  settings.displayWidth = 800;
+  settings.displayHeight = 800;
+  settings.aspect = 1.0f;
+  settings.fullScreen = false;
+  settings.name = "LDK jeweld";
   settings.preallocMemorySize = sizeof(GameState);
   return settings;
 }
@@ -546,16 +576,15 @@ void gameStart(void* memory)
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
-  _gameState->projMatrix.orthographic(0, 1024, 0, 768, -10, 10);
+  _gameState->projMatrix.orthographic(0, 800, 0, 800, -10, 10);
   renderer::setMatrix4(&_gameState->material, "mprojection", &_gameState->projMatrix);
   // model
   _gameState->modelMatrix.identity();
-  _gameState->modelMatrix.scale(Vec3{1.0, 1.0, 1.0});
   _gameState->modelMatrix.translate(Vec3{0, 0, -2});
   renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
 
   // Initialize the sprite batch
-  _gameState->spriteBatch = renderer::createSpriteBatch( _gameState->context, MAX_SPRITES); // Max 32 sprites, for now...
+  _gameState->spriteBatch = renderer::createSpriteBatch( _gameState->context, MAX_SPRITES);
 
   // initialize sprites
   for (uint32 i =0; i < NUM_SPRITES; i++)
@@ -568,7 +597,6 @@ void gameStart(void* memory)
         spriteRect[i].h);
   }
 }
-
 
 void gameUpdate(float deltaTime)
 {

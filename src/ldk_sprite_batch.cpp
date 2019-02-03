@@ -119,8 +119,8 @@ namespace ldk
         // Bottom left corner of sprite
         float posX,
         float posY,
-        float scaleX,
-        float scaleY,
+        float width,
+        float height,
         float angle,
         float rotX,
         float rotY)
@@ -152,8 +152,6 @@ namespace ldk
 			uvRect.y = 1 - (sprite->y /(float) texture.height); 
 			uvRect.h = sprite->height / (float) texture.height;
 
-      float width = (sprite->width);
-      float height = (sprite->height);
 			float s = sin(angle);
 			float c = cos(angle);
 			float z = 0.0f;
@@ -171,26 +169,23 @@ namespace ldk
         // top right
         vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
         vertexData->position = 
-          Vec3{posX + width * scaleX, posY + height * scaleY, z};
+          Vec3{posX + width , posY + height, z};
         vertexData++;
 
         // top left
         vertexData->uv = { uvRect.x, uvRect.y};
         vertexData->position = 
-          Vec3{posX, posY + height * scaleY, z};
+          Vec3{posX, posY + height, z};
         vertexData++;
 
         // bottom right
         vertexData->uv = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};
         vertexData->position = 	
-          Vec3{posX + width * scaleX, posY, z};
+          Vec3{posX + width, posY, z};
 
       }
       else
       {	
-        float halfWidth = width;
-        float halfHeight = width;
-
         // bottom left
         vertexData->uv = { uvRect.x, uvRect.y};
         float x1 = posX - rotX;
@@ -201,8 +196,8 @@ namespace ldk
 
         // top right
         vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
-        x1 = (width * scaleX) + posX - rotX;
-        y1 = (height * scaleY) + posY - rotY;
+        x1 = (width) + posX - rotX;
+        y1 = (height) + posY - rotY;
         vertexData->position = 
           Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
         vertexData++;
@@ -210,21 +205,18 @@ namespace ldk
         // top left
         vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
         x1 = posX - rotX;
-        y1 = (height * scaleY) + posY - rotY;
+        y1 = (height) + posY - rotY;
         vertexData->position = 
           Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
         vertexData++;
 
         // bottom right
         vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
-        x1 = (width * scaleX) + posX - rotX;
+        x1 = (width) + posX - rotX;
         y1 = posY - rotY;
         vertexData->position = 	
           Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
-
       }
-
-      
       spriteBatch->spriteCount++;
     }
 
