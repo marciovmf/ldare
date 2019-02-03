@@ -34,7 +34,7 @@ game: $(LDK_GAME) gameassets
 
 $(LDK_GAME): game/*.cpp
 	@echo Building game dll...
-	cl game\game.cpp /Fo$(OUTDIR)\ /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /PDB:$(OUTDIR)\ldare_game_%random%.pdb $(OUTDIR)/ldk.lib
+	cl game\game.cpp /Fo$(OUTDIR)\ /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /PDB:$(OUTDIR)\ldk_game_%random%.pdb $(OUTDIR)/ldk.lib
 
 $(LDK_ENGINE): src/*.cpp src/*.h 
 	@echo Building ldk...
