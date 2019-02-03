@@ -25,7 +25,7 @@ LINKFLAGS=$(RELEASE_LINK_OPTIONS)
 match3: game.cpp
 	IF NOT EXIST "$(OUTDIR)\match3" @mkdir $(OUTDIR)\match3
 	cl game.cpp /Fo$(OUTDIR)\match3 /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /PDB:$(OUTDIR)\match3_%random%.pdb $(OUTDIR)/ldk.lib
-	xcopy assets $(OUTDIR)\match3\assets /Y /I /E /F > NUL
+	xcopy assets $(OUTDIR)\match3\assets /Y /I /E /F > nul
 	copy /Y $(OUTDIR)\ldk_editor.exe $(OUTDIR)\match3\match3.exe
 	copy /Y $(OUTDIR)\ldk.dll $(OUTDIR)\match3
 
@@ -33,4 +33,4 @@ run:
 	$(OUTDIR)\match3\match3.exe
 
 clean:
-	IF EXIST $(OUTDIR)\match3 rd /S /Q $(OUTDIR)\match3 > NUL
+	IF EXIST $(OUTDIR)\match3 rd /S /Q $(OUTDIR)\match3 > nul

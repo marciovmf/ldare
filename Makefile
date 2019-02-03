@@ -49,12 +49,12 @@ tool: src\win32\tools\ldk_tool_font.cpp
 
 assets:
 	@echo copying standard assets ...
-	@xcopy assets $(OUTDIR)\assets /Y /I /E /F > NUL
-	@copy /Y ldk_game.cfg $(OUTDIR) > NUL
+	@xcopy assets $(OUTDIR)\assets /Y /I /E /F > nul
+	@copy /Y ldk_game.cfg $(OUTDIR) > nul
 
 gameassets: 
 	@echo copying game assets ...
-	@xcopy game\assets $(OUTDIR)\assets /Y /I /E /F > NUL
+	@xcopy game\assets $(OUTDIR)\assets /Y /I /E /F > nul
 
 outdirfolder:
 	@IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR)
@@ -72,5 +72,5 @@ package:
 
 
 clean:
-	IF EXIST "$(OUTDIR)" rd /S /Q $(OUTDIR) > NUL
+	IF EXIST "$(OUTDIR)" rd /S /Q $(OUTDIR) > nul
 
