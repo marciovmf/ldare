@@ -186,14 +186,6 @@ inline bool updatePieceMovementAnimation(float deltaTime, float speed)
         continue;
       }
 
-      //const float onePixelThreshold = 1.0f;
-      //if ((std::abs(deltaX) < onePixelThreshold) && (std::abs(deltaY) < onePixelThreshold))
-      //{
-      //  piece.column = idealX;
-      //  piece.row = idealY;
-      //  continue;
-      //}
-
       if (deltaX)
       {
         int directionX = (int) (deltaX / std::abs(deltaX));
@@ -220,13 +212,6 @@ inline bool updatePieceMovementAnimation(float deltaTime, float speed)
         {
           piece.row = p;
         }
-
-        //piece.row -= directionY * step;
-        //if (directionY > 0 && piece.row < row
-        //    || directionY < 0 && piece.row > row)
-        //{
-        //  piece.row = row;
-        //}
       }
 
       if (deltaX || deltaY)
