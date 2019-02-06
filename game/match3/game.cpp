@@ -18,10 +18,10 @@ static const uint32 GAME_GRID_SIZE = 8;
 static const uint32 SCREEN_HEIGHT = 768;
 static const uint32 GAME_BOARD_OFFSET_X = 0;
 static const uint32 GAME_BOARD_OFFSET_Y = SCREEN_HEIGHT;
-static const uint32 GAME_MOVE_ANIMATION_SPEED = 1;
 static const uint32 GAME_SCALE_ANIMATION_SPEED = 5;
 static const uint32 GAME_TIME_LIMIT_SECONDS = 60;
 static const uint32 GAME_GRID_PIECE_SIZE = 100;
+static const float GAME_MOVE_ANIMATION_SPEED = 10.0f;
 
 enum
 {
@@ -68,7 +68,6 @@ struct Piece
   float column; // column
   float row; // row
   float scale;
-  float animationTime;
   bool match;
 
   Piece(){ }
@@ -77,7 +76,6 @@ struct Piece
     : column(column)
       , row(row)
       , scale(1.0f)
-      , animationTime(0.0f)
       , match(false)
   {
     SetRandomPieceType();
@@ -119,7 +117,7 @@ inline renderer::Sprite pieceTypeToTexture(Piece::PieceType type)
   return _gameState->sprite[(int32) type];
 }
 
-inline void pieceToScreenPosition(int row, int column, Vec2* position)
+inline void pieceToScreenPosition(float row, float column, Vec2* position)
 {
   position->x = column * GAME_GRID_PIECE_SIZE;
   position->y = GAME_GRID_SIZE * (GAME_GRID_PIECE_SIZE) - (row + 1) * GAME_GRID_PIECE_SIZE;
@@ -147,7 +145,6 @@ static void swap(Piece& pieceA, Piece& pieceB)
   std::swap(_gameState->pieceA->type, _gameState->pieceB->type);
 }
 
-
 int getScore()
 {
   int score = 0;
@@ -166,17 +163,15 @@ int getScore()
 // Animate pieces towards their ideal position.
 // Returns true if at least one pice is animating this frame
 //******************************************************************************
-inline bool updatePieceMovementAnimation(float deltaTime, int speed)
+inline bool updatePieceMovementAnimation(float deltaTime, float speed)
 {
   bool isAnimating = false;
-  const float step = speed * deltaTime / 2;
+  const float step = speed * deltaTime;
 
   for (int column = 0; column < GAME_GRID_SIZE; column++)
   {
     for (int row = 0; row < GAME_GRID_SIZE; row++)
     {
-      const float step = 1.0f / 64;
-
       Piece& piece = _gameState->grid[column][row];
 
       float idealX = (float)column;
@@ -185,19 +180,54 @@ inline bool updatePieceMovementAnimation(float deltaTime, int speed)
       float deltaX = piece.column - idealX;
       float deltaY = piece.row - idealY;
 
-      int directionX = (int) (deltaX / std::abs(deltaX));
-      int directionY = (int) (deltaY / std::abs(deltaY));
 
-      const float onePixelThreshold = 1.0f;
-      if ((std::abs(deltaX) < onePixelThreshold) && (std::abs(deltaY) < onePixelThreshold))
+      if(deltaX == 0 && deltaY == 0)
       {
-        piece.column = idealX;
-        piece.row = idealY;
         continue;
       }
 
-      if (deltaX) piece.column -= directionX * step;
-      if (deltaY) piece.row -= directionY * step;
+      //const float onePixelThreshold = 1.0f;
+      //if ((std::abs(deltaX) < onePixelThreshold) && (std::abs(deltaY) < onePixelThreshold))
+      //{
+      //  piece.column = idealX;
+      //  piece.row = idealY;
+      //  continue;
+      //}
+
+      if (deltaX)
+      {
+        int directionX = (int) (deltaX / std::abs(deltaX));
+        piece.column -= directionX * step;
+
+        if (directionX > 0 && piece.column < column
+            || directionX < 0 && piece.column > column)
+        {
+          piece.column = column;
+        }
+      }
+   
+      if (deltaY)
+      {
+        int directionY = (int) (deltaY / std::abs(deltaY));
+        float p = piece.row - directionY * step;
+      
+        if ((piece.row > row && p < row)
+            || (piece.row < row && p > row))
+        {
+          piece.row = row;
+        }
+        else
+        {
+          piece.row = p;
+        }
+
+        //piece.row -= directionY * step;
+        //if (directionY > 0 && piece.row < row
+        //    || directionY < 0 && piece.row > row)
+        //{
+        //  piece.row = row;
+        //}
+      }
 
       if (deltaX || deltaY)
       {
@@ -539,6 +569,8 @@ void gameStart(void* memory)
   if (_gameState->initialized)
     return;
 
+  _gameState->initialized = true;
+
   // load some configuration data
   auto cfgRoot = ldk::configParseFile("./assets/match3.cfg");
   auto cfgSection = ldk::configGetSection(cfgRoot, (const char*)"match3");
@@ -557,10 +589,11 @@ void gameStart(void* memory)
   auto bmp = ldk::loadBitmap((const char*)atlas);
   _gameState->textureId = renderer::createTexture(bmp);
   freeAsset((void*) bmp);
-  ldk::configDispose(cfgRoot);
 
   // Initialize material
   makeMaterial(&_gameState->material, vs, fs);
+  ldk::configDispose(cfgRoot);
+
   renderer::setTexture(&_gameState->material, "_mainTexture", _gameState->textureId); 
 
   // Calculate matrices and send them to shader uniforms  
@@ -585,6 +618,8 @@ void gameStart(void* memory)
         spriteRect[i].w,
         spriteRect[i].h);
   }
+
+  newGame();
 }
 
 void gameUpdate(float deltaTime)
