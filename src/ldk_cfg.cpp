@@ -973,10 +973,12 @@ namespace ldk
 		return 0;
 	}
 
-	void config_dispose(const VariantSectionRoot* root)
+  void configDispose(const VariantSectionRoot* root)
 	{
 		ldk::ldk_memory_freeHeap((Heap*) root);
 	}
+
+  
 
 	const VariantSection* configGetFirstSection(const VariantSectionRoot* root)
 	{
