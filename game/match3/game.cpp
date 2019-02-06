@@ -3,6 +3,7 @@
 //sprite origin is bottom left
 //screen origin is bottom left
 //mouse position origin is bottom left
+//Game grid row 0 is top row.
 
 #include <ldk/ldk.h>
 using namespace ldk;
@@ -21,35 +22,6 @@ static const uint32 GAME_MOVE_ANIMATION_SPEED = 1;
 static const uint32 GAME_SCALE_ANIMATION_SPEED = 5;
 static const uint32 GAME_TIME_LIMIT_SECONDS = 60;
 static const uint32 GAME_GRID_PIECE_SIZE = 100;
- 
-
-#define STR(s) #s
-// Vertex shader
-char* vs = STR(#version 330 core\n
-    in vec3 _pos; 
-    in vec2 _uuv; 
-    out vec2 fragCoord;
-    uniform mat4 mmodel;
-    uniform mat4 mprojection;
-    void main()
-    {
-    gl_Position = mprojection * mmodel * vec4(_pos, 1.0); \n
-    fragCoord = _uuv;
-    });
-
-// Fragment shader
-char* fs = STR(#version 330 core\n
-    in vec2 fragCoord;
-    uniform sampler2D _mainTexture;
-    out vec4 out_color;
-
-    void main()
-    {
-    vec4 solidColor = vec4(1.0, 1.0, 1.0, 1.0); 
-
-    vec4 textureColor = texture(_mainTexture, fragCoord);
-    out_color = mix(solidColor, textureColor, 0.9);
-    });
 
 enum
 {
@@ -142,7 +114,7 @@ static struct GameState
   Piece grid[GAME_GRID_SIZE][GAME_GRID_SIZE];
 } *_gameState;
 
-inline renderer::Sprite PieceTypeToTexture(Piece::PieceType type)
+inline renderer::Sprite pieceTypeToTexture(Piece::PieceType type)
 {
   return _gameState->sprite[(int32) type];
 }
@@ -168,18 +140,33 @@ inline Piece* getPieceUnderCursor(int cursorX, int cursorY)
   return nullptr;
 }
 
-void Swap(Piece& pieceA, Piece& pieceB)
+static void swap(Piece& pieceA, Piece& pieceB)
 {
   std::swap(_gameState->pieceA->column, _gameState->pieceB->column);
   std::swap(_gameState->pieceA->row, _gameState->pieceB->row);
   std::swap(_gameState->pieceA->type, _gameState->pieceB->type);
 }
 
-/*
- * Animate pieces towards their ideal position.
- * Returns true if at least one pice is animating this frame
- */
-inline bool UpdatePieceMovementAnimation(float deltaTime, int speed)
+
+int getScore()
+{
+  int score = 0;
+  for (int column = 0; column < GAME_GRID_SIZE; column++)
+  {
+    for (int row = 0; row < GAME_GRID_SIZE; row++)
+    {
+      Piece& piece = _gameState->grid[column][row];
+      score += (int)piece.match;
+    }
+  }
+  return score;
+}
+
+//******************************************************************************
+// Animate pieces towards their ideal position.
+// Returns true if at least one pice is animating this frame
+//******************************************************************************
+inline bool updatePieceMovementAnimation(float deltaTime, int speed)
 {
   bool isAnimating = false;
   const float step = speed * deltaTime / 2;
@@ -221,11 +208,11 @@ inline bool UpdatePieceMovementAnimation(float deltaTime, int speed)
   return isAnimating;
 }
 
-/*
- * Animate pieces match animation.
- * Returns true if at least one pice is animating this frame
- */
-inline bool UpdatePieceMatchAnimation(float deltaTime, int speed)
+//******************************************************************************
+// Animate pieces match animation.
+// Returns true if at least one pice is animating this frame
+//******************************************************************************
+inline bool updatePieceMatchAnimation(float deltaTime, int speed)
 {
   bool isScaling = false;
   for (int column = 0; column < GAME_GRID_SIZE; column++)
@@ -246,10 +233,10 @@ inline bool UpdatePieceMatchAnimation(float deltaTime, int speed)
   return isScaling;
 }
 
-/*
- * Marks matched pieces as 'matched'
- */
-inline void UpdateMatchedPieces()
+//******************************************************************************
+// Marks matched pieces as 'matched'
+//******************************************************************************
+inline void updateMatchedPieces()
 {
   for (int column = 0; column < GAME_GRID_SIZE; column++)
   {
@@ -285,24 +272,10 @@ inline void UpdateMatchedPieces()
   }
 }
 
-int GetScore()
-{
-  int score = 0;
-  for (int column = 0; column < GAME_GRID_SIZE; column++)
-  {
-    for (int row = 0; row < GAME_GRID_SIZE; row++)
-    {
-      Piece& piece = _gameState->grid[column][row];
-      score += (int)piece.match;
-    }
-  }
-  return score;
-}
-
-/*
- * Updates the grid recycling matched pieces and dropping new ones
- */
-inline void UpdateGrid()
+//******************************************************************************
+// Updates the grid recycling matched pieces and dropping new ones
+//******************************************************************************
+inline void updateGrid()
 {
   bool mustDropNewPieces = false;
 
@@ -347,10 +320,10 @@ inline void UpdateGrid()
   }
 }
 
-/*
- * Updates gamplay input. returns true if player starts sapping pieces this frame
- */
-inline bool UpdateSwapInput()
+//******************************************************************************
+// Updates gamplay input. returns true if player starts sapping pieces this frame
+//******************************************************************************
+inline bool updateSwapInput()
 {
   bool trySwapping = false;
 
@@ -396,7 +369,7 @@ inline bool UpdateSwapInput()
     //if ((dx == GAME_GRID_PIECE_SIZE && dy == 0) || (dy == GAME_GRID_PIECE_SIZE && dx == 0))
     if ((dx == 1.0f && dy == 0) || (dy == 1.0f && dx == 0))
     {
-      Swap(*_gameState->pieceA, *_gameState->pieceB);
+      swap(*_gameState->pieceA, *_gameState->pieceB);
       _gameState->clickCount = 0;
       return true;
     }			
@@ -404,7 +377,10 @@ inline bool UpdateSwapInput()
   return false;
 }
 
-void UpdateGameTimer(float deltaTime)
+//******************************************************************************
+// Updat game timer
+//******************************************************************************
+void updateGameTimer(float deltaTime)
 {
   _gameState->remainingGameTime -= deltaTime;
   if (_gameState->remainingGameTime <= 0)
@@ -414,11 +390,13 @@ void UpdateGameTimer(float deltaTime)
   }
 }
 
-inline void DrawGameplay()
+//******************************************************************************
+// draw 
+//******************************************************************************
+inline void drawGameplay()
 {
   Vec2 cursor = ldk::input::getMouseCursor();
   Piece* pieceUnderCursor = getPieceUnderCursor((int)cursor.x, (int)cursor.y);
-  //if(pieceUnderCursor) LogInfo("Cursor %d %d", (int)cursor.x, (int)cursor.y);
 
   ldk::renderer::spriteBatchBegin(_gameState->spriteBatch);
 
@@ -428,7 +406,7 @@ inline void DrawGameplay()
     {
       float highlight = 0.0f;
       Piece& piece = _gameState->grid[column][row];
-  		const auto sprite = PieceTypeToTexture(piece.type);
+  		const auto sprite = pieceTypeToTexture(piece.type);
 
       if (&piece == pieceUnderCursor)
         highlight = 3.0f;
@@ -464,7 +442,7 @@ inline void DrawGameplay()
   ldk::renderer::spriteBatchEnd(_gameState->spriteBatch);
 }
 
-inline void DrawGameOver()
+inline void drawGameOver()
 {
   //mEngine.Render(EXTURE_BACKGROUND, 0, 0);
   //const char* clickToPlayText = "Click to start new game";
@@ -538,9 +516,9 @@ void newGame()
   }
 }
 
-//
+//******************************************************************************
 // LDK Callbacks
-//
+//******************************************************************************
 
 LDKGameSettings gameInit()
 {
@@ -563,12 +541,24 @@ void gameStart(void* memory)
   if (_gameState->initialized)
     return;
 
+  // load some configuration data
+  auto cfgRoot = ldk::configParseFile("./assets/match3.cfg");
+  auto cfgSection = ldk::configGetSection(cfgRoot, (const char*)"match3");
+  char* vs;
+  char* fs;
+  char* atlas;
+
+  ldk::configGetString(cfgSection, (const char*) "vs", &vs);
+  ldk::configGetString(cfgSection, (const char*) "fs", &fs);
+  ldk::configGetString(cfgSection, (const char*) "atlas", &atlas);
+
   _gameState->context = renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
 
   // Load Texture from bmp
-  auto bmp = loadBitmap("Assets/sprites.bmp");
+  auto bmp = ldk::loadBitmap((const char*)atlas);
   _gameState->textureId = renderer::createTexture(bmp);
   freeAsset((void*) bmp);
+  ldk::configDispose(cfgRoot);
 
   // Initialize material
   makeMaterial(&_gameState->material, vs, fs);
@@ -608,24 +598,24 @@ void gameUpdate(float deltaTime)
     {
       newGame();
     }
-    DrawGameOver();
+    drawGameOver();
     return;
   }
 
   // gameplay timer
-  UpdateGameTimer(deltaTime);
+  updateGameTimer(deltaTime);
 
   // gameplay imput
   if (!_gameState->isSwapping && !_gameState->isAnimating)
   {
-    _gameState->isSwapping = UpdateSwapInput();
+    _gameState->isSwapping = updateSwapInput();
   }
 
-  UpdateMatchedPieces();
-  int score = GetScore();
+  updateMatchedPieces();
+  int score = getScore();
 
-  _gameState->isAnimating = UpdatePieceMovementAnimation(deltaTime, GAME_MOVE_ANIMATION_SPEED)
-    || UpdatePieceMatchAnimation(deltaTime, GAME_SCALE_ANIMATION_SPEED);
+  _gameState->isAnimating = updatePieceMovementAnimation(deltaTime, GAME_MOVE_ANIMATION_SPEED)
+    || updatePieceMatchAnimation(deltaTime, GAME_SCALE_ANIMATION_SPEED);
 
   if (!_gameState->isAnimating)
   {
@@ -633,7 +623,7 @@ void gameUpdate(float deltaTime)
     {
       if (score == 0)
       {
-        Swap(*_gameState->pieceA, *_gameState->pieceB);
+        swap(*_gameState->pieceA, *_gameState->pieceB);
       }
 
       _gameState->isSwapping = false;
@@ -641,15 +631,14 @@ void gameUpdate(float deltaTime)
     }
     else
     {
-      UpdateGrid();
+      updateGrid();
     }
 
     _gameState->score += score;			
   }
 
-  DrawGameplay();
+  drawGameplay();
 }
-
 
 void gameStop()
 {
