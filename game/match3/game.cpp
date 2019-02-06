@@ -386,7 +386,8 @@ void updateGameTimer(float deltaTime)
   if (_gameState->remainingGameTime <= 0)
   {
     _gameState->isGameOver = true;
-    if (_gameState->score > _gameState->bestScore) _gameState->bestScore = _gameState->score;
+    if (_gameState->score > _gameState->bestScore)
+      _gameState->bestScore = _gameState->score;
   }
 }
 
@@ -415,12 +416,12 @@ inline void drawGameplay()
       pieceToScreenPosition(piece.row, piece.column, &piecePos);
 
       ldk::renderer::spriteBatchDraw(_gameState->spriteBatch
-          , &sprite
-          , piecePos.x + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
-          , piecePos.y + highlight + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
-          , GAME_GRID_PIECE_SIZE * piece.scale
-          , GAME_GRID_PIECE_SIZE * piece.scale
-          , 0);
+          ,&sprite
+          ,piecePos.x + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
+          ,piecePos.y + highlight + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
+          ,GAME_GRID_PIECE_SIZE * piece.scale
+          ,GAME_GRID_PIECE_SIZE * piece.scale
+          ,0);
   	}
   
   }
@@ -488,13 +489,15 @@ void newGame()
       Piece::PieceType vPreviousType;
 
       // Prevent starting the board with matches
-      if (column >= 2 && (_gameState->grid[column - 1][row].type == _gameState->grid[column - 2][row].type))
+      if (column >= 2 && (_gameState->grid[column - 1][row].type 
+            == _gameState->grid[column - 2][row].type))
       {
         hPreviousType = _gameState->grid[column - 1][row].type;
         hMatchRisk = true;
       }
 
-      if (row >= 2 && (_gameState->grid[column][row - 1].type == _gameState->grid[column][row - 2].type))
+      if (row >= 2 && (_gameState->grid[column][row - 1].type 
+          == _gameState->grid[column][row - 2].type))
       {
         vPreviousType = _gameState->grid[column][row - 1].type;
         vMatchRisk = true;
@@ -506,11 +509,6 @@ void newGame()
         piece.SetRandomPieceType();
       }
 
-      // remove
-      if (row > 4 )
-        piece.type = Piece::PieceType::BLUE;
-
-      // / remove
       _gameState->grid[column][row] = piece;
     }
   }
@@ -552,7 +550,8 @@ void gameStart(void* memory)
   ldk::configGetString(cfgSection, (const char*) "fs", &fs);
   ldk::configGetString(cfgSection, (const char*) "atlas", &atlas);
 
-  _gameState->context = renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
+  _gameState->context = renderer::createContext(255, renderer::Context::COLOR_BUFFER 
+        | renderer::Context::DEPTH_BUFFER, 0);
 
   // Load Texture from bmp
   auto bmp = ldk::loadBitmap((const char*)atlas);
@@ -646,3 +645,5 @@ void gameStop()
   ldk::renderer::destroyContext(_gameState->context);
   ldk::renderer::destroySpriteBatch(_gameState->spriteBatch);
 }
+
+
