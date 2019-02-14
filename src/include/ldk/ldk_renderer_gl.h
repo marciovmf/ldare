@@ -30,7 +30,6 @@ namespace ldk
     struct DrawCall;
     struct Context;
     struct VertexBuffer;
-    typedef uint32 Texture;
 
     enum VertexAttributeType
     {
@@ -74,9 +73,46 @@ namespace ldk
       Uniform uniforms[LDK_GL_MAX_UNIFORM_COUNT];
     };
 
+    enum TextureFilter
+    {
+      LINEAR,
+      NEAREST,
+      MIPMAPLINEARLINEAR,
+      MIPMAPLINEARNEAREST,
+      MIPMAPNEARESTLINEAR,
+      MIPMAPNEARESTNEAREST,
+    };
+
+    enum TextureWrap
+    {
+      CLAMPTOEDGE,
+      MIRROREDREPEAT,
+      REPEAT 
+//      CLAMPTOBORDER ?
+    };
+
+    struct Texture
+    {
+      uint32 id;
+      uint16 width;
+      uint16 height;
+      TextureFilter minFilter;
+      TextureFilter magFilter;
+      TextureWrap uWrap;
+      TextureWrap vWrap;
+    };
+
+    struct Material
+    {
+      Shader shader; 
+      RenderQueue renderQueue; 
+      GLuint textureCount;
+      Texture texture[LDK_GL_MAX_TEXTURES];
+    };
+
     struct VertexBuffer
     {
-      GLuint size;
+      GLuint capacity;
       GLuint stride;
       GLuint attributeCount;
       GLuint primitive;
@@ -100,8 +136,7 @@ namespace ldk
     struct Renderable
     {
       VertexBuffer buffer;
-      Shader* shader;
-      RenderQueue renderQueue; 
+      Material* material;
       GLuint ibo;
       GLuint iboSize;
       GLuint attributeCount;
@@ -129,8 +164,6 @@ namespace ldk
       GLuint indexStart;
       GLuint vertexCount;
       GLuint indexCount;
-      GLuint textureCount;
-      Texture textureId[LDK_GL_MAX_TEXTURES];
     };
 
 
@@ -145,55 +178,58 @@ namespace ldk
     ///@param name - The name of the section to get
     LDK_API void destroyContext(Context* context);
 
-    ///@brief Loads a shader to gpu
-    ///@param shader - a pointer to a Shader struct. @see Shader.
+    ///@brief Initializes a Material with the given shaders
+    ///@param material - a pointer to a Material struct. @see Material.
     ///@param vertexSource - vertex shader source;
     ///@param fragmentSource - fragment shader source;
-    ///@returns true if shader compile successfuly
-    LDK_API bool loadShader(Shader* shader, char* vertexSource, char* fragmentSource);
+    ///@returns true if shaders compile successfuly
+    LDK_API bool  makeMaterial(Material* material, char* vertexSource, char* fragmentSource);
+
+    LDK_API bool setTexture(Material* material, char* name, Texture texture);
 
     ///@brief Assigns a shader to a renderable
     ///@param renderable - The Renderable to assing a shader to
     ///@param shader - The shader to assign to the renderable
-    LDK_API void setShader(Renderable* renderable, Shader* shader);
+    //LDK_API void setShader(Renderable* renderable, Shader* shader);
+    LDK_API void setMaterial(Renderable* renderable, Material* material);
 
     ///@brief Set a Matrix4 shader parameter.
-    ///@param shader - The shader to send the value to
+    ///@param material - The material to send the value to
     ///@param name - The shader parameter to set the value
     ///@param matrix - The matrix parameter value to set
-    LDK_API void setShaderMatrix4(Shader* shader, char* name, ldk::Mat4* matrix);
+    LDK_API void setMatrix4(Material* material, char* name, ldk::Mat4* matrix);
 
     ///@brief Set an integer shader parameter.
-    ///@param shader - The shader to send the value to
+    ///@param material - The material to send the value to
     ///@param name - The integer parameter
     ///@param intParam - The Matrix4 value to set
-    LDK_API void setShaderInt(Shader* shader, char* name, uint32 intParam);
+    LDK_API void setInt(Material* material, char* name, uint32 intParam);
 
     ///@brief Set an integer compound shader parameter.
-    ///@param shader - The shader to send the value to
+    ///@param material - The material to send the value to
     ///@param name - The integer parameter
     ///@param count - The number of integer components to set
     ///@param intParam - An array of integer values to set. This array length must be equals to count.
-    LDK_API void setShaderInt(Shader* shader, char* name, uint32 count, uint32* intParam);
+    LDK_API void setInt(Material* material, char* name, uint32 count, uint32* intParam);
 
     ///@brief Set a float shader parameter.
-    ///@param shader - The shader to send the value to
+    ///@param material - The material to send the value to
     ///@param name - The float parameter
     ///@param floatParam - The float value to set
-    LDK_API void setShaderFloat(Shader* shader, char* name, float floatParam);
+    LDK_API void setFloat(Material* material, char* name, float floatParam);
 
     ///@brief Set a float compound shader parameter.
-    ///@param shader - The shader to send the value to
+    ///@param material - The material to send the value to
     ///@param name - The float parameter
     ///@param count - The number of float components to set
     ///@param floatParam - An array of float values to set. This array length must be equals to count.
-    LDK_API void setShaderFloat(Shader* shader, char* name, uint32 count, float* floatParam);
+    LDK_API void setFloat(Material* material, char* name, uint32 count, float* floatParam);
 
     ///@brief Initializes a VertexBuffer structure.
     ///@param buffer - The vertex buffer structur to initialize
-    ///@param bufferSize - The buffer size in bytes
+    ///@param capacity - maximum number of vertex entries on this buffer. The size of a single vertex depends on the buffer attributes.
     ///@param stride - Vertex data Stride.
-    LDK_API void makeVertexBuffer(VertexBuffer* buffer, uint32 bufferSize);
+    LDK_API void makeVertexBuffer(VertexBuffer* buffer, uint32 capacity);
 
     ///@brief Adds an attribute to a VertexBuffer. @see VertexBuffer
     ///@param buffer - The buffer to add the attribute to
@@ -230,8 +266,16 @@ namespace ldk
 
     ///@brief Crates a gpu texture from a bitmap
     ///@param bitmap - The bitmap to create the texture from
-    ///@returns the gpu texture id.
-    LDK_API Texture createTexture(const ldk::Bitmap* bitmap);
+    ///@param minFilter - min filter
+    ///@param magFilter - max filter
+    ///@param uWrap - wrap mode on u axis
+    ///@param vWrap - wrap mode on v axis
+    ///@returns the gpu texture 
+    LDK_API Texture createTexture(const ldk::Bitmap* bitmap
+        ,TextureFilter minFilter = TextureFilter::LINEAR
+        ,TextureFilter magFilter = TextureFilter::LINEAR
+        ,TextureWrap uWrap = TextureWrap::CLAMPTOEDGE
+        ,TextureWrap vWrap = TextureWrap::CLAMPTOEDGE);
 
     ///@brief Destroys a gpu texture. Use this to release gpu memory.
     ///@param texture - The gpu texture id.

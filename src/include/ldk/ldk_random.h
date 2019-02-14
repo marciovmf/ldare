@@ -1,5 +1,5 @@
-#ifndef __LDARE_RANDOM__
-#define __LDARE_RANDOM__
+#ifndef _LDK_RANDOM_
+#define _LDK_RANDOM_
 
 #define RANDOM_SAMPLE_COUNT 64 * 4 //64 lines with 4 integers each
 #define RANDOM_MAX_VALUE 0xFFFFFFFF 
@@ -105,4 +105,4 @@ namespace ldare
 }
 
 #undef RANDOM_SAMPLE_COUNT
-#endif // __LDARE_RANDOM__
+#endif // _LDK_RANDOM_

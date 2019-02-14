@@ -149,7 +149,7 @@ namespace ldk
 
   ///@brief Disposes any resources allocated fot storing the configuration data.
   ///@param root - The configuration root section.
-  LDK_API void configDispose(VariantSectionRoot* root);
+  LDK_API void configDispose(const VariantSectionRoot* root);
 
   ///@}
 }

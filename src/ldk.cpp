@@ -5,8 +5,8 @@
 #endif // _LDK_ENGINE_
 
 #include <ldk/ldk.h>
-#include "ldk_memory.h"
 #include "ldk_platform.h"
+#include "ldk_memory.h"
 
 
 // platform specific implementation
@@ -23,5 +23,6 @@
 #include "ldk_joystick.cpp"
 #include "ldk_asset.cpp"
 #include "ldk_cfg.cpp"
+#include "ldk_sprite_batch.cpp"
 #include "ldk_renderer_gl.cpp"
 #include "ldk_game.cpp"

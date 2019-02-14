@@ -151,6 +151,7 @@ namespace ldk
       bool fullscreenFlag;
       LONG defaultStyle;
       RECT defaultRect;
+      RECT clientRect;
     };
 
     static HINSTANCE _appInstance;
@@ -159,6 +160,24 @@ namespace ldk
     {
       return _platform.windowList[hwnd];
     }
+
+    static void ldk_win32_calculateClientRect(LDKWindow* window)
+    {
+      // Retrieve the screen coordinates of the client area, 
+      // and convert them into client coordinates. 
+
+      GetClientRect(window->hwnd, &window->clientRect); 
+      RECT& clientRect = window->clientRect; 
+
+      // Retrieve the screen coordinates of the client area, 
+      // and convert them into client coordinates. 
+      POINT upperLeft = {clientRect.left, clientRect.top};
+      POINT bottomRight = {clientRect.right + 1, clientRect.bottom + 1};
+      ClientToScreen(window->hwnd, &upperLeft); 
+      ClientToScreen(window->hwnd, &bottomRight); 
+      window->clientRect = { upperLeft.x, upperLeft.y, bottomRight.x, bottomRight.y};
+    }
+
 
     LRESULT CALLBACK ldk_win32_windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
@@ -187,7 +206,10 @@ namespace ldk
           {
             LDKWindow* window = findWindowByHandle(hwnd);
             if (window && window->windowResizeCallback)
+            {
+              ldk_win32_calculateClientRect(window);
               window->windowResizeCallback(window, LOWORD(lParam), HIWORD(lParam));
+            }
           }
           break;
 
@@ -224,6 +246,7 @@ namespace ldk
     static bool ldk_win32_createWindow(
         ldk::platform::LDKWindow* window, uint32 width, uint32 height, HINSTANCE hInstance, TCHAR* title)
     {
+
       window->hwnd = CreateWindowEx(NULL, 
           TEXT(LDK_WINDOW_CLASS),
           title,
@@ -724,13 +747,28 @@ namespace ldk
       //TODO Use a custom allocator
       ldk::platform::LDKWindow* window = new LDKWindow();
       *window = {};
-    
-      if (!ldk_win32_createWindow(window, width, height, _appInstance, (TCHAR*) title))
+   
+
+      // Calculate total window size
+      RECT clientArea = {0,0, width, height};
+      if (!AdjustWindowRect(&clientArea, WS_OVERLAPPED, FALSE))
       {
+        LogError("Could not calculate window size");
+      }
+
+      uint32 windowWidth = clientArea.right - clientArea.left;
+      uint32 windowHeight = clientArea.bottom - clientArea.top;
+
+      if (!ldk_win32_createWindow(window, windowWidth, windowHeight, _appInstance, (TCHAR*) title))
+      {
+
         LogError("Could not create window");
         return nullptr;
       }
-    
+      // Save initial client area (this is used for correctly inform mouse
+      // cursor from bottom left)
+      ldk_win32_calculateClientRect(window);
+
       /* create a new context or share an existing one ? */
       if (share)
       {
@@ -930,8 +968,13 @@ namespace ldk
           case WM_RBUTTONDOWN:
           case WM_RBUTTONUP:
           case WM_MOUSEMOVE:
-    
-            _platform.mouseState.cursor = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)}; 
+   
+            uint32 x = GET_X_LPARAM(msg.lParam);
+            uint32 y = GET_Y_LPARAM(msg.lParam);
+            _platform.mouseState.cursor = {x ,
+              window->clientRect.bottom - 
+              window->clientRect.top - y};
+              
     
             int8 isDown = (msg.wParam & MK_LBUTTON) == MK_LBUTTON;
             _platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] =
@@ -1078,7 +1121,7 @@ namespace ldk
       start -= _platform.ticksSinceEngineStartup.QuadPart;
     
       float deltaTime = (( end - start))/ (float)_platform.ticksPerSecond.QuadPart;
-    #ifdef _LDK_DEBUG_
+    #ifdef _LDK_DEBUG_ 
       // if we stopped on a breakpoint, make things behave mor natural
       if ( deltaTime > 0.05f)
         deltaTime = 0.016f;

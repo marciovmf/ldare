@@ -7,13 +7,14 @@ namespace ldk
   namespace renderer
   {
 
-#ifdef _LDK_DEBUG_
-#define checkGlError() checkNoGlError(__FILE__, __LINE__)
-#else
-#define checkGlError() 
-#endif
+    //
+    // Internal functions
+    //
 
-    static void clearGlError()
+#ifdef _LDK_DEBUG_
+#define checkGlError() _checkNoGlError(__FILE__, __LINE__)
+
+    static void _clearGlError()
     {
       GLenum err;
       do
@@ -22,9 +23,9 @@ namespace ldk
       }while (err != GL_NO_ERROR);
     }
 
-    static int32 checkNoGlError(const char* file, uint32 line)
+    static int32 _checkNoGlError(const char* file, uint32 line)
     {
-      clearGlError();
+      _clearGlError();
       const char* error = "UNKNOWN ERROR CODE";
       GLenum err = glGetError();
       int32 success = 1;
@@ -47,10 +48,9 @@ namespace ldk
       return success;
     }
 
-
-    //
-    // Internal functions
-    //
+#else
+#define checkGlError() 
+#endif
 
     static GLboolean _checkShaderProgramLink(GLuint program)
     {
@@ -262,24 +262,23 @@ namespace ldk
     static void* _mapBuffer(Renderable* renderable, uint32 count)
     {
       VertexBuffer* buffer = &renderable->buffer;
-      LDK_ASSERT(buffer->size >= count, "Buffer too small. Make buffer larger or draw less data.");
+      LDK_ASSERT(buffer->capacity >= count, "Buffer too small. Make buffer larger or draw less data.");
 
       uint32 dataEndOffset = renderable->index1 + count;
 
-      if( dataEndOffset <= buffer->size)
+      if( dataEndOffset <= buffer->capacity)
       {
         renderable->index0 = renderable->index1;  // begin writting past last data written
         renderable->index1 = dataEndOffset;       // data written will spread this much
       }
       else
       {
-        //TODO(marcio): Should usage be part of VertextBuffer instead of
-        //Renderable ?
+        //TODO(marcio): Should usage be part of VertextBuffer instead of Renderable ?
         LDK_ASSERT(renderable->usage != GL_STATIC_DRAW, "Static buffers can not be overflown");
 
         // We are trying to write past the current buffer. Lets cycle buffers...
         ++renderable->currentVboIndex;
-        renderable->currentVboIndex = renderable->currentVboIndex & renderable->vboCount;
+        renderable->currentVboIndex = renderable->currentVboIndex % renderable->vboCount;
       
         // make sure this buffer is note being used by GPU
         GLsync fence = renderable->fences[renderable->currentVboIndex];
@@ -342,9 +341,8 @@ namespace ldk
           _uploadVertexData(drawCall);
       }
 
-      clearGlError();
       VertexBuffer* buffer = &(renderable->buffer);
-      glUseProgram(renderable->shader->program);
+      glUseProgram(renderable->material->shader.program);
       checkGlError();
 
       uint32 currentVboIndex = renderable->currentVboIndex;
@@ -364,14 +362,14 @@ namespace ldk
               (void*)((size_t) attribute->offset));
       }
 
-      clearGlError();
       // enable/bind textures
-      uint32 textureCount = drawCall->textureCount;
+      Material& material = *drawCall->renderable->material;
+      uint32 textureCount = material.textureCount;
       for (int i = 0; i < textureCount; ++i) 
       {
-        glActiveTexture(GL_TEXTURE0 + i) ;
+        glActiveTexture(GL_TEXTURE0 + i);
         checkGlError();
-        uint32 textureId = drawCall->textureId[i];
+        uint32 textureId = material.texture[i].id;
         glBindTexture(GL_TEXTURE_2D, textureId);
         checkGlError();
       }
@@ -434,6 +432,8 @@ namespace ldk
       return nullptr;
     }
 
+
+
     //TODO:We need a way to add textures to a material. This is how I think i
     //should be:
     // Texture loadTexture(Context* context, ImageAsset* imageAsset);
@@ -445,7 +445,7 @@ namespace ldk
     // Shader functions
     //
 
-    bool loadShader(Shader* shader, char* vertexSource, char* fragmentSource)
+    static bool loadShader(Shader* shader, char* vertexSource, char* fragmentSource)
     {
       uint32 vertexShader = _compileShader((const char*)vertexSource, GL_VERTEX_SHADER);
       uint32 fragmentShader = _compileShader((const char*)fragmentSource, GL_FRAGMENT_SHADER);
@@ -491,8 +491,15 @@ namespace ldk
       return program > 0;
     }
 
-    void setShaderMatrix4(Shader* shader, char* name, ldk::Mat4* matrix)
+    bool makeMaterial(Material* material, char* vertexSource, char* fragmentSource)
     {
+      material->textureCount = 0;
+      return loadShader(&material->shader, vertexSource, fragmentSource);
+    }
+
+    void setMatrix4(Material* material, char* name, ldk::Mat4* matrix)
+    {
+      Shader* shader = &material->shader;
       const Uniform* uniform = _findUniform(shader, name);
       
       if(uniform)
@@ -506,18 +513,18 @@ namespace ldk
       }
     }
 
-    void setShaderInt(Shader* shader, char* name, uint32 intParam)
+    void setInt(Material* material, char* name, uint32 intParam)
     {
-      clearGlError();
+      Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
       glUniform1i(uniform->location, intParam);
       checkGlError();
     }
 
-    void setShaderInt(Shader* shader, char* name, uint32 count, uint32* intParam)
+    void setInt(Material* material, char* name, uint32 count, uint32* intParam)
     {
-      clearGlError();
+      Shader* shader = &material->shader;
       glUseProgram(shader->program);
       checkGlError();
 
@@ -550,18 +557,18 @@ namespace ldk
       glUseProgram(0);
     }
 
-
-    void setShaderFloat(Shader* shader, char* name, float floatParam)
+    void setFloat(Material* material, char* name, float floatParam)
     {
-      clearGlError();
+      Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
       glUniform1f(uniform->location, floatParam);
       checkGlError();
     }
 
-    void setShaderFloat(Shader* shader, char* name, uint32 count, float* floatParam)
+    void setFloat(Material* material, char* name, uint32 count, float* floatParam)
     {
+      Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
 
@@ -591,9 +598,43 @@ namespace ldk
       checkGlError();
     }
 
-    void setShader(Renderable* renderable, Shader* shader)
+    bool setTexture(Material* material, char* name, Texture texture)
     {
-      renderable->shader = shader;
+      // Find the thexture slot or allocate a new one if this is a new texture
+      uint32 textureSlot = -1;
+      for(int i=0; i < material->textureCount; i++)
+      {
+        if (texture.id == material->texture[i].id)
+        {
+          textureSlot = i;
+          break;
+        }
+      }
+
+      if (textureSlot == -1)
+      {
+        if (LDK_GL_MAX_TEXTURES <= material->textureCount) 
+          return false;
+        
+        textureSlot = material->textureCount;
+        material->texture[textureSlot] = texture;
+        material->textureCount++;
+      }
+
+      setInt(material, name, textureSlot); 
+      return true;
+    }
+
+    void setMaterial(Renderable* renderable, Material* material)
+    {
+      if (renderable->material == material)
+      {
+        return;
+      }
+
+      renderable->material = material;
+      Shader* shader = &material->shader;
+
       glGetProgramiv(shader->program, GL_ACTIVE_ATTRIBUTES, (GLint*) &renderable->attributeCount);
 
       if(renderable->attributeCount != renderable->buffer.attributeCount)
@@ -626,7 +667,6 @@ namespace ldk
 
         LDK_ASSERT(attribute, "No matching attribute found");
         LDK_ASSERT(attribute->type == _glTypeToInternal(attribType), "No matching attribute type");
-        // cache attribute location
         attribute->location = glGetAttribLocation(shader->program, attribName);
         checkGlError();
       }
@@ -637,12 +677,11 @@ namespace ldk
         GLuint* vbo = renderable->vbos + i;
         glGenBuffers(1, vbo);
         glBindBuffer(GL_ARRAY_BUFFER, *vbo);
-        glBufferData(GL_ARRAY_BUFFER, buffer->size * buffer->stride, NULL, renderable->usage);
+        glBufferData(GL_ARRAY_BUFFER, buffer->capacity * buffer->stride, NULL, renderable->usage);
         renderable->fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
       }
 
       glBindBuffer(GL_ARRAY_BUFFER, 0);
-
     }
 
     //
@@ -685,9 +724,9 @@ namespace ldk
     //
     // Buffer functions
     //
-    void makeVertexBuffer(VertexBuffer* buffer, uint32 bufferSize) 
+    void makeVertexBuffer(VertexBuffer* buffer, uint32 vertexCount) 
     {
-      buffer->size = bufferSize;
+      buffer->capacity = vertexCount;
       buffer->stride = 0;
       buffer->primitive = GL_TRIANGLES; // only primitive supported by now
       buffer->attributeCount = 0;
@@ -781,30 +820,99 @@ namespace ldk
       checkGlError();
     }
 
-    Texture createTexture(const Bitmap* bitmap)
+    static GLenum _internalToGlMinFilter(TextureFilter filter)
+    {
+      switch(filter)
+      {
+        case LINEAR:
+          return GL_LINEAR;
+        case NEAREST:
+          return GL_NEAREST;
+        case MIPMAPLINEARLINEAR:
+          return GL_LINEAR_MIPMAP_LINEAR;
+        case MIPMAPLINEARNEAREST:
+          return GL_LINEAR_MIPMAP_NEAREST;
+        case MIPMAPNEARESTLINEAR:
+          return GL_NEAREST_MIPMAP_LINEAR;
+        case MIPMAPNEARESTNEAREST:
+          return GL_NEAREST_MIPMAP_NEAREST;
+        default:
+          LogError("Unknown TextureFilter");
+          return GL_INVALID_ENUM;
+      }
+    }
+
+
+    static GLenum _internalToGlMagFilter(TextureFilter filter)
+    {
+      switch(filter)
+      {
+        case LINEAR:
+          return GL_LINEAR;
+        case NEAREST:
+          return GL_NEAREST;
+        case MIPMAPLINEARLINEAR:
+        case MIPMAPLINEARNEAREST:
+        case MIPMAPNEARESTLINEAR:
+        case MIPMAPNEARESTNEAREST:
+          LogWarning("Invald TextureFilter for magFilter. Use LINEAR or NEAREST");
+            return GL_NEAREST;
+        default:
+          LogError("Unknown TextureFilter");
+          return GL_INVALID_ENUM;
+      }
+    }
+
+    static GLenum _internalToGlWrap(TextureWrap wrap)
+    {
+      switch(wrap)
+      {
+        case CLAMPTOEDGE:
+          return GL_CLAMP_TO_EDGE;
+        case MIRROREDREPEAT:
+          return GL_MIRRORED_REPEAT;
+        case REPEAT:
+          return GL_REPEAT;
+        default:
+          LogError("Unknown TextureWrap");
+          return GL_INVALID_ENUM;
+      }
+    }
+
+    Texture createTexture(const ldk::Bitmap* bitmap
+        ,TextureFilter minFilter 
+        ,TextureFilter magFilter
+        ,TextureWrap uWrap
+        ,TextureWrap vWrap)
     {
       GLuint textureId;
       glGenTextures(1, &textureId);
       glBindTexture(GL_TEXTURE_2D, textureId);
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
+
       glGenerateMipmap(GL_TEXTURE_2D);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, _internalToGlMinFilter(minFilter));
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, _internalToGlMagFilter(magFilter));
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, _internalToGlWrap(uWrap));
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, _internalToGlWrap(vWrap));
       glBindTexture(GL_TEXTURE_2D, 0);
       checkGlError();
 
-      return textureId;
+      Texture texture;
+      texture.id = textureId;
+      texture.width = bitmap->width;
+      texture.height = bitmap->height;
+      return texture;
     }
 
    void destroyTexture(Texture texture)
    {
       glBindTexture(GL_TEXTURE_2D, 0);
-      glDeleteTextures(1, &texture);
+      glDeleteTextures(1, &texture.id);
+      texture.id = 0;
+      texture.width = texture.height = 0;
       checkGlError();
    }
-
 
   } // renderer
 } // ldk
