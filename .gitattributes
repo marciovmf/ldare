@@ -1,5 +1,6 @@
 # ignore docs folder
-docs/* linguist-vendored
+docs/* linguist-documentation
+doc_config/* linguist-documentation
 
 #sources
 *.c text diff=cpp linguist-language=c++
