@@ -1,3 +1,6 @@
+# ignore docs folder
+docs/* linguist-vendored
+
 #sources
 *.c text diff=cpp linguist-language=c++
 *.cc text diff=cpp linguist-language=c++
