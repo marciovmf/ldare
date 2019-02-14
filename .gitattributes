@@ -1,13 +1,13 @@
 #sources
-*.c text diff=cpp
-*.cc text diff=cpp
-*.cxx text diff=cpp
-*.cpp text diff=cpp
-*.c++ text diff=cpp
-*.hpp text diff=cpp
-*.h text diff=cpp
-*.h++ text diff=cpp
-*.hh text diff=cpp
+*.c text diff=cpp linguist-language=c++
+*.cc text diff=cpp linguist-language=c++
+*.cxx text diff=cpp linguist-language=c++
+*.cpp text diff=cpp linguist-language=c++
+*.c++ text diff=cpp linguist-language=c++
+*.hpp text diff=cpp linguist-language=c++
+*.h text diff=cpp linguist-language=c++
+*.h++ text diff=cpp linguist-language=c++
+*.hh text diff=cpp linguist-language=c++
 
 # Compiled Object files
 *.slo binary
