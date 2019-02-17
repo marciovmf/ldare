@@ -6,7 +6,6 @@ namespace ldk
 {
   namespace renderer
   {
-
     //
     // Internal functions
     //
@@ -279,7 +278,7 @@ namespace ldk
         // We are trying to write past the current buffer. Lets cycle buffers...
         ++renderable->currentVboIndex;
         renderable->currentVboIndex = renderable->currentVboIndex % renderable->vboCount;
-      
+
         // make sure this buffer is note being used by GPU
         GLsync fence = renderable->fences[renderable->currentVboIndex];
         GLenum waitResult = glClientWaitSync(fence, 0, (uint64) 1000000000);
@@ -316,8 +315,8 @@ namespace ldk
     static void _uploadVertexData(DrawCall* drawCall)
     {
       uint32 vertexCount = drawCall->vertexCount;
-     Renderable* renderable = drawCall->renderable; 
-     VertexBuffer* buffer = &drawCall->renderable->buffer;
+      Renderable* renderable = drawCall->renderable; 
+      VertexBuffer* buffer = &drawCall->renderable->buffer;
 
       //TODO(marcio): check if glBufferSubData is faster than mapping/coppying
       void* driverMemory = _mapBuffer(renderable, vertexCount);
@@ -338,7 +337,7 @@ namespace ldk
       }
       else
       {
-          _uploadVertexData(drawCall);
+        _uploadVertexData(drawCall);
       }
 
       VertexBuffer* buffer = &(renderable->buffer);
@@ -359,7 +358,7 @@ namespace ldk
 
         GLuint glType = _internalToGlType(attribute->type);
         glVertexAttribPointer(attribute->location, attribute->size, glType, GL_FALSE, vertexStride,
-              (void*)((size_t) attribute->offset));
+            (void*)((size_t) attribute->offset));
       }
 
       // enable/bind textures
@@ -391,11 +390,11 @@ namespace ldk
           }
           break;
         default:
-            LDK_ASSERT(false, "Uknown render command passed to renderer");
+          LDK_ASSERT(false, "Uknown render command passed to renderer");
           break;
       }
 
-     
+
       // create new fence if necessary
       if (renderable->needNewSync)
       {
@@ -432,14 +431,6 @@ namespace ldk
       return nullptr;
     }
 
-
-
-    //TODO:We need a way to add textures to a material. This is how I think i
-    //should be:
-    // Texture loadTexture(Context* context, ImageAsset* imageAsset);
-    // - setTexture(Material* materia, Texture);
-    // - The context holds all loaded texture ids and Image references, so it can
-    // unload on demand and delete the textures if/when necessary
 
     //
     // Shader functions
@@ -501,11 +492,11 @@ namespace ldk
     {
       Shader* shader = &material->shader;
       const Uniform* uniform = _findUniform(shader, name);
-      
+
       if(uniform)
       {
         LDK_ASSERT((uniform->type == ldk::renderer::VertexAttributeType::FLOAT
-           && uniform->size == 1), "Mismatching uniform types");
+              && uniform->size == 1), "Mismatching uniform types");
 
         glUseProgram(shader->program);
         glUniformMatrix4fv(uniform->id, 1, 0, matrix->element);
@@ -615,7 +606,7 @@ namespace ldk
       {
         if (LDK_GL_MAX_TEXTURES <= material->textureCount) 
           return false;
-        
+
         textureSlot = material->textureCount;
         material->texture[textureSlot] = texture;
         material->textureCount++;
@@ -717,8 +708,8 @@ namespace ldk
 
     void destroyContext(Context* context)
     {
-        LDK_GL_FREE(context->drawCalls);
-        LDK_GL_FREE(context);
+      LDK_GL_FREE(context->drawCalls);
+      LDK_GL_FREE(context);
     }
 
     //
@@ -773,7 +764,7 @@ namespace ldk
     void makeRenderable(Renderable* renderable, VertexBuffer* vertexBuffer, uint32* indices, uint32 maxIndexCount, bool isStatic)
     {
       makeRenderable(renderable, vertexBuffer, isStatic);
-      
+
       GLuint ibo;
       uint32 iboSize = maxIndexCount * sizeof(uint32);
 
@@ -801,7 +792,7 @@ namespace ldk
     {
       uint32 drawCallCount = context->drawCallCount;
       _sortDrawCalls(context->drawCalls, drawCallCount);
-      
+
       glEnable(GL_DEPTH_TEST);
       glEnable(GL_CULL_FACE);
       glDepthFunc(GL_LESS);
@@ -856,7 +847,7 @@ namespace ldk
         case MIPMAPNEARESTLINEAR:
         case MIPMAPNEARESTNEAREST:
           LogWarning("Invald TextureFilter for magFilter. Use LINEAR or NEAREST");
-            return GL_NEAREST;
+          return GL_NEAREST;
         default:
           LogError("Unknown TextureFilter");
           return GL_INVALID_ENUM;
@@ -905,14 +896,236 @@ namespace ldk
       return texture;
     }
 
-   void destroyTexture(Texture texture)
-   {
+    void destroyTexture(Texture texture)
+    {
       glBindTexture(GL_TEXTURE_2D, 0);
       glDeleteTextures(1, &texture.id);
       texture.id = 0;
       texture.width = texture.height = 0;
       checkGlError();
-   }
+    }
+
+    static TextureWrap cfgStringToTextureWrap(const char* cfgString)
+    {
+      //valid texture wrap options strings 
+      static const char* STR_REPEAT = (const char*) "repeat";
+      static const char* STR_CLAMP_TO_EDGE = (const char*) "clamp-to-edge";
+      static const char* STR_MIRRORED_REPEAT = (const char*)"mirrored-repeat";
+      //valid texture wrap options hashes
+      static const uint32 wrapRepeat = stringToHash(STR_REPEAT);
+      static const uint32 wrapClampToEdge = stringToHash(STR_CLAMP_TO_EDGE);
+      static const uint32 wrapMirroredRepeat = stringToHash(STR_MIRRORED_REPEAT);
+
+      uint32 paramHash = stringToHash(cfgString);
+      uint32 cfgStringLen = strlen(cfgString);
+
+      TextureWrap result;
+
+      if (paramHash == wrapRepeat 
+          && strncmp(STR_REPEAT, cfgString, cfgStringLen) == 0)
+      {
+        result = TextureWrap::REPEAT;
+      }
+      else if (paramHash == wrapClampToEdge 
+          && strncmp(STR_CLAMP_TO_EDGE, cfgString, cfgStringLen) == 0)
+      {
+        result = TextureWrap::CLAMPTOEDGE;
+      }
+      else if (paramHash == wrapMirroredRepeat 
+          && strncmp(STR_MIRRORED_REPEAT, cfgString, cfgStringLen) == 0) 
+      {
+        result = TextureWrap::MIRROREDREPEAT;
+      }
+      else
+      {
+        LogWarning("Invalid texture wrap mode '%s'. Defaulting to REPEAT", cfgString);
+        result = TextureWrap::REPEAT;
+      }
+      return result;
+    }
+
+    static TextureFilter cfgStringToTextureFilter(const char* cfgString)
+    {
+      //valid texture filter options strings
+      static const char* STR_LINEAR = "linear";
+      static const char* STR_NEAREST = "nearest";
+      static const char* STR_MIP_LINEAR_LINEAR = (const char*)"mipmap-linear-linear";
+      static const char* STR_MIP_LINEAR_NEAREST = (const char*) "mipmap-linear-nearest";
+      static const char* STR_MIP_NEAREST_LINEAR = (const char*)"mipmap-nearest-linear";
+      static const char* STR_MIP_NEAREST_NEAREST = (const char*)"mipmap-nearest-nearest";
+      //valid texture filter options hashes
+      static const uint32 filterLinear = stringToHash(STR_LINEAR);
+      static const uint32 filterNearest = stringToHash(STR_NEAREST);
+      static const uint32 filterMipmapLinearLinear = stringToHash(STR_MIP_LINEAR_LINEAR);
+      static const uint32 filterMipmapLinearNearest = stringToHash(STR_MIP_LINEAR_NEAREST);
+      static const uint32 filterMipmapNearestLinear = stringToHash(STR_MIP_NEAREST_LINEAR );
+      static const uint32 filterMipmapNearestNearest = stringToHash(STR_MIP_NEAREST_NEAREST);
+
+      uint32 paramHash = stringToHash(cfgString);
+      uint32 cfgStringLen = strlen(cfgString);
+
+      bool error = false;
+      TextureFilter result;
+
+      if (paramHash == filterLinear 
+          && strncmp(STR_LINEAR, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::LINEAR;
+      else if (paramHash == filterNearest 
+          && strncmp(STR_NEAREST, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::NEAREST;
+      else if (paramHash == filterMipmapLinearLinear 
+          && strncmp(STR_MIP_LINEAR_LINEAR, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::MIPMAPLINEARLINEAR;
+      else if (paramHash == filterMipmapLinearNearest
+          && strncmp(STR_MIP_LINEAR_NEAREST, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::MIPMAPLINEARNEAREST;
+      else if (paramHash == filterMipmapNearestLinear
+          && strncmp(STR_MIP_NEAREST_LINEAR, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::MIPMAPNEARESTLINEAR;
+      else if (paramHash == filterMipmapNearestNearest
+          && strncmp(STR_MIP_NEAREST_NEAREST, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::MIPMAPNEARESTNEAREST;
+      else
+      {
+        LogWarning("Invalid texture filter mode '%s'. Defaulting to LINEAR", cfgString);
+        result = renderer::TextureFilter::LINEAR;
+      }
+
+      return result;
+    }
+
+    bool loadMaterial(renderer::Material* material, const char* file)
+    {
+
+      auto cfgRoot = ldk::configParseFile(file);
+      auto materialSection = ldk::configGetSection(cfgRoot, "material");
+
+      char* fs;
+      if (!ldk::configGetString(materialSection, (const char*) "frag-shader", &fs))
+      {
+        LogError("Error loading material. Missing Fragment shader.");
+        ldk::configDispose(cfgRoot);
+        return false;
+      }
+
+      char* vs;
+      if(!ldk::configGetString(materialSection, (const char*) "vert-shader", &vs))
+      {
+        LogError("Error loading material. Missing Vertex shader.");
+        ldk::configDispose(cfgRoot);
+        return false;
+      }
+
+      //TODO(marcio): load the "queue" param from the material section and pass it to the material
+      //TODO(marcio): load the "queue-offset" param from the material section and pass it to the material
+      makeMaterial(material, vs, fs);
+
+      // texture section names
+      static const uint32 texture0 = stringToHash("texture0");
+      static const uint32 texture1 = stringToHash("texture1");
+      static const uint32 texture2 = stringToHash("texture2");
+      static const uint32 texture3 = stringToHash("texture3");
+      static const uint32 texture4 = stringToHash("texture4");
+      static const uint32 texture5 = stringToHash("texture5");
+      static const uint32 texture6 = stringToHash("texture6");
+      static const uint32 texture7 = stringToHash("texture7");
+      // texture parameter keys
+      static const char* STR_PARAM_PATH = "path";
+      static const char* STR_PARAM_U_WRAP = "u-wrap";
+      static const char* STR_PARAM_V_WRAP = "v-wrap";
+      static const char* STR_PARAM_MIN_FILTER = "min-filter";
+      static const char* STR_PARAM_MAG_FILTER = "mag-filter";
+      // texture parameter key hashes
+      static const uint32 keyPath = stringToHash(STR_PARAM_PATH);
+      static const uint32 keyUWrap = stringToHash(STR_PARAM_U_WRAP);
+      static const uint32 keyVWrap = stringToHash(STR_PARAM_V_WRAP);
+      static const uint32 keyMinFilter = stringToHash(STR_PARAM_MIN_FILTER);
+      static const uint32 keyMagFilter = stringToHash(STR_PARAM_MAG_FILTER);
+
+      TextureWrap uWrap;
+      TextureWrap vWrap;
+      TextureFilter minFilter;
+      TextureFilter magFilter;
+      char* texturePath = nullptr;
+
+      // Parse texture sections
+      auto section = ldk::configGetFirstSection(cfgRoot);
+      while (section != nullptr)
+      {
+        if (section->hash == texture0 ||section->hash == texture1 
+            ||section->hash == texture2 ||section->hash == texture3
+            ||section->hash == texture4 ||section->hash == texture5 
+            ||section->hash == texture6 ||section->hash == texture7)
+            {
+              auto variant = ldk::configGetFirstVariant(section);
+              while  (variant != nullptr)
+              {
+
+                const uint32 keyLen = strlen(variant->key);
+                char *value;
+
+                if(variant->hash == keyUWrap
+                    && strncmp(STR_PARAM_U_WRAP, variant->key, keyLen) == 0)
+                {
+                  configGetString(section, (const char*) variant, &value);
+                  uWrap = cfgStringToTextureWrap(value);
+                }
+                else if (variant->hash == keyVWrap
+                    && strncmp(STR_PARAM_V_WRAP, variant->key, keyLen) == 0)
+                {
+                  configGetString(section, (const char*) variant, &value);
+                  vWrap = cfgStringToTextureWrap(value);
+                }
+                else if(variant->hash == keyPath
+                    && strncmp(STR_PARAM_PATH, variant->key, keyLen) == 0)
+                {
+                  configGetString(section, (const char*) variant, &texturePath);
+                }
+                else if (variant->hash == keyMinFilter
+                    && strncmp(STR_PARAM_MIN_FILTER, variant->key, keyLen) == 0)
+                {
+                  configGetString(section, (const char*) variant, &value);
+                  minFilter = cfgStringToTextureFilter(value);
+                }
+                else if (variant->hash == keyMagFilter
+                    && strncmp(STR_PARAM_MAG_FILTER, variant->key, keyLen) == 0)
+                {
+                  configGetString(section, (const char*) variant, &value);
+                  magFilter = cfgStringToTextureFilter(value);
+                }
+                else
+                {
+                  // ignore if not a valid texture parameter
+                  LogWarning("Ignoring unknown texture parameter '%s' for texture '%s'",
+                      variant->key, section->name);
+                  continue;
+                }
+
+                variant = configGetNextVariant(section, variant);
+              } // whie variant...
+
+              // create the texture based on the parsed parameters
+              if(texturePath != nullptr)
+              {
+                auto bmp = ldk::loadBitmap((const char*)texturePath);
+                Texture texture = renderer::createTexture(bmp, minFilter, magFilter, uWrap, vWrap);
+                freeAsset((void*) bmp);
+                //TODO(marcio): I guess this step should be done only when binding the material...
+                renderer::setTexture(material, (char*) &section->name, texture);
+              }
+              else
+              {
+                LogWarning("%s has no path and will be ignored.",
+                    section->name);
+              }
+            }
+
+        section = configGetNextSection(cfgRoot, section);
+      } // while sections ...
+
+      ldk::configDispose(cfgRoot);
+      return true;
+    }
 
   } // renderer
 } // ldk
