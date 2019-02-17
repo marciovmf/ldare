@@ -5,26 +5,6 @@
 
 namespace ldk
 {
-//	typedef uint32 Shader_old;
-//	struct Texture
-//	{
-//		uint32 id;
-//		uint32 width;
-//		uint32 height;
-//	};
-//
-//	struct Material
-//	{
-//		ldk::Shader_old shader;
-//		ldk::Texture texture;
-//		int32 depthFunc;
-//		int32 blendFuncSrc;
-//		int32 blendFuncDst;
-//    Vec4  blendConstantColor;
-//		int32 stencilFunc;
-//		int32 cullMode;
-//	};
-	
 	struct Audio
 	{
 		//TODO: Remove this when memory/asset manager is done

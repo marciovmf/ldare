@@ -281,6 +281,9 @@ namespace ldk
     ///@param texture - The gpu texture id.
     LDK_API void destroyTexture(Texture texture);
 
+
+    LDK_API bool loadMaterial(renderer::Material* material, const char* file);
+    
 ///@}
   } // renderer
 } // ldk

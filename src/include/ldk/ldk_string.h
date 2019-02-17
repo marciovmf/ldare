@@ -5,9 +5,9 @@
 namespace ldk
 {
 
-  uint32 strlen(char* string)
+  uint32 strlen(const char* string)
   {
-   char* p = string;
+   const char* p = string;
    while(*p)
    {
      ++p;
@@ -16,7 +16,7 @@ namespace ldk
    return p - string;
   }
 
-	uint32 stringToHash(char* str)
+	uint32 stringToHash(const char* str)
 	{
 		uint32 stringLen = strlen((char*)str);
 		uint32 hash = 0;
