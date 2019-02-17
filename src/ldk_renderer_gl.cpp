@@ -996,6 +996,7 @@ namespace ldk
 
     bool loadMaterial(renderer::Material* material, const char* file)
     {
+
       auto cfgRoot = ldk::configParseFile(file);
       auto materialSection = ldk::configGetSection(cfgRoot, "material");
 
@@ -1015,6 +1016,8 @@ namespace ldk
         return false;
       }
 
+      //TODO(marcio): load the "queue" param from the material section and pass it to the material
+      //TODO(marcio): load the "queue-offset" param from the material section and pass it to the material
       makeMaterial(material, vs, fs);
 
       // texture section names
