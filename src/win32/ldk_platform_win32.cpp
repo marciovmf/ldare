@@ -750,7 +750,7 @@ namespace ldk
    
 
       // Calculate total window size
-      RECT clientArea = {0,0, width, height};
+      RECT clientArea = {(LONG)0,(LONG)0, (LONG)width, (LONG)height};
       if (!AdjustWindowRect(&clientArea, WS_OVERLAPPED, FALSE))
       {
         LogError("Could not calculate window size");
@@ -971,8 +971,8 @@ namespace ldk
    
             uint32 x = GET_X_LPARAM(msg.lParam);
             uint32 y = GET_Y_LPARAM(msg.lParam);
-            _platform.mouseState.cursor = {x ,
-              window->clientRect.bottom - 
+            _platform.mouseState.cursor = {(float)x ,
+              (float)window->clientRect.bottom - 
               window->clientRect.top - y};
               
     

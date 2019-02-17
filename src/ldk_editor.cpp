@@ -100,9 +100,11 @@ uint32 ldkMain(uint32 argc, char** argv)
   LDKGameSettings gameSettings = game.init();
 
 	uint32 windowHints[] = { 
-		(uint32)ldk::platform::WindowHint::WIDTH,  gameSettings.displayWidth,
-		(uint32)ldk::platform::WindowHint::HEIGHT, gameSettings.displayHeight,
-		0};
+		(uint32)ldk::platform::WindowHint::WIDTH,
+    (uint32)gameSettings.displayWidth,
+		(uint32)ldk::platform::WindowHint::HEIGHT,
+    (uint32)gameSettings.displayHeight,
+		(uint32)0};
 
 	ldk::platform::LDKWindow* window =
 		ldk::platform::createWindow(windowHints, gameSettings.name, nullptr);

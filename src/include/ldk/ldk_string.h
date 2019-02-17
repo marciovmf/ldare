@@ -1,11 +1,12 @@
 
+
 #ifndef _LDK_STRING_UTIL_
 #define _LDK_STRING_UTIL_
 
 namespace ldk
 {
 
-  uint32 strlen(const char* string)
+  constexpr uint32 strlen(const char* string)
   {
    const char* p = string;
    while(*p)
@@ -16,7 +17,7 @@ namespace ldk
    return p - string;
   }
 
-	uint32 stringToHash(const char* str)
+	constexpr uint32 stringToHash(const char* str)
 	{
 		uint32 stringLen = strlen((char*)str);
 		uint32 hash = 0;

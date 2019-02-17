@@ -119,13 +119,15 @@ namespace ldk
 
   bool loadFont(const char* file, ldk::FontAsset** font)
   {
-    size_t fontAssetSize;
-    ldk::FontAsset* fontAsset = (ldk::FontAsset*) ldk::platform::loadFileToBuffer(file, &fontAssetSize);
-    if (!fontAsset || fontAssetSize == 0) { return false; }
+    //TODO(marcio): Review this when implemening text rendering again...
+    //size_t fontAssetSize;
+    //ldk::FontAsset* fontAsset = (ldk::FontAsset*) ldk::platform::loadFileToBuffer(file, &fontAssetSize);
+    //if (!fontAsset || fontAssetSize == 0) { return false; }
 
-    fontAsset->gliphData = (FontGliphRect*) (((uint8*)fontAsset) + (uint32) fontAsset->gliphData);
-    *font = fontAsset;
-    return true;
+    //fontAsset->gliphData = (FontGliphRect*) (((uint8*)fontAsset + (uint32) fontAsset->gliphData));
+    //*font = fontAsset;
+    //return true;
+    return false;
   }
 
   void freeAsset(void* asset)

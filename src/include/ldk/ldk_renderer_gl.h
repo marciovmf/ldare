@@ -7,29 +7,23 @@
 #define LDK_GL_MAX_TEXTURES           8
 #define LDK_GL_NUM_VBOS               3
 
-namespace ldk
-{
-  enum RenderQueue
-  {
-    OPAQUE = 10,
-    TRANSLUCENT = 100,
-    OVERLAY = 200,
-  };
-}
-
 #include "../GL/glcorearb.h"
 
 namespace ldk
 {
-
   namespace renderer
   {
 /// @defgroup Renderer Renderer
 /// @{
+
     struct Shader;
     struct DrawCall;
     struct Context;
     struct VertexBuffer;
+
+    const uint32 RENDER_QUEUE_OPAQUE = 10;
+    const uint32 RENDER_QUEUE_TRANSLUCENT = 100;
+    const uint32 RENDER_QUEUE_OVERLAY = 200;
 
     enum VertexAttributeType
     {
@@ -105,7 +99,7 @@ namespace ldk
     struct Material
     {
       Shader shader; 
-      RenderQueue renderQueue; 
+      uint32 renderQueue; 
       GLuint textureCount;
       Texture texture[LDK_GL_MAX_TEXTURES];
     };
@@ -183,7 +177,7 @@ namespace ldk
     ///@param vertexSource - vertex shader source;
     ///@param fragmentSource - fragment shader source;
     ///@returns true if shaders compile successfuly
-    LDK_API bool  makeMaterial(Material* material, char* vertexSource, char* fragmentSource);
+    LDK_API bool  makeMaterial(Material* material, char* vertexSource, char* fragmentSource, uint32 renderQueue = RENDER_QUEUE_OPAQUE);
 
     LDK_API bool setTexture(Material* material, char* name, Texture texture);
 

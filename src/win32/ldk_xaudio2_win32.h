@@ -193,7 +193,7 @@ namespace ldk
 				//pXAudio2 = XAudio2_7Create(XAUDIO2_DEBUG_ENGINE);
 				pXAudio2_7 = XAudio2_7Create();
 
-				if (FAILED(pXAudio2_7))
+				if (pXAudio2_7 <= 0)
 				{
 					LogError(ErrorInitializingMsg, xAudioDllName);
 					return;
