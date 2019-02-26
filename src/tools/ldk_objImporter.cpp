@@ -1,10 +1,28 @@
 
+#include <vector>
 #include <string.h>
 #include "../ldk_textStreamReader.cpp"
 
 namespace ldk
 {
-  struct ObjFileStatement
+  static constexpr uint32 PARESER_MAX_LITERAL_LENGTH = 32;
+  static constexpr char PARSER_CHAR_POUND = '#';
+  static constexpr char PARSER_CHAR_DOT = '.';
+  static constexpr char PARSER_CHAR_SPACE = ' ';
+  static constexpr char PARSER_CHAR_MINUS = '-';
+  static constexpr char PARSER_CHAR_UNDERLINE = '_';
+  static constexpr char PARSER_CHAR_PLUS = '+';
+  static constexpr char PARSER_CHAR_SLASH = '/';
+  static constexpr char PARSER_CHAR_CARRIAGE_RETURN = '\r';
+  static constexpr char PARSER_CHAR_LINE_FEED = '\n';
+  static constexpr char PARSER_CHAR_EOF = -1;
+
+  static constexpr char* PARSER_CMD_VERTEX = "v";
+  static constexpr char* PARSER_CMD_NORMAL = "vn";
+  static constexpr char* PARSER_CMD_UV = "vt";
+  static constexpr char* PARSER_CMD_FACE = "f";
+
+  struct ObjStatement
   {
     enum 
     {
@@ -20,266 +38,228 @@ namespace ldk
     Vec3 uv;
   };
 
-  struct Literal
+  struct Token
   {
     enum
     {
       REAL,
       INTEGER,
-      STRING
+      IDENTIFIER,
+      SLASH,
+      CMD_VERTEX,
+      CMD_NORMAL,
+      CMD_UV,
+      CMD_FACE,
+      EOL,
+      EOFILE,
     } type;
-    
-    uint32 start;
+
+    char* start;
     uint32 len;
     union
     {
       float floatValue;
       int32 intValue;
     };
-
   };
 
-  static bool requireCharacter(TextStreamReader& stream, const char required)
+  inline bool parseUnarySignal(TextStreamReader& stream, int32* signal)
   {
-    char c = stream.getc();
-    return c == required;
-  }
-
-	inline bool parseUnarySignal(TextStreamReader& stream, int32* signal)
-	{
-		char c = stream.peek();
-		if ( c == '-')
-		{
-			stream.getc();
-			*signal = -1;
-			return true;
-		}
-		else if ( c == '+')
-		{
-			stream.getc();
-			*signal = 1;
-			return true;
-		}
-
-		*signal = 1;
-		return false;
-	}
-
-	static bool parseNumericLiteral(TextStreamReader& stream, Literal* literal)
-	{
-		int32 signal;
-		parseUnarySignal(stream, &signal);
-    skipWhiteSpace(stream);
-
-		char* literalStart = stream.pos;
-		uint32 literalLength = 0;
-		int8 dotCount = 0;
-		char c;
-
-		do 
-		{
-			c = stream.getc();
-			if (c == '.') ++dotCount;
-			++literalLength;
-		} while(isDigit(c) || (c == '.' && dotCount < 2));
-
-		stream.ungetc();
-		--literalLength;
-
-		const int maxBuffLen = 32;
-		char buff[maxBuffLen]; 
-
-		if ( literalLength >= maxBuffLen)
-			literalLength = maxBuffLen - 1;
-
-		strncpy(buff, (const char*) literalStart, literalLength);
-
-		if (dotCount > 0)
-		{
-			literal->type = Literal::REAL;
-			literal->floatValue = atof(buff) * signal;
-		}
-		else
-		{
-			literal->type = Literal::INTEGER;
-			literal->intValue = atoi(buff) * signal;
-		}
-		return true;
-	}
-
-  static bool parseCommandArgument3f(TextStreamReader& stream, ObjFileStatement& statement)
-  {
-    skipWhiteSpace(stream);
     char c = stream.peek();
-
-    if (!isDigit(c) && c != '+' && c != '-' && c != '.')
+    if ( c == PARSER_CHAR_MINUS)
     {
-      printf("Error unexpected character '%c' when parsing numeric literal at %d, %d\n",
-          c, stream.line, stream.column);
-      return false;
+      stream.getc();
+      *signal = -1;
+      return true;
+    }
+    else if ( c == PARSER_CHAR_PLUS)
+    {
+      stream.getc();
+      *signal = 1;
+      return true;
     }
 
-    Literal literal1;
-    Literal literal2;
-    Literal literal3;
-    constexpr char SPACE = ' ';
-
-    if (parseNumericLiteral(stream, &literal1) 
-        && literal1.type == Literal::REAL 
-        && requireCharacter(stream, SPACE)
-        // second value
-        && parseNumericLiteral(stream, &literal2) 
-        && literal2.type == Literal::REAL 
-        && requireCharacter(stream, SPACE)
-        // third value
-        && parseNumericLiteral(stream, &literal3) 
-        && literal3.type == Literal::REAL)
-      {
-        switch(statement.type)
-        {
-          case ObjFileStatement::VERTEX:
-            statement.position = Vec3{literal1.floatValue, literal2.floatValue, literal3.floatValue};
-            break;
-          case ObjFileStatement::UV:
-            statement.uv = Vec3{literal1.floatValue, literal2.floatValue, literal3.floatValue};
-            break;
-          case ObjFileStatement::NORMAL:
-            statement.normal = Vec3{literal1.floatValue, literal2.floatValue, literal3.floatValue};
-            break;
-          default:
-            printf("ERROR: Unknown command\n");
-            return false;
-            break;
-        }
-        return true;
-      }
-
+    *signal = 1;
     return false;
-
   }
 
-  static bool parseFaceCommandArgument(TextStreamReader& stream, ObjFileStatement& statement)
+  static bool parseNumericToken(TextStreamReader& stream, Token& token)
   {
+    int32 signal;
+    parseUnarySignal(stream, &signal);
     skipWhiteSpace(stream);
 
-    Literal pos;
-    Literal uv;
-    Literal normal;
+    char* literalStart = stream.pos;
+    uint32 literalLength = 0;
+    int8 dotCount = 0;
+    char c;
 
-    constexpr char SLASH = '/';
-    constexpr char SPACE = ' ';
-
-    //TODO(marcio): continue from here...
-    return true;
-  }
-
-  static bool parseStatement(TextStreamReader& stream, ObjFileStatement& statement)
-  {
-    constexpr int32 MAX_CMD_LEN = 16; 
-    char cmd[MAX_CMD_LEN]={};
-    int32 cmdLen = 0;
-
-    while (stream.peek() != ' ')
+    do 
     {
-        cmd[cmdLen++] = stream.getc();
-      
-        // we exceeded the maximum cmd len. This is an invalid file
-        if(cmdLen == MAX_CMD_LEN - 1)
-        {
-          return false;
-        }
-    }
+      c = stream.getc();
+      if (c == PARSER_CHAR_DOT) ++dotCount;
+      ++literalLength;
+    } while(isDigit(c) || (c == '.' && dotCount < 2));
 
-    constexpr const char* VERTEX_CMD = "v";
-    constexpr const char* NORMAL_CMD = "vn";
-    constexpr const char* UV_CMD = "vt";
-    constexpr const char* FACE_CMD = "f";
-    constexpr const char* MTLIB_CMD = "mtllib";
-    constexpr const char* OBJECT_CMD = "o";
-    constexpr const char* USEMTL_CMD = "usemtl";
-    constexpr const char* SMOOTHGRP_CMD = "s";
+    stream.ungetc();
+    --literalLength;
 
-    if (strncmp(VERTEX_CMD, cmd, cmdLen) == 0)
-    {
-      statement.type = ObjFileStatement::VERTEX;
-      return parseCommandArgument3f(stream, statement) ;
-    }
-    else if (strncmp(NORMAL_CMD, cmd, cmdLen) == 0)
-    {
-      statement.type = ObjFileStatement::NORMAL;
-      return parseCommandArgument3f(stream, statement) ;
-    }
-    else if (strncmp(UV_CMD, cmd, cmdLen) == 0)
-    {
-      statement.type = ObjFileStatement::UV;
-      return parseCommandArgument3f(stream, statement) ;
-    }
-    //else if (strncmp(FACE_CMD, cmd, cmdLen) == 0)
-    //{
-    //  statement.type = ObjFileStatement::FACE;
-    //  return parseFaceCommandArgument(stream, statement) ;
-    //}
-    else if (strncmp(MTLIB_CMD, cmd, cmdLen) == 0
-        ||strncmp(FACE_CMD, cmd, cmdLen) == 0
-        ||strncmp(USEMTL_CMD, cmd, cmdLen) == 0
-        ||strncmp(SMOOTHGRP_CMD, cmd, cmdLen) == 0
-        ||strncmp(OBJECT_CMD, cmd, cmdLen) == 0)
-    {
-      statement.type = ObjFileStatement::UNSUPORTED;
-      printf("Ignoring unsuported command '%.*s' at %d, %d\n", cmdLen, cmd, stream.line, stream.column);
-      //read until EOL
-      char c = stream.getc();
-      while(c != '\n' && c != EOF)
-      {
-        c = stream.getc();
-      }
+    const int maxBuffLen = PARESER_MAX_LITERAL_LENGTH;
+    char buff[maxBuffLen]; 
 
-      return true;
+    if ( literalLength >= maxBuffLen)
+      literalLength = maxBuffLen - 1;
+
+    strncpy(buff, (const char*) literalStart, literalLength);
+
+    if (dotCount > 0)
+    {
+      token.type = Token::REAL;
+      token.floatValue = atof(buff) * signal;
     }
     else
     {
-      // unknown command. This is an invalid file.
-      printf("Error: Unknown command '%.*s' at %d, %d", cmdLen, cmd, stream.line, stream.column);
-      return false;
+      token.type = Token::INTEGER;
+      token.intValue = atoi(buff) * signal;
     }
+    return true;
+  }
+
+  static bool parseIdentifierToken(TextStreamReader& stream, Token& token)
+  {
+    char* literalStart = stream.pos;
+    uint32 literalLength = 0;
+    char c;
+    do 
+    {
+      c = stream.getc();
+      ++literalLength;
+    } while(isLetter(c) || c == PARSER_CHAR_UNDERLINE || c == PARSER_CHAR_MINUS);
+
+    stream.ungetc();
+    --literalLength;
+
+    if(strncmp(PARSER_CMD_VERTEX, literalStart, literalLength) == 0)
+    {
+      token.type = Token::CMD_VERTEX;
+    }
+    else if(strncmp(PARSER_CMD_NORMAL, literalStart, literalLength) == 0)
+    {
+      token.type = Token::CMD_NORMAL;
+    }
+    else if(strncmp(PARSER_CMD_UV, literalStart, literalLength) == 0)
+    {
+      token.type = Token::CMD_UV;
+    }
+    else if(strncmp(PARSER_CMD_FACE, literalStart, literalLength) == 0)
+    {
+      token.type = Token::CMD_FACE;
+    }
+    else
+    {
+      token.type = Token::IDENTIFIER;
+    }
+
+    token.start = literalStart;
+    token.len = literalLength;
+    return true;
+  }
+
+  static bool getToken(TextStreamReader& stream, Token& token)
+  {
+    skipWhiteSpace(stream);
+    char c = stream.peek();
+    if (c == PARSER_CHAR_CARRIAGE_RETURN || c == PARSER_CHAR_LINE_FEED)
+    {
+      stream.getc();
+      token.type = Token::EOL;
+      token.len = 1;
+      token.start = stream.pos;
+
+      // handle windows line endings
+      if (c == PARSER_CHAR_CARRIAGE_RETURN || stream.peek() == PARSER_CHAR_LINE_FEED)
+      {
+        stream.getc();
+        token.len++;
+      }
+      return true;
+    }
+    else if (c == PARSER_CHAR_EOF)
+    {
+      stream.getc();
+      token.type = Token::EOFILE;
+      token.len = 1;
+      token.start = stream.pos;
+      return true;
+    }
+    else if (c == PARSER_CHAR_SLASH)
+    {
+      stream.getc();
+      token.type = Token::EOFILE;
+      token.len = 1;
+      token.start = stream.pos;
+      return true;
+    }
+    else if (isLetter(c))
+    {
+      return parseIdentifierToken(stream, token);
+    }
+    else if (isDigit(c) || c == PARSER_CHAR_MINUS || c == PARSER_CHAR_PLUS || c == PARSER_CHAR_DOT)
+    {
+      return parseNumericToken(stream, token);
+    }
+
+    printf("Error: Unexpected character '%c' at %d,%d", c, stream.line, stream.column);
+    return false;
   }
 
   static bool parseObjFile(const char* fileContent, size_t size)
   {
+    Token token;
+    bool noError = false;
     TextStreamReader stream((void*)fileContent, size);
-		bool noError = true;
-
-		while (!stream.eof() && noError)
-		{
-			skipEmptyLines(stream);
-      ObjFileStatement statement;
-      noError = parseStatement(stream, statement);
-
-      if(noError && statement.type != ObjFileStatement::UNSUPORTED)
+    do
+    {
+      skipEmptyLines(stream);
+      skipComment(stream, PARSER_CHAR_POUND);
+      noError = getToken(stream, token);
+      if(noError)
       {
-        Vec3* values = nullptr;
-        switch(statement.type)
+
+        switch(token.type)
         {
-        case ObjFileStatement::VERTEX:
-          values = &statement.position;
-          break;
-        case ObjFileStatement::UV:
-          values = &statement.uv;
-          break;
-        case ObjFileStatement::NORMAL:
-          values = &statement.normal;
-          break;
+          case Token::CMD_UV:
+          case Token::CMD_NORMAL:
+          case Token::CMD_VERTEX:
+            Token xValue;
+            Token yValue;
+            Token zValue;
+            if (getToken(stream, xValue) && xValue.type == Token::REAL
+                && getToken(stream, yValue) && xValue.type == Token::REAL
+                && getToken(stream, zValue) && xValue.type == Token::REAL)
+            {
+              printf("%.*s %f %f %f\n", token.len, token.start,
+                  xValue.floatValue, yValue.floatValue, zValue.floatValue);
+            }
+            else
+              noError = false;
+            break;
+          case Token::CMD_FACE:
+            break;
+          default:
+            // eat characters untin EOL
+            char c;
+            do {
+              c = stream.getc();
+            }
+            while(c != PARSER_CHAR_LINE_FEED && c != EOF);
+            
+            if(c!=EOF) stream.ungetc();
+            break;
         }
-      
-        if(values != nullptr)
-          printf("%d %f %f %f\n", statement.type, values->x, values->y, values->z);
+        printf("Token type %d '%.*s'\n", token.type, token.len, token.start);
       }
-
-			if (stream.peek() == EOF)
-				continue;
-    }
-
+    }while(noError && token.type != Token::EOFILE);
     return true;
   }
 }
-
