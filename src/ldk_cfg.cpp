@@ -6,71 +6,11 @@
 #define LDK_CFG_MAX_IDENTIFIER 128
 #define LDK_CFG_DEFAULT_BUFFER_SIZE 512
 #define LDK_CFG_MAX_IDENTIFIER_SIZE 63
+#define LDK_CFG_COMMENT_START_TOKEN '#'
+#include "ldk_textStreamReader.cpp"
+
 namespace ldk
 {
-	struct ConfigBufferReader
-	{
-		char* buffer;
-		uint32 line;
-		uint32 column;
-		uint32 lastColumn;
-		char* pos;
-		char* eofAddr;
-
-		inline bool eof()
-		{
-			return pos >= eofAddr;
-		}
-
-		ConfigBufferReader(void* buffer, size_t size):
-			buffer((char*)buffer),
-      line(1),
-      column(1),
-      pos((char*)buffer),
-      eofAddr((char*)buffer+size) {}
-
-		char peek()
-		{
-			if (eof())
-				return EOF;
-
-			return *pos;
-		}
-
-		char getc()
-		{
-			if ( pos >= eofAddr)
-				return EOF;
-
-			char c = *pos++;
-			if (c == '\n')
-			{
-				++line;
-				lastColumn = column; // save it in case of ungetc()
-				column = 1;
-			}
-			else
-			{
-				lastColumn = column++;
-			}
-			return c;
-		}
-
-		void ungetc()
-		{
-			if ( pos <= buffer)
-				return;
-
-			char c = *--pos;
-			if ( c == '\n')
-			{
-				--line;
-			}
-			column = lastColumn;
-		}
-
-	};
-
 	enum StatementType
 	{
 		SECTION_DECLARATION,
@@ -129,55 +69,7 @@ namespace ldk
 	int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, Literal& literal);
 	void postProccessStringArrays(const VariantSectionRoot*);
 
-	inline bool isLetter(char c)
-	{
-		return (c >= 64 && c <= 90) || (c >= 97 && c <= 122);
-	}
-
-	inline bool isDigit(char c)
-	{
-		return c >= 48 && c <= 57;
-	}
-
-	static void skipWhiteSpace(ConfigBufferReader& stream)
-	{
-		char c = stream.peek();
-		while ( c == ' ' || c == '\t' || c == '\r')
-		{
-			stream.getc();
-			c = stream.peek();
-		}
-	}
-
-	static void skipComment(ConfigBufferReader& stream)
-	{
-		char c = stream.peek();
-
-		if (c != '#')
-			return;
-
-		while ( c != '\n')
-		{
-			stream.getc();
-			c = stream.peek();
-		}
-	}
-
-	static void skipEmptyLines(ConfigBufferReader& stream)
-	{
-		char c;
-		do
-		{
-			skipWhiteSpace(stream);
-			skipComment(stream);
-			c = stream.getc();
-		} while (c == '\n');
-
-		if (c != EOF)
-			stream.ungetc();
-	}
-
-	static bool parseIdentifier(ConfigBufferReader& stream, Identifier* identifier)
+	static bool parseIdentifier(TextStreamReader& stream, Identifier* identifier)
 	{
 		char* identifierText = stream.pos;
 		uint32 identifierLength = 0;
@@ -213,7 +105,7 @@ namespace ldk
 		return false;
 	}
 
-	static bool parseUnarySignal(ConfigBufferReader& stream, int32* signal)
+	static bool parseUnarySignal(TextStreamReader& stream, int32* signal)
 	{
 		char c = stream.peek();
 		if ( c == '-')
@@ -233,7 +125,7 @@ namespace ldk
 		return false;
 	}
 
-	static bool parseNumericLiteral(ConfigBufferReader& stream, Literal* literal)
+	static bool parseNumericLiteral(TextStreamReader& stream, Literal* literal)
 	{
 		int32 signal;
 		parseUnarySignal(stream, &signal);
@@ -309,7 +201,7 @@ namespace ldk
 		return false;
 	}
 
-	inline bool parseStringLiteral(ConfigBufferReader& stream, Literal& literal)
+	inline bool parseStringLiteral(TextStreamReader& stream, Literal& literal)
 	{
 		uint32 stringLen = 0;
 		char* stringStart = stream.pos+1;
@@ -348,7 +240,7 @@ namespace ldk
 
   // Parse single RValue, except Arrays. It does NOT persist the parsed value
 	static bool parseSingleRValue(Heap& parsedDataBuffer,
-			ConfigBufferReader& stream, Identifier& identifier, Literal& literal)
+			TextStreamReader& stream, Identifier& identifier, Literal& literal)
 	{
 
 		skipWhiteSpace(stream);
@@ -394,7 +286,7 @@ namespace ldk
 	}
 
 	static bool parseRValue(Heap& parsedDataBuffer,
-			ConfigBufferReader& stream, Identifier& identifier, Literal& literal, int32 currentSectionOffset)
+			TextStreamReader& stream, Identifier& identifier, Literal& literal, int32 currentSectionOffset)
 	{
 		skipEmptyLines(stream);
 		char c = stream.peek();
@@ -470,7 +362,7 @@ namespace ldk
 	}
 
 	// parse identifier + '=' + rvalue
-	bool parseAssignment(Heap& parsedDataBuffer, ConfigBufferReader& stream, Statement* statement, int32 currentSectionOffset)
+	bool parseAssignment(Heap& parsedDataBuffer, TextStreamReader& stream, Statement* statement, int32 currentSectionOffset)
 	{
 		char c;
 		statement->type = StatementType::ASSIGNMENT;
@@ -494,7 +386,7 @@ namespace ldk
 	}
 
 	// parse [ + identifier + ]
-	static bool parseSectionDeclaration(Heap& parsedDataBuffer, ConfigBufferReader& stream, Statement* statement)
+	static bool parseSectionDeclaration(Heap& parsedDataBuffer, TextStreamReader& stream, Statement* statement)
 	{
 		char c = stream.getc();
 
@@ -522,10 +414,10 @@ namespace ldk
 		return false;
 	}
 
-	static bool parseStatement(Heap& parsedDataBuffer, ConfigBufferReader& stream, Statement* statement, int32 currentSectionOffset)
+	static bool parseStatement(Heap& parsedDataBuffer, TextStreamReader& stream, Statement* statement, int32 currentSectionOffset)
 	{
 		skipWhiteSpace(stream);
-		skipComment(stream);
+		skipComment(stream, LDK_CFG_COMMENT_START_TOKEN);
 
 		*statement = {};
 		statement->line = stream.line;
@@ -542,7 +434,7 @@ namespace ldk
 
 		skipWhiteSpace(stream);
 
-		skipComment(stream);
+		skipComment(stream, LDK_CFG_COMMENT_START_TOKEN);
 
 		if (success)
 		{
@@ -758,10 +650,9 @@ namespace ldk
 		return pushVariantSection(heap, rootSectionIdentifier);
 	}
 
-
 	const VariantSectionRoot* configParseBuffer(void* buffer, size_t size)
 	{
-		ConfigBufferReader stream(buffer, size);
+		TextStreamReader stream(buffer, size);
 		Heap heap;
 		ldk_memory_allocHeap(&heap, LDK_CFG_DEFAULT_BUFFER_SIZE);
 

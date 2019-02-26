@@ -1,5 +1,3 @@
-
-
 #ifndef _LDK_STRING_UTIL_
 #define _LDK_STRING_UTIL_
 
@@ -35,5 +33,17 @@ namespace ldk
 
     return hash;
 	}
+
+	inline bool isLetter(char c)
+	{
+		return (c >= 64 && c <= 90) || (c >= 97 && c <= 122);
+	}
+
+	inline bool isDigit(char c)
+	{
+		return c >= 48 && c <= 57;
+	}
+
+
 }
 #endif// _LDK_STRING_UTIL_

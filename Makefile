@@ -30,7 +30,7 @@ ldk: outdirfolder $(LDK_ENGINE) $(LDK_EDITOR)
 
 editor: $(LDK_EDITOR)
 
-game: $(LDK_GAME) gameassets
+game: $(LDK_GAME) gameassets assets
 
 $(LDK_GAME): game/*.cpp
 	@echo Building game dll...
@@ -44,12 +44,17 @@ $(LDK_EDITOR): $(LDK_ENGINE) src/ldk_editor.cpp
 	cl src\ldk_editor.cpp /Fe$(OUTDIR)/ $(CFLAGS) $(LINKFLAGS) $(OUTDIR)/ldk.lib
 	@echo SUCCESS
 
-tool: src\win32\tools\ldk_tool_font.cpp
-	cl src\win32\tools\ldk_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
+#tool: src\win32\tools\ldk_tool_font.cpp
+#	cl src\win32\tools\ldk_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
+
+tools: src\tools\ldk_bakeTool.cpp
+	cl src\tools\ldk_bakeTool.cpp /Fe$(OUTDIR)\bake.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
+
 
 assets:
 	@echo copying standard assets ...
 	@xcopy assets $(OUTDIR)\assets /Y /I /E /F > nul
+	@xcopy assets\standard $(OUTDIR)\assets\standard /Y /I /E /F > nul
 	@copy /Y ldk_game.cfg $(OUTDIR) > nul
 
 gameassets: 

@@ -1,0 +1,42 @@
+[material]
+# possible values are opaque | translucent | overlay
+queue = "opaque"
+queue-offset = 10
+
+vert-shader = "#version 330 core
+    in vec3 _pos; 
+    in vec3 _color;
+    out vec4 vertexColor;
+    uniform mat4 mmodel;
+    uniform mat4 mprojection;
+    void main()
+    {
+      gl_Position = mprojection * mmodel * vec4(_pos, 1.0);
+      vertexColor = vec4(_color, 1.0);
+      //fragCoord = _uuv;
+    }"
+
+frag-shader = "#version 330 core
+    in vec4 vertexColor;
+    out vec4 out_color;
+    //uniform sampler2D texture0;
+    void main()
+    {
+      out_color = vertexColor;
+    }"
+
+
+#[textureN]
+# path -> path to a bmp file
+# u-wrap = {repeat | clamp-to-edge | mirrored-repeat}
+# v-wrap = {repeat | clamp-to-edge | mirrored-repeat}
+# min-filter = {linear | nearest | mipmap-linear-linear | mipmap-linear-nearest | mipmap-nearest-linear | mipmap-nearest-nearest}
+# mag-filter = {linear | nearest | mipmap-linear-linear | mipmap-linear-nearest | mipmap-nearest-linear | mipmap-nearest-nearest}
+
+# Specify the first texture for the material
+#[texture0]
+#path=""
+#u-wrap = "repeat" 
+#v-wrap = "repeat" 
+#min-filter = "linear"
+#mag-filter = "linear"
