@@ -22,36 +22,21 @@ namespace ldk
   static constexpr char* PARSER_CMD_UV = "vt";
   static constexpr char* PARSER_CMD_FACE = "f";
 
-  struct ObjStatement
-  {
-    enum 
-    {
-      VERTEX,
-      NORMAL,
-      UV,
-      FACE,
-      UNSUPORTED
-    } type;
-
-    Vec3 position;
-    Vec3 normal;
-    Vec3 uv;
-  };
-
   struct Token
   {
     enum
     {
+      CMD_VERTEX = 0, // these explicit values are used for array indexing.
+      CMD_NORMAL = 1,
+      CMD_UV = 2,
+      CMD_FACE = 3,
       REAL,
       INTEGER,
       IDENTIFIER,
       SLASH,
-      CMD_VERTEX,
-      CMD_NORMAL,
-      CMD_UV,
-      CMD_FACE,
       EOL,
       EOFILE,
+      UNKNOWN
     } type;
 
     char* start;
@@ -213,11 +198,73 @@ namespace ldk
     return false;
   }
 
+  inline bool requireVertexNormalUvIndex(TextStreamReader& stream, 
+      int& vertexIndex, int& uvIndex, int& normalIndex)
+  {
+    char* empty = "''";
+    Token vertex;
+    Token normal;
+    Token uv;
+
+    vertex.start = normal.start = uv.start = empty;
+    vertex.len = normal.len = uv.len = 2;
+    vertex.type = normal.type = uv.type = Token::UNKNOWN;
+
+
+    Token slash;
+
+    if (getToken(stream, vertex) && vertex.type == Token::INTEGER 
+        && getToken(stream, slash) && slash.type == Token::SLASH
+
+        && getToken(stream, normal) && normal.type == Token::INTEGER
+        && getToken(stream, slash) && slash.type == Token::SLASH
+
+        && getToken(stream, uv) && uv.type == Token::INTEGER)
+    {
+      vertexIndex = vertex.intValue;
+      normalIndex = normal.intValue;
+      uvIndex = uv.intValue;
+      return true;
+    }
+
+    printf("error\n");
+    printf("vertex Token %d, %.*s \n", vertex.type, vertex.len, vertex.start);
+    printf("normal Token %d, %.*s \n", normal.type, normal.len, normal.start);
+    printf("uv Token %d, %.*s \n", uv.type, uv.len, uv.start);
+
+    return false;
+  }
+
+  inline bool requireVec3(TextStreamReader& stream, Vec3& vec3)
+  {
+    Token xValue;
+    Token yValue;
+    Token zValue;
+    if (getToken(stream, xValue) && xValue.type == Token::REAL
+        && getToken(stream, yValue) && xValue.type == Token::REAL
+        && getToken(stream, zValue) && xValue.type == Token::REAL)
+    {
+
+      vec3.x = xValue.floatValue;
+      vec3.y = xValue.floatValue;
+      vec3.z = xValue.floatValue;
+      return true;
+    }
+    return false;
+  }
+
   static bool parseObjFile(const char* fileContent, size_t size)
   {
     Token token;
     bool noError = false;
     TextStreamReader stream((void*)fileContent, size);
+
+    std::vector<Vec3> vertices;
+    std::vector<Vec3> normals;
+    std::vector<Vec3> uvs;
+    std::vector<Vec3> output;
+    uint32 triangleCount = 0;
+    
     do
     {
       skipEmptyLines(stream);
@@ -225,27 +272,49 @@ namespace ldk
       noError = getToken(stream, token);
       if(noError)
       {
-
+        Vec3 tempVec;
         switch(token.type)
         {
           case Token::CMD_UV:
+            noError = requireVec3(stream, tempVec); 
+              if (noError )uvs.push_back(tempVec);
+              break;
+         
           case Token::CMD_NORMAL:
+              noError = requireVec3(stream, tempVec);
+              if(noError) normals.push_back(tempVec);
+              break;
+         
           case Token::CMD_VERTEX:
-            Token xValue;
-            Token yValue;
-            Token zValue;
-            if (getToken(stream, xValue) && xValue.type == Token::REAL
-                && getToken(stream, yValue) && xValue.type == Token::REAL
-                && getToken(stream, zValue) && xValue.type == Token::REAL)
-            {
-              printf("%.*s %f %f %f\n", token.len, token.start,
-                  xValue.floatValue, yValue.floatValue, zValue.floatValue);
-            }
-            else
-              noError = false;
+              requireVec3(stream, tempVec);
+                if(noError) vertices.push_back(tempVec);
             break;
+         
           case Token::CMD_FACE:
+            {
+              int vertexIndex=0;
+              int normalIndex=0;
+              int uvIndex=0;
+
+              triangleCount++;
+
+              for (int i=0; i < 3; i++)
+              {
+                noError = requireVertexNormalUvIndex(stream, vertexIndex, uvIndex, normalIndex);
+                if(!noError)
+                {
+                  printf("Error parsing face part %d\n",i);
+                  triangleCount--;
+                  break;
+                }
+
+                output.push_back(vertices[vertexIndex]);
+                output.push_back(uvs[uvIndex]);
+                output.push_back(normals[normalIndex]);
+              }
+            }
             break;
+
           default:
             // eat characters untin EOL
             char c;
@@ -253,13 +322,17 @@ namespace ldk
               c = stream.getc();
             }
             while(c != PARSER_CHAR_LINE_FEED && c != EOF);
-            
+
             if(c!=EOF) stream.ungetc();
             break;
         }
-        printf("Token type %d '%.*s'\n", token.type, token.len, token.start);
       }
     }while(noError && token.type != Token::EOFILE);
+
+
+    printf("Status = %s, Vertex count = %zd, uv count = %zd, Normal count = %zd Triangle count %d\n",
+        noError ? "success" : "failed" , vertices.size(), uvs.size(), normals.size(), triangleCount);
+
     return true;
   }
 }
