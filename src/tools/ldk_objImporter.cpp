@@ -1,5 +1,6 @@
-#include <vector>
 #include <string.h>
+#include <vector>
+#include <unordered_map>
 #include "../ldk_textStreamReader.cpp"
 
 namespace ldk
@@ -21,12 +22,33 @@ namespace ldk
   static constexpr char* PARSER_CMD_UV = "vt";
   static constexpr char* PARSER_CMD_FACE = "f";
 
-  struct ObjIndex
+  struct ObjVertex
   {
-    int32 vIndex;
-    int32 vtIndex;
-    int32 vnIndex;
+    int32 v;
+    int32 vt;
+    int32 vn;
   };
+
+  static size_t objVertexHash(const ObjVertex& objVertex)
+  {
+    const int32 base = 17;
+    const int32 multiplier = 31;
+    size_t hash = base;
+
+    hash = multiplier * hash + objVertex.v;
+    hash = multiplier * hash + objVertex.vt;
+    hash = multiplier * hash + objVertex.vn;
+
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    hash += (hash << 15);
+    return hash;
+  }
+
+  static bool objVertexCompare(const ObjVertex& a, const ObjVertex& b)
+  {
+    return a.v == b.v && a.vt == b.vt && a.vn == b.vn;
+  }
 
   struct Token
   {
@@ -221,15 +243,14 @@ namespace ldk
 
   enum FaceTripletType
   {
-    V,
-    V_VT,
-    V_VN,
-    V_VT_VN,
+    V = 1,
+    UV = 1 << 1,
+    NORMAL = 1 << 2,
     UNKNOWN = -1
   };
 
   static bool parseFaceTripletAndGetType(TextStreamReader& stream, 
-      int& v, int& vt, int& vn, FaceTripletType& tripletType)
+      int& v, int& vt, int& vn, int& tripletType)
   {
     //NOTE(marcio): This function does not consume the space after the first triplet!
     Token t1, t2;
@@ -257,7 +278,7 @@ namespace ldk
           {
             vt = 0;
             vn = t2.intValue;
-            tripletType = FaceTripletType::V_VN;
+            tripletType = FaceTripletType::V | FaceTripletType::NORMAL;
             return true;
           }
 
@@ -269,7 +290,7 @@ namespace ldk
             stream = streamCheckpoint; // restore the stream state to unget the last token 
             vt = 0;
             vn = t2.intValue;
-            tripletType = FaceTripletType::V_VN;
+            tripletType = FaceTripletType::V | FaceTripletType::UV;
             return true;
           }
 
@@ -280,7 +301,7 @@ namespace ldk
           {
             vt = 0;
             vn = t2.intValue;
-            tripletType = FaceTripletType::V_VN;
+            tripletType = FaceTripletType::V | FaceTripletType::UV | FaceTripletType::NORMAL;
             return true;
           }
 
@@ -291,13 +312,14 @@ namespace ldk
   }
 
   static bool requireFaceTripletOfType(TextStreamReader& stream, 
-      int32& v, int32& vt, int32& vn, FaceTripletType tripletType)
+      int32& v, int32& vt, int32& vn, int32 tripletType)
   {
     Token vToken;
     Token vtToken;
     Token vnToken;
     Token slashToken;
-    
+
+
     switch (tripletType)
     {
       case FaceTripletType::V:
@@ -309,8 +331,8 @@ namespace ldk
           return true;
         }
         break;
-        
-      case FaceTripletType::V_VT:
+
+      case FaceTripletType::V | FaceTripletType::UV:
         if (requireToken(stream, Token::TokenType::INTEGER, vToken)
             && requireToken(stream, Token::TokenType::SLASH, slashToken)
             && requireToken(stream, Token::TokenType::INTEGER, vtToken))
@@ -321,7 +343,7 @@ namespace ldk
         }
         break;
 
-      case FaceTripletType::V_VN:
+      case FaceTripletType::V | FaceTripletType::NORMAL:
         if (requireToken(stream, Token::TokenType::INTEGER, vToken)
             && requireToken(stream, Token::TokenType::SLASH, slashToken)
             && requireToken(stream, Token::TokenType::SLASH, slashToken)
@@ -334,7 +356,7 @@ namespace ldk
         }
         break;
 
-      case FaceTripletType::V_VT_VN:
+      case FaceTripletType::V |  FaceTripletType::UV | FaceTripletType::NORMAL:
         if (requireToken(stream, Token::TokenType::INTEGER, vToken)
             && requireToken(stream, Token::TokenType::SLASH, slashToken)
             && requireToken(stream, Token::TokenType::INTEGER, vtToken)
@@ -374,6 +396,13 @@ namespace ldk
     return false;
   }
 
+  struct Vertex
+  {
+    Vec3 position;
+    Vec3 normal;
+    Vec3 uv;
+  };
+
   static bool parseObjFile(const char* fileContent, size_t size)
   {
     Token token;
@@ -383,10 +412,17 @@ namespace ldk
     std::vector<Vec3> vertices;
     std::vector<Vec3> normals;
     std::vector<Vec3> uvs;
-    std::vector<ObjIndex> objIndices;
+    
+    std::vector<int32> indices;
+
+    auto hashFunc = (objVertexHash);
+    auto compareFunc = (objVertexCompare);
+    std::unordered_map<ObjVertex, int32, decltype(hashFunc), decltype(compareFunc)> objVertices(1024, hashFunc, compareFunc);
     uint32 triangleCount = 0;
 
-    FaceTripletType faceFormat = FaceTripletType::UNKNOWN;
+    int32 faceFormat = (int32) FaceTripletType::UNKNOWN;
+    bool hasNormals = false;
+    bool hasUVs = false;
 
     do
     {
@@ -394,6 +430,7 @@ namespace ldk
       skipComment(stream, PARSER_CHAR_POUND);
       noError = getToken(stream, token);
       Token tempToken;
+
       if(noError)
       {
         Vec3 tempVec;
@@ -402,55 +439,70 @@ namespace ldk
           case Token::TokenType::CMD_UV:
             noError = requireToken(stream, Token::TokenType::SPACE, tempToken)
               && requireVec3f(stream, tempVec); 
-              if (noError) uvs.push_back(tempVec);
-              break;
-         
+            if (noError) uvs.push_back(tempVec);
+            break;
+
           case Token::TokenType::CMD_NORMAL:
             noError = requireToken(stream, Token::TokenType::SPACE, tempToken)
               && requireVec3f(stream, tempVec);
-              if(noError) normals.push_back(tempVec);
-              break;
-         
+            if(noError) normals.push_back(tempVec);
+            break;
+
           case Token::TokenType::CMD_VERTEX:
-              noError = requireToken(stream, Token::TokenType::SPACE, tempToken)
-                && requireVec3f(stream, tempVec);
-              if(noError) vertices.push_back(tempVec);
-              break;
-         
+            noError = requireToken(stream, Token::TokenType::SPACE, tempToken)
+              && requireVec3f(stream, tempVec);
+            if(noError) vertices.push_back(tempVec);
+            break;
+
           case Token::CMD_FACE:
             {
-              triangleCount++;
-              int v=0, vt=0, vn=0;
+              ObjVertex objVertex = {};
+              int32 v=0, vt=0, vn=0;
 
-              noError = requireToken(stream, Token::TokenType::SPACE, tempToken);
-              if(!noError) break;
-
-              // detects the format of the faces
-              if(faceFormat == FaceTripletType::UNKNOWN)
+              for (int32 i = 0; i < 3; i ++)
               {
-                TextStreamReader streamCheckpoint = stream;
-                noError = parseFaceTripletAndGetType(stream, v, vt, vn, faceFormat);
-                if (!noError) break;
-                stream = streamCheckpoint;
-              }
-
-              for (int i = 0; i < 3; i++) 
-              {
-                ObjIndex objIndex;
-                noError = requireFaceTripletOfType(stream, objIndex.vIndex, objIndex.vtIndex, objIndex.vnIndex, faceFormat);
-                if (noError && getToken(stream, token))
+                // detects the format of the faces, this happens only once
+                if(faceFormat != FaceTripletType::UNKNOWN)
                 {
-                  //TODO(triangulate face if it has more than 3 faces)
-                  if(i < 2 && token.type != Token::TokenType::SPACE
-                      || i == 2 && (token.type != Token::TokenType::EOL && token.type != Token::TokenType::EOFILE))
-                  {
-                    noError = false;
-                    break;
-                  }
+                  noError = requireToken(stream, Token::TokenType::SPACE, tempToken)
+                    && requireFaceTripletOfType(stream, v, vt, vn, faceFormat);
+                }
+                else
+                {
+                  noError = requireToken(stream, Token::TokenType::SPACE, tempToken) 
+                    && parseFaceTripletAndGetType(stream, v, vt, vn, faceFormat);
+
+                  hasNormals = faceFormat & FaceTripletType::NORMAL == FaceTripletType::NORMAL;
+                  hasUVs = faceFormat & FaceTripletType::UV == FaceTripletType::UV;
                 }
 
-                objIndices.push_back(objIndex);
+                if(!noError) break;
+
+                objVertex.v = v;
+                objVertex.vn = vn;
+                objVertex.vt = vt;
+
+                auto existing = objVertices.find(objVertex);
+                if(existing == objVertices.end())
+                {
+                  int32 index = indices.size();
+                  objVertices[objVertex] = index;
+                  indices.push_back(index);
                 }
+                else
+                {
+                  indices.push_back(existing->second);
+                }
+
+                triangleCount++;
+              }
+              
+              // EOL or EOF
+              noError = getToken(stream, token) 
+                && (token.type == Token::TokenType::EOL ||  token.type == Token::TokenType::EOFILE);
+
+              //TODO(marcio): Triangulate faces here if there are more than 3 vertices
+              if(!noError) break;
 
             }
             break;
@@ -475,8 +527,8 @@ namespace ldk
       printf("Syntax error parsing obj file at %d, %d\n", stream.line, stream.column);
     }
 
-    printf("Status = %s, Vertex count = %zd, uv count = %zd, Normal count = %zd Triangle count %d\n",
-        noError ? "success" : "failed" , vertices.size(), uvs.size(), normals.size(), triangleCount);
+    printf("status %s; Triangles = %d, Vertices = %zd, Indices = %zd\n",
+        noError ? "success" : "fail", triangleCount, objVertices.size(), indices.size());
 
     return true;
   }
