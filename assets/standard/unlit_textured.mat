@@ -5,26 +5,31 @@ queue-offset = 10
 
 vert-shader = "#version 330 core
     in vec3 _pos; 
-    in vec3 _color;
+    in vec3 _normal;
+    in vec2 _uv;
+
     out vec4 vertexColor;
+    out vec2 fragCoord;
     uniform mat4 mmodel;
     uniform mat4 mprojection;
     void main()
     {
       gl_Position = mprojection * mmodel * vec4(_pos, 1.0);
-      vertexColor = vec4(_color, 1.0);
-      //fragCoord = _uuv;
+      vertexColor = vec4(_normal, 1.0);
+      fragCoord = _uv;
     }"
 
 frag-shader = "#version 330 core
     in vec4 vertexColor;
+    in vec2 fragCoord;
     out vec4 out_color;
-    //uniform sampler2D texture0;
+    uniform sampler2D texture0;
     void main()
     {
-      out_color = vertexColor;
+      vec4 color = texture2D(texture0, fragCoord); 
+      //out_color = vec4(color.bgr, 1.0);
+      out_color = vec4(color.rgb, 1.0);
     }"
-
 
 #[textureN]
 # path -> path to a bmp file
@@ -34,9 +39,10 @@ frag-shader = "#version 330 core
 # mag-filter = {linear | nearest | mipmap-linear-linear | mipmap-linear-nearest | mipmap-nearest-linear | mipmap-nearest-nearest}
 
 # Specify the first texture for the material
-#[texture0]
-#path=""
-#u-wrap = "repeat" 
-#v-wrap = "repeat" 
-#min-filter = "linear"
-#mag-filter = "linear"
+[texture0]
+path="assets/crateRGB.bmp"
+#path="assets/crate.bmp"
+u-wrap = "repeat" 
+v-wrap = "repeat" 
+min-filter = "linear"
+mag-filter = "linear"
