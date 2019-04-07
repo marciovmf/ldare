@@ -22,6 +22,7 @@ RELEASE_LINK_OPTIONS=/link /subsystem:windows $(LIBS)
 CFLAGS=$(DEBUG_COMPILE_OPTIONS)
 LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
+SHELL=cmd
 .PHONY: outdirfolder gameassets clean assets all
 
 all: ldk editor game 
@@ -50,7 +51,6 @@ $(LDK_EDITOR): $(LDK_ENGINE) src/ldk_editor.cpp
 tools: src\tools\ldk_bakeTool.cpp
 	cl src\tools\ldk_bakeTool.cpp /Fe$(OUTDIR)\bake.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS) $(OUTDIR)\ldk.lib
 
-
 assets:
 	@echo copying standard assets ...
 	@xcopy assets $(OUTDIR)\assets /Y /I /E /F > nul
@@ -62,7 +62,7 @@ gameassets:
 	@xcopy game\assets $(OUTDIR)\assets /Y /I /E /F > nul
 
 outdirfolder:
-	@IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR)
+	IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR)
 
 package:
 	@IF NOT EXIST "$(OUTDIR)\ldk" mkdir "$(OUTDIR)\ldk"
