@@ -66,7 +66,7 @@ void destroyMesh(ldk::Mesh* mesh)
 
 static bool loadArgumentFile(ArgumentFile* argumentFile, const char* path)
 {
-  FILE* fd = fopen(path, "r");
+  FILE* fd = fopen(path, "rb");
   if (fd == 0)
   {
     printf("[ERROR]: Could not open file '%s'\n", path);

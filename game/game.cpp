@@ -51,18 +51,19 @@ void gameStart(void* memory)
   renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
 
   // load the meshData
-  ldk::MeshData* meshData = ldk::loadMesh("assets/monkey.mesh");
+  ldk::MeshData* meshData = ldk::loadMesh("assets/crate.mesh");
   mesh = makeMesh(meshData);
 
   // Create a vertex buffer
   renderer::makeVertexBuffer(&_gameState->buffer, meshData->vertexCount);
   renderer::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3,
       renderer::VertexAttributeType::FLOAT, 0);
-  renderer::addVertexBufferAttribute(&_gameState->buffer, "_normal", 3,
-      renderer::VertexAttributeType::FLOAT,  3 * sizeof(float));
+
+  renderer::addVertexBufferAttribute(&_gameState->buffer, "_normal", 3, 
+      renderer::VertexAttributeType::FLOAT, 3 * sizeof(float));
+
   renderer::addVertexBufferAttribute(&_gameState->buffer, "_uv", 2,
-      renderer::VertexAttributeType::FLOAT, 
-      6 * sizeof(float));
+      renderer::VertexAttributeType::FLOAT, 6 * sizeof(float));
 
   // Initialize material
   renderer::loadMaterial(&_gameState->material, "./assets/standard/unlit_textured.mat");
@@ -96,7 +97,9 @@ void gameStart(void* memory)
 
 void gameUpdate(float deltaTime) 
 {
+  bool update = false;
   Vec3 axis = {};
+
   if (input::getKey(ldk::input::LDK_KEY_H))
   {
     axis.y = 1;
@@ -119,6 +122,7 @@ void gameUpdate(float deltaTime)
     _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(80.0f) * deltaTime);
     renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
   }
+
   renderer::pushDrawCall(_gameState->context, &_gameState->drawCall);
   renderer::flush(_gameState->context);
 }

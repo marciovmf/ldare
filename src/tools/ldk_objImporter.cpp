@@ -3,6 +3,9 @@
 #include <unordered_map>
 #include "../ldk_text_stream_reader.cpp"
 
+//TODO(marcio): detect if UVs are Vec3 or Vec2. We must support both!
+//TODO(marcio): rading an int when requiring a float is must be valid!
+
 namespace ldk
 {
   static constexpr uint32 PARESER_MAX_LITERAL_LENGTH = 32;
@@ -269,6 +272,9 @@ namespace ldk
   static bool requireToken(TextStreamReader& stream, Token::TokenType tokenType, Token& token)
   {
     bool result = getToken(stream, token) && token.type == tokenType;
+
+    // we may cast INTEGERS to FLOATS when required
+
     if(!result) printf("Parsing error: Expected token %s but found %s at %d, %d\n",
         getTokenTypeName(tokenType),
         getTokenTypeName(token.type),
@@ -409,6 +415,24 @@ namespace ldk
     return false;
   }
 
+  inline bool requireVec2f(TextStreamReader& stream, Vec2& vec2)
+  {
+    Token xValue;
+    Token yValue;
+    Token temp;
+    if (requireToken(stream, Token::TokenType::REAL, xValue)
+        && requireToken(stream, Token::TokenType::SPACE, temp)
+        && requireToken(stream, Token::TokenType::REAL, yValue)
+        && requireToken(stream, Token::TokenType::EOL, temp))
+    {
+
+      vec2.x = xValue.floatValue;
+      vec2.y = yValue.floatValue;
+      return true;
+    }
+    return false;
+  }
+
   inline bool requireVec3f(TextStreamReader& stream, Vec3& vec3)
   {
     Token xValue;
@@ -439,7 +463,7 @@ namespace ldk
 
     std::vector<Vec3> vertices;
     std::vector<Vec3> normals;
-    std::vector<Vec3> uvs;
+    std::vector<Vec2> uvs;
     std::vector<ObjVertex> indexedVertices;
     
     int32 uniqueIndexCount = 0;
@@ -468,9 +492,10 @@ namespace ldk
         switch(token.type)
         {
           case Token::TokenType::CMD_UV:
+            Vec2 tempUv;
             noError = requireToken(stream, Token::TokenType::SPACE, tempToken)
-              && requireVec3f(stream, tempVec); 
-            if (noError) uvs.push_back(tempVec);
+              && requireVec2f(stream, tempUv); 
+            if (noError) uvs.push_back(tempUv);
             break;
 
           case Token::TokenType::CMD_NORMAL:
@@ -567,8 +592,7 @@ namespace ldk
         VertexPNUV v;
         v.position = vertices[entry.v - 1];
         v.normal = normals.size() ? normals[entry.vn - 1] : Vec3{0,0,0};
-        Vec3& uv3 = uvs.size() ? uvs[entry.vt - 1] : Vec3{0,0,0};
-        v.uv = Vec2{uv3.x, uv3.y};
+        v.uv = uvs.size() ? uvs[entry.vt - 1] : Vec2{0,0};
         vertexData.push_back(v);
       }
 
