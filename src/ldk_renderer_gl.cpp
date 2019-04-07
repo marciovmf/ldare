@@ -884,7 +884,12 @@ namespace ldk
       GLuint textureId;
       glGenTextures(1, &textureId);
       glBindTexture(GL_TEXTURE_2D, textureId);
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
+
+	  GLenum fmt = GL_RGBA;
+	  if (bitmap->bitsPerPixel == 24)
+		  fmt = GL_RGB;
+
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, fmt, GL_UNSIGNED_BYTE, bitmap->pixels);
 
       glGenerateMipmap(GL_TEXTURE_2D);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, _internalToGlMinFilter(minFilter));
@@ -1144,9 +1149,17 @@ namespace ldk
               // create the texture based on the parsed parameters
               if(texturePath != nullptr)
               {
+                bool isPlaceholder = false;
                 auto bmp = ldk::loadBitmap((const char*)texturePath);
+                if(bmp == nullptr)
+                {
+                  bmp = ldk::getPlaceholderBmp();
+                  isPlaceholder = true;
+                }
                 Texture texture = renderer::createTexture(bmp, minFilter, magFilter, uWrap, vWrap);
-                freeAsset((void*) bmp);
+
+                if(!isPlaceholder) freeAsset((void*) bmp);
+
                 //TODO(marcio): I guess this step should be done only when binding the material...
                 renderer::setTexture(material, (char*) &section->name, texture);
               }

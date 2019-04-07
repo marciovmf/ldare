@@ -51,9 +51,25 @@ namespace ldk
 #pragma pack(pop)
 #endif
 
+static int32 _placeholderBmpData = 0xFFFF00FF;
+static ldk::Bitmap _placeholderBmp = {};
+
   //---------------------------------------------------------------------------
   // Material functions
   //---------------------------------------------------------------------------
+
+  ldk::Bitmap* getPlaceholderBmp()
+  {
+    if (_placeholderBmp.pixels == nullptr)
+    {
+      _placeholderBmp.bitsPerPixel = 32;
+      _placeholderBmp.height = 1;
+      _placeholderBmp.width = 1;
+      _placeholderBmp.pixels = (uchar*)&_placeholderBmpData;
+    }
+
+    return &_placeholderBmp;
+  }
 
   ldk::Bitmap* loadBitmap(const char* file)
   {	
@@ -63,7 +79,7 @@ namespace ldk
     const int8* buffer = (int8*) ldk::platform::loadFileToBufferOffset(
         file, 
         &bufferSize
-        ,bitmapStructSize
+        ,bitmapStructSize + 1
         ,bitmapStructSize);
 
     if (!buffer || bufferSize == 0) { return false; }
@@ -75,11 +91,14 @@ namespace ldk
     //NOTE: compression info at https://msdn.microsoft.com/en-us/library/cc250415.aspx
     if (bitmapHeader->FileType != BITMAP_FILE_HEADER_SIGNATURE
         || (bitmapHeader->Compression != 0 && bitmapHeader->Compression != 3)
-        || bitmapHeader->BitsPerPixel != 16 && bitmapHeader->BitsPerPixel != 32)
+        || bitmapHeader->BitsPerPixel != 16 
+        && bitmapHeader->BitsPerPixel != 24
+        && bitmapHeader->BitsPerPixel != 32)
     {
 
       ldk::freeAsset((void*)buffer);
       LogError("Unsupported bitmap type.");
+
       return nullptr;
     }
 
@@ -105,6 +124,24 @@ namespace ldk
         *((uint32*)bitmap->pixels + i) = r | g | b | a;
       }
     }
+    if (bitmapHeader->BitsPerPixel == 24)
+    {
+      //BGR
+      //read 0X99AABBCC
+      //     0x00CCBBAA
+      for (uint32 i = 0; i < numPixels; i++)
+      {
+        uint32* pixelPtr = (uint32*)((uint8*)bitmap->pixels + i * 3);
+
+        uint32 argb = *((uint32*)pixelPtr);
+        uint32 a = (argb & 0xFF000000); // this is part of the next pixel!
+        uint32 r = (argb & 0x00FF0000) >>  16; 
+        uint32 g = (argb & 0x0000FF00);
+        uint32 b = (argb & 0x000000FF) << 16;
+        uint32 color = r | g | b | a;
+        *pixelPtr = color;
+      }
+    }
     else 
     {
       for (uint32 i = 0; i < numPixels; i++)
@@ -113,7 +150,6 @@ namespace ldk
         *((uint16*)bitmap->pixels + i) = rgb;
       }
     }
-
     return bitmap;
   }
 

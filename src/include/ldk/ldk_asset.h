@@ -1,5 +1,5 @@
-#ifndef __LDK_ASSET_H_
-#define __LDK_ASSET_H_
+#ifndef __LDK_ASSET_H__
+#define __LDK_ASSET_H__
 
 #define BITMAP_FILE_HEADER_SIGNATURE 0x4D42
 
@@ -63,6 +63,7 @@ namespace ldk
 	};
 	
 	LDK_API ldk::Bitmap* loadBitmap(const char* file);
+  LDK_API ldk::Bitmap* getPlaceholderBmp();
 	LDK_API ldk::Audio* loadAudio(const char* file);
 	LDK_API ldk::MeshData* loadMesh(const char* file);
 	LDK_API bool loadFont(const char* file, ldk::FontAsset** fontAsset);
@@ -70,4 +71,4 @@ namespace ldk
 	LDK_API void freeAsset(void* memory);
 } // namespace ldk
 
-#endif // __LDK_ASSET_H_
+#endif // __LDK_ASSET_H__
