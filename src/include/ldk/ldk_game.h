@@ -1,10 +1,9 @@
 /**
  * game.h
- * Standard header for ldare based games
+ * Standard header for ldk based games
  */
 #ifndef _LDK_GAME_H_
 #define _LDK_GAME_H_
-
 
 #if defined(_LDK_WINDOWS_)
 #define LDK_GAME_MODULE_NAME "ldk_game.dll"
@@ -29,7 +28,6 @@ struct LDKGameSettings
   /// Screen Resolution height
   int32 displayHeight;
 };
-
 
   /// @defgroup Game Game
   /// @details These are mandatory functions that must be implemented when creating a new game.

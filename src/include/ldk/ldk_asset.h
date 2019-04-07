@@ -64,6 +64,7 @@ namespace ldk
 	
 	LDK_API ldk::Bitmap* loadBitmap(const char* file);
 	LDK_API ldk::Audio* loadAudio(const char* file);
+	LDK_API ldk::MeshData* loadMesh(const char* file);
 	LDK_API bool loadFont(const char* file, ldk::FontAsset** fontAsset);
 	LDK_API void playAudio(const ldk::Audio* audio);
 	LDK_API void freeAsset(void* memory);

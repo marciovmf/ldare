@@ -130,6 +130,13 @@ namespace ldk
     return false;
   }
 
+	ldk::MeshData* loadMesh(const char* file)
+  {
+    size_t buffSize;
+    ldk::MeshData* meshData = (ldk::MeshData*) ldk::platform::loadFileToBuffer(file, &buffSize);
+    return meshData;
+  }
+
   void freeAsset(void* asset)
   {
     ldk::platform::memoryFree(asset);

@@ -1,7 +1,13 @@
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <ldk/ldk.h>
+
+ldk::MeshData* createMeshDataPNUV(
+    ldk::VertexPNUV* vertexData,
+    uint32 vertexCount,
+    uint32* indexData,
+    uint32 indexCount);
+
 #include "ldk_objImporter.cpp"
 
 static int32 showUsage()
@@ -16,6 +22,47 @@ struct ArgumentFile
   size_t size;
   int8* mem;
 };
+
+
+ldk::MeshData* createMeshDataPNUV(
+    ldk::VertexPNUV* vertexData,
+    uint32 vertexCount,
+    uint32* indexData,
+    uint32 indexCount)
+{
+  size_t indexDataSize = indexCount * sizeof(uint32);
+  size_t vertexDataSize = vertexCount * sizeof(ldk::VertexPNUV);
+  size_t meshDataSize = sizeof(ldk::MeshData);
+
+  size_t totalSize = meshDataSize
+    + indexDataSize
+    + vertexDataSize;
+
+  int8* mem = (int8*) malloc(totalSize);
+
+  // MeshData | indices | vertices
+  int8* indicesPtr =  mem + meshDataSize;
+  int8* verticesPtr = mem + meshDataSize + indexDataSize;
+
+  ldk::MeshData* mesh = (ldk::MeshData*) mem;
+  mesh->format = ldk::MeshData::PNUV;
+  mesh->indexCount = indexCount;
+  mesh->vertexCount = vertexCount;
+  mesh->indicesOffset = indicesPtr - mem;
+  mesh->verticesOffset = verticesPtr - mem;
+  mesh->totalSize = totalSize;
+
+  // write indices
+  memcpy(indicesPtr, indexData, indexDataSize);
+  memcpy(verticesPtr, vertexData, vertexDataSize);
+
+  return mesh;
+}
+
+void destroyMesh(ldk::Mesh* mesh)
+{
+  free(mesh);
+}
 
 static bool loadArgumentFile(ArgumentFile* argumentFile, const char* path)
 {
@@ -53,9 +100,13 @@ static void destroyArgumentFile(ArgumentFile* argumentFile)
   free(argumentFile->mem);
 }
 
-static bool bakeMeshFromObjFile(ArgumentFile* argumentFile, const char* outputFileName)
+static bool bakeMeshFromObjFile(ArgumentFile* argumentFile, FILE* fd)
 {
-  return ldk::parseObjFile((const char*)argumentFile->mem, argumentFile->size);
+  const ldk::MeshData* meshData = ldk::parseObjFile((const char*)argumentFile->mem, argumentFile->size);
+  if(meshData == nullptr) return false;
+
+  size_t result = fwrite((const void*)meshData, sizeof(int8), meshData->totalSize, fd);
+  return result == meshData->totalSize;
 }
 
 int32 main(int argc, char** argv)
@@ -73,8 +124,15 @@ int32 main(int argc, char** argv)
     return LDK_EXIT_FAIL;
   }
 
-  bakeMeshFromObjFile(&input, outputFileName);
-    
+  FILE* outFile = fopen(outputFileName, "wb");
+  if(!outFile) return LDK_EXIT_FAIL;
+
+  bool bakeResult = bakeMeshFromObjFile(&input, outFile);
+  if(!bakeResult) return LDK_EXIT_FAIL;
+
+  fclose(outFile);
   destroyArgumentFile(&input);
   return LDK_EXIT_SUCCESS;
 }
+
+

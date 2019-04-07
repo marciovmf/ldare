@@ -1,7 +1,7 @@
 #include <string.h>
 #include <vector>
 #include <unordered_map>
-#include "../ldk_textStreamReader.cpp"
+#include "../ldk_text_stream_reader.cpp"
 
 namespace ldk
 {
@@ -76,6 +76,39 @@ namespace ldk
       int32 intValue;
     };
   };
+
+  static const char* getTokenTypeName(Token::TokenType token)
+  {
+    switch (token)
+    {
+      case Token::TokenType::CMD_VERTEX: 
+        return "CMD_VERTEX";
+      case Token::TokenType::CMD_NORMAL: 
+        return "CMD_NORMAL";
+      case Token::TokenType::CMD_UV: 
+        return "CMD_UV";
+      case Token::TokenType::CMD_FACE: 
+        return "CMD_FACE";
+      case Token::TokenType::SPACE: 
+        return "SPACE";
+      case Token::TokenType::REAL: 
+        return "REAL";
+      case Token::TokenType::INTEGER: 
+        return "INTEGER";
+      case Token::TokenType::IDENTIFIER: 
+        return "IDENTIFIER";
+      case Token::TokenType::SLASH: 
+        return "SLASH";
+      case Token::TokenType::EOL: 
+        return "EOL";
+      case Token::TokenType::EOFILE: 
+        return "EOFILE";
+
+      case Token::TokenType::UNKNOWN: 
+      default:
+        return "Unknown";
+    }
+  }
 
   inline bool parseUnarySignal(TextStreamReader& stream, int32* signal)
   {
@@ -236,8 +269,10 @@ namespace ldk
   static bool requireToken(TextStreamReader& stream, Token::TokenType tokenType, Token& token)
   {
     bool result = getToken(stream, token) && token.type == tokenType;
-    if(!result) printf("Parsing error: Expected token %d but found %d at %d, %d\n",
-        tokenType, token.type, stream.line, stream.column);
+    if(!result) printf("Parsing error: Expected token %s but found %s at %d, %d\n",
+        getTokenTypeName(tokenType),
+        getTokenTypeName(token.type),
+        stream.line, stream.column);
     return result;
   }
 
@@ -299,7 +334,7 @@ namespace ldk
               && t2.type == Token::TokenType::SLASH
               && requireToken(stream, Token::TokenType::INTEGER, t2))
           {
-            vt = 0;
+            vt = t1.intValue;
             vn = t2.intValue;
             tripletType = ObjVertexComponent::V | ObjVertexComponent::UV | ObjVertexComponent::NORMAL;
             return true;
@@ -389,14 +424,14 @@ namespace ldk
     {
 
       vec3.x = xValue.floatValue;
-      vec3.y = xValue.floatValue;
-      vec3.z = xValue.floatValue;
+      vec3.y = yValue.floatValue;
+      vec3.z = zValue.floatValue;
       return true;
     }
     return false;
   }
 
-  static bool parseObjFile(const char* fileContent, size_t size)
+  static ldk::MeshData* parseObjFile(const char* fileContent, size_t size)
   {
     Token token;
     bool noError = false;
@@ -405,13 +440,16 @@ namespace ldk
     std::vector<Vec3> vertices;
     std::vector<Vec3> normals;
     std::vector<Vec3> uvs;
+    std::vector<ObjVertex> indexedVertices;
     
     int32 uniqueIndexCount = 0;
-    std::vector<int32> indices;
+    std::vector<uint32> indices;
 
     auto hashFunc = (objVertexHash);
     auto compareFunc = (objVertexCompare);
-    std::unordered_map<ObjVertex, int32, decltype(hashFunc), decltype(compareFunc)> objVertices(1024, hashFunc, compareFunc);
+    std::unordered_map<ObjVertex, int32, decltype(hashFunc), decltype(compareFunc)> 
+      objVertices(1024, hashFunc, compareFunc);
+
     uint32 triangleCount = 0;
 
     int32 faceFormat = (int32) ObjVertexComponent::UNKNOWN;
@@ -478,6 +516,7 @@ namespace ldk
                 auto existing = objVertices.find(objVertex);
                 if(existing == objVertices.end())
                 {
+                  indexedVertices.push_back(objVertex);
                   objVertices[objVertex] = uniqueIndexCount;
                   indices.push_back(uniqueIndexCount);
                   uniqueIndexCount++;
@@ -515,19 +554,40 @@ namespace ldk
     }while(noError && token.type != Token::EOFILE);
 
 
-    if (!noError)
+    ldk::MeshData* meshData = nullptr;
+
+    // fill a mesh with the data we just processed
+    if (noError)
+    {
+      size_t vertexSize = 0;
+      std::vector<ldk::VertexPNUV> vertexData;
+
+      for(auto& entry : indexedVertices)
+      {
+        VertexPNUV v;
+        v.position = vertices[entry.v - 1];
+        v.normal = normals.size() ? normals[entry.vn - 1] : Vec3{0,0,0};
+        Vec3& uv3 = uvs.size() ? uvs[entry.vt - 1] : Vec3{0,0,0};
+        v.uv = Vec2{uv3.x, uv3.y};
+        vertexData.push_back(v);
+      }
+
+      uint32* indicesPtr = indices.data();
+      VertexPNUV* verticesPtr = vertexData.data();
+                 
+      meshData = createMeshDataPNUV(
+          verticesPtr,
+          vertexData.size(),
+          indicesPtr,
+          indices.size());
+    }
+    else
     {
       printf("Syntax error parsing obj file at %d, %d\n", stream.line, stream.column);
     }
 
-    for (int i = 0; i < indices.size(); i++) 
-    {
-      printf("Index %d\n", indices[i]);
-    }
-
-    printf("status %s; Triangles = %d, Vertices = %zd, Indices = %zd\n",
-        noError ? "success" : "fail", triangleCount, objVertices.size(), indices.size());
-
-    return true;
+    printf("status %s; uniqueIndex = %d,  Vertices = %zd, Indices = %zd\n", 
+        noError ? "success" : "fail",uniqueIndexCount, objVertices.size(), indices.size());
+    return meshData;
   }
 }

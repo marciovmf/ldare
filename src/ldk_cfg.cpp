@@ -7,7 +7,7 @@
 #define LDK_CFG_DEFAULT_BUFFER_SIZE 512
 #define LDK_CFG_MAX_IDENTIFIER_SIZE 63
 #define LDK_CFG_COMMENT_START_TOKEN '#'
-#include "ldk_textStreamReader.cpp"
+#include "ldk_text_stream_reader.cpp"
 
 namespace ldk
 {
