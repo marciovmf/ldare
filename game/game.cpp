@@ -51,7 +51,7 @@ void gameStart(void* memory)
   renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
 
   // load the meshData
-  ldk::MeshData* meshData = ldk::loadMesh("assets/crate.mesh");
+  ldk::MeshData* meshData = ldk::loadMesh("assets/monkey.mesh");
   mesh = makeMesh(meshData);
 
   // Create a vertex buffer

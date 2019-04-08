@@ -26,8 +26,7 @@ frag-shader = "#version 330 core
     uniform sampler2D texture0;
     void main()
     {
-      vec4 color = texture2D(texture0, fragCoord); 
-      //out_color = vec4(color.bgr, 1.0);
+      vec4 color = vertexColor * 0.5 + texture2D(texture0, fragCoord); 
       out_color = vec4(color.rgb, 1.0);
     }"
 
@@ -40,7 +39,7 @@ frag-shader = "#version 330 core
 
 # Specify the first texture for the material
 [texture0]
-path="assets/crateRGB.bmp"
+path="assets/monkey.bmp"
 #path="assets/crate.bmp"
 u-wrap = "repeat" 
 v-wrap = "repeat" 
