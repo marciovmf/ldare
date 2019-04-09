@@ -66,6 +66,7 @@ void destroyMesh(ldk::Mesh* mesh)
 
 static bool loadArgumentFile(ArgumentFile* argumentFile, const char* path)
 {
+  bool result;
   FILE* fd = fopen(path, "rb");
   if (fd == 0)
   {
@@ -79,20 +80,24 @@ static bool loadArgumentFile(ArgumentFile* argumentFile, const char* path)
 
   // read the whole file
   int8* mem = (int8*) malloc(fileSize * sizeof(int8));
-
   size_t totalRead = fread(mem, sizeof(int8), fileSize, fd);
-  if(totalRead != fileSize)
+
+  if(totalRead == fileSize)
+  {
+    argumentFile->name = path;
+    argumentFile->size = fileSize;
+    argumentFile->mem = mem;
+    result = true;
+  }
+  else
   {
     printf("[ERROR]: Could not read file '%s'", path);
-    return false;
+    free(mem);
+    result = false;
   }
-
+  
   fclose(fd);
-
-  argumentFile->name = path;
-  argumentFile->size = fileSize;
-  argumentFile->mem = mem;
-  return true;
+  return result;
 }
 
 static void destroyArgumentFile(ArgumentFile* argumentFile)
@@ -106,6 +111,7 @@ static bool bakeMeshFromObjFile(ArgumentFile* argumentFile, FILE* fd)
   if(meshData == nullptr) return false;
 
   size_t result = fwrite((const void*)meshData, sizeof(int8), meshData->totalSize, fd);
+  free((void*)meshData);
   return result == meshData->totalSize;
 }
 
