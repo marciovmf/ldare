@@ -181,6 +181,7 @@ static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 	DeleteObject(bitmap);
 }
 
+//TODO(marcio): FIX font rendering. It is totaly broken!
 //TODO: Make the font asset AND the bitmap a single file?
 static void saveFontAsset(const char* fileName, uint16 firstChar, uint16 lastChar, uint16 defaultCharacter,
 		uint32 bitmapWidth, uint32 bitmapHeight, void* gliphData, uint32 gliphDataSize)
