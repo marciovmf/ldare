@@ -2,33 +2,8 @@
 # possible values are opaque | translucent | overlay
 queue = "opaque"
 queue-offset = 10
-
-vert-shader = "#version 330 core
-    in vec3 _pos; 
-    in vec3 _normal;
-    in vec2 _uv;
-
-    out vec4 vertexColor;
-    out vec2 fragCoord;
-    uniform mat4 mmodel;
-    uniform mat4 mprojection;
-    void main()
-    {
-      gl_Position = mprojection * mmodel * vec4(_pos, 1.0);
-      vertexColor = vec4(_normal, 1.0);
-      fragCoord = _uv;
-    }"
-
-frag-shader = "#version 330 core
-    in vec4 vertexColor;
-    in vec2 fragCoord;
-    out vec4 out_color;
-    uniform sampler2D texture0;
-    void main()
-    {
-      vec4 color = vertexColor * 0.5 + texture2D(texture0, fragCoord); 
-      out_color = vec4(color.rgb, 1.0);
-    }"
+vert-shader = "assets/standard/default.vert"
+frag-shader = "assets/standard/default.frag"
 
 #[textureN]
 # path -> path to a bmp file
@@ -40,7 +15,6 @@ frag-shader = "#version 330 core
 # Specify the first texture for the material
 [texture0]
 path="assets/monkey.bmp"
-#path="assets/crate.bmp"
 u-wrap = "repeat" 
 v-wrap = "repeat" 
 min-filter = "linear"

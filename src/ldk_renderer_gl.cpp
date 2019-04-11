@@ -906,7 +906,7 @@ namespace ldk
       return texture;
     }
 
-    void destroyTexture(Texture texture)
+    void destroyTexture(Texture& texture)
     {
       glBindTexture(GL_TEXTURE_2D, 0);
       glDeleteTextures(1, &texture.id);
@@ -1050,26 +1050,34 @@ namespace ldk
 
     bool loadMaterial(renderer::Material* material, const char* file)
     {
-
       auto cfgRoot = ldk::configParseFile(file);
       auto materialSection = ldk::configGetSection(cfgRoot, "material");
 
+      char* path;
       char* fs;
-      if (!ldk::configGetString(materialSection, (const char*) "frag-shader", &fs))
+      size_t shaderFileSize = 0;
+      if (!ldk::configGetString(materialSection, (const char*) "frag-shader", &path))
       {
         LogError("Error loading material. Missing Fragment shader.");
         ldk::configDispose(cfgRoot);
         return false;
       }
 
+      fs = (char*) ldk::platform::loadFileToBufferOffset(path, &shaderFileSize , 1, 0);
+      char* eoBuffer = fs + shaderFileSize;
+      *eoBuffer = 0;
+
       char* vs;
-      if(!ldk::configGetString(materialSection, (const char*) "vert-shader", &vs))
+      if(!ldk::configGetString(materialSection, (const char*) "vert-shader", &path))
       {
         LogError("Error loading material. Missing Vertex shader.");
         ldk::configDispose(cfgRoot);
         return false;
       }
 
+      vs = (char*) ldk::platform::loadFileToBufferOffset(path, &shaderFileSize, 1, 0);
+      eoBuffer = vs + shaderFileSize;
+      *eoBuffer = 0;
 
       uint32 renderQueue = (uint32) RENDER_QUEUE_OPAQUE;
       char* temp;
@@ -1082,7 +1090,8 @@ namespace ldk
       }
 
       makeMaterial(material, vs, fs, renderQueue);
-
+      ldk::platform::memoryFree(fs);
+      ldk::platform::memoryFree(vs);
 
       TextureWrap uWrap;
       TextureWrap vWrap;
@@ -1160,7 +1169,6 @@ namespace ldk
 
                 if(!isPlaceholder) freeAsset((void*) bmp);
 
-                //TODO(marcio): I guess this step should be done only when binding the material...
                 renderer::setTexture(material, (char*) &section->name, texture);
               }
               else
