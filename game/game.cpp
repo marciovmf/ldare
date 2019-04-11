@@ -129,7 +129,7 @@ void gameUpdate(float deltaTime)
 
 void gameStop()
 {
-  //TODO(marcio): How do I destroy a Material ?
+  ldk::renderer::destroyMaterial(&_gameState->material);
   ldk::renderer::destroyContext(_gameState->context);
   ldk::renderer::destroySpriteBatch(_gameState->spriteBatch);
 }

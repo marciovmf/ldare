@@ -1177,5 +1177,23 @@ namespace ldk
       return true;
     }
 
+    void destroyMaterial(renderer::Material* material)
+    {
+
+        // unload textures from GPU
+        for(uint32 i = 0; i < material->textureCount; i++)
+        {
+          Texture& texture = material->texture[i];
+          destroyTexture(texture);
+          checkGlError();
+        }
+
+        // unload shader from GPU
+        glDeleteProgram(material->shader.program);
+        checkGlError();
+
+        //TOD(marcio): Should we delete the actual BITMAP from RAM ? Review when asset manager is done!
+    }
+
   } // renderer
 } // ldk
