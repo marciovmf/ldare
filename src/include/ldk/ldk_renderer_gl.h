@@ -273,10 +273,11 @@ namespace ldk
 
     ///@brief Destroys a gpu texture. Use this to release gpu memory.
     ///@param texture - The gpu texture id.
-    LDK_API void destroyTexture(Texture texture);
-
+    LDK_API void destroyTexture(Texture& texture);
 
     LDK_API bool loadMaterial(renderer::Material* material, const char* file);
+    
+    LDK_API void destroyMaterial(renderer::Material* material);
     
 ///@}
   } // renderer
