@@ -3,28 +3,8 @@
 queue = "opaque"
 queue-offset = 10
 
-vert-shader = "#version 330 core
-    in vec3 _pos; 
-    in vec2 _uuv; 
-    out vec2 fragCoord;
-    uniform mat4 mmodel;
-    uniform mat4 mprojection;
-    void main()
-    {
-      gl_Position = mprojection * mmodel * vec4(_pos, 1.0);
-      fragCoord = _uuv;
-    }"
-
-frag-shader = "#version 330 core
-    in vec2 fragCoord;
-    uniform sampler2D texture0;
-    out vec4 out_color;
-    void main()
-    {
-      vec4 solidColor = vec4(1.0, 1.0, 1.0, 1.0); 
-      vec4 textureColor = texture(texture0, fragCoord);
-      out_color = mix(solidColor, textureColor, 0.9);
-    }"
+vert-shader = "assets/difuse.vert"
+frag-shader = "assets/difuse.frag"
 
 
 #[textureN]

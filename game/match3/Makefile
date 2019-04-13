@@ -1,4 +1,4 @@
-
+SHELL=cmd
 # paths
 LDKSDK=..\..\src\include
 OUTDIR=..\..\build

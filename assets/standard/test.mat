@@ -2,8 +2,8 @@
 # possible values are opaque | translucent | overlay
 queue = "opaque"
 queue-offset = 10
-vert-shader = "assets/standard/default.vert"
-frag-shader = "assets/standard/default.frag"
+vert-shader = "assets/standard/phong.vert"
+frag-shader = "assets/standard/phong.frag"
 
 #[textureN]
 # path -> path to a bmp file
@@ -14,7 +14,7 @@ frag-shader = "assets/standard/default.frag"
 
 # Specify the first texture for the material
 [texture0]
-path="assets/monkey.bmp"
+path="assets/standard/white.bmp"
 u-wrap = "repeat" 
 v-wrap = "repeat" 
 min-filter = "linear"

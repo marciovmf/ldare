@@ -66,7 +66,7 @@ void gameStart(void* memory)
       renderer::VertexAttributeType::FLOAT, 6 * sizeof(float));
 
   // Initialize material
-  renderer::loadMaterial(&_gameState->material, "./assets/standard/unlit_textured.mat");
+  renderer::loadMaterial(&_gameState->material, "./assets/standard/test.mat");
 
 
   // make a renderable 
