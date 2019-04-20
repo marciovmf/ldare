@@ -367,7 +367,6 @@ namespace ldk
     Token vnToken;
     Token slashToken;
 
-
     switch (tripletType)
     {
       case ObjVertexComponent::V:

@@ -4,7 +4,6 @@
 #include "ldk_memory.h"
 #include <string.h> // for memset()
 
-
 struct FrameTime
 {
   uint32 frameCount;

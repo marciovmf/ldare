@@ -2,15 +2,8 @@
 # possible values are opaque | translucent | overlay
 queue = "opaque"
 queue-offset = 10
-vert-shader = "assets/standard/phong.vert"
-frag-shader = "assets/standard/phong.frag"
-
-#[textureN]
-# path -> path to a bmp file
-# u-wrap = {repeat | clamp-to-edge | mirrored-repeat}
-# v-wrap = {repeat | clamp-to-edge | mirrored-repeat}
-# min-filter = {linear | nearest | mipmap-linear-linear | mipmap-linear-nearest | mipmap-nearest-linear | mipmap-nearest-nearest}
-# mag-filter = {linear | nearest | mipmap-linear-linear | mipmap-linear-nearest | mipmap-nearest-linear | mipmap-nearest-nearest}
+vert-shader = "assets/standard/vertlit.vert"
+frag-shader = "assets/standard/vertlit.frag"
 
 # Specify the first texture for the material
 [texture0]

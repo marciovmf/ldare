@@ -24,7 +24,6 @@
   #define LDK_GAME_CALLBACK extern "C" __declspec(dllexport) 
 #endif
 
-
 #include <stdio.h>
 
 #include "ldk_types.h"
