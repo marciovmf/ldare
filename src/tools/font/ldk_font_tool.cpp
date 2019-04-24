@@ -80,7 +80,7 @@ void computeBitmapSDF(ldk::Bitmap* bitmap)
 		for (uint32 x=0; x<width; x++)
 		{
 			uint32 *src = ((uint32*)((uint8*)bitmap->pixels + y*pitch)) + x;
-			uint8 color = *src & 0xFF;
+			uint8 color = (*src & 0x00FF0000) >> 16;
 			
 			// Points inside get marked with a dx/dy of zero.
 			// Points outside get marked with an infinitely large distance.
@@ -111,7 +111,7 @@ void computeBitmapSDF(ldk::Bitmap* bitmap)
 			int32 dist = dist1 - dist2;
 
 			// Clamp and scale it, just for display purposes.
-			int8 color = dist*3 + 128;
+			int32 color = dist*3 + 128;
 			if (color < 0) color = 0;
 			if (color > 255 ) color = 255;
 			uint32 *dest = ((uint32*)((uint8*)bitmap->pixels + y*pitch)) + x;
@@ -161,13 +161,15 @@ int main(int argc, _TCHAR** argv)
 
     fontBuffer[i] = codePoint;
   }
-
+  
   ldk::Bitmap* bitmap = importFontFromTTF(settings, fontMetrics, context);
   computeBitmapSDF(bitmap);
   writeBitmapToFile(bitmap, "test.bmp");
   destroyContext(context);
   delete bitmap;
+
   delete fontBuffer;
+  LogInfo("Success");
   return 0;
 }
 
