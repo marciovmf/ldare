@@ -146,6 +146,9 @@ namespace ldk
 
 		LDK_API void* loadFileToBufferOffset(const char* fileName, size_t* fileSize, size_t additionalSize, size_t offset);
 
+
+		LDK_API size_t getFileSize(const char* fileName);
+
 		LDK_API int64 getFileWriteTime(const char* fileName);
 		
 		LDK_API bool copyFile(const char* sourceFileName, const char* destFileName);

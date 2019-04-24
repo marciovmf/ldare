@@ -1084,6 +1084,14 @@ namespace ldk
       return loadFileToBufferOffset(fileName, fileSize, 0, 0);
     }
 
+    size_t getFileSize(const char* fileName)
+    {
+      HANDLE hFile = CreateFile(fileName, GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+      size_t fileSize = GetFileSize(hFile, NULL);
+      CloseHandle(hFile);
+      return fileSize;
+    }
+
     int64 getFileWriteTime(const char* fileName)
     {
       FILETIME writeTime;

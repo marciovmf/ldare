@@ -7,7 +7,8 @@ OUTDIR=build
 #build targets
 LDK_GAME=$(OUTDIR)\ldk_game.dll
 LDK_ENGINE=$(OUTDIR)\ldk.dll
-LDK_BAKE_TOOL=$(OUTDIR)\bake.exe
+LDK_MESH_TOOL=$(OUTDIR)\mesh.exe
+LDK_FONT_TOOL=$(OUTDIR)\font.exe
 
 LIBS=user32.lib gdi32.lib Opengl32.lib Msimg32.lib Ole32.lib
 
@@ -26,13 +27,13 @@ LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
 .PHONY: outdirfolder gameassets clean all tools
 
-all: ldk game
+all: ldk tools game
 
 ldk: $(LDK_ENGINE)
 
 game: ldk $(LDK_GAME)
 
-tools: $(LDK_BAKE_TOOL)
+tools: ldk $(LDK_MESH_TOOL) $(LDK_FONT_TOOL)
 
 $(LDK_ENGINE): src/*.cpp src/*.h src/include/ldk/*.h
 	@IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR) 2> NUL
@@ -44,10 +45,15 @@ $(LDK_ENGINE): src/*.cpp src/*.h src/include/ldk/*.h
 	xcopy assets\standard $(OUTDIR)\assets\standard /Y /I /E /F > nul
 	copy /Y ldk_game.cfg $(OUTDIR) > nul
 
-$(LDK_BAKE_TOOL): src/tools/*.cpp
-	@IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR) 2> NUL
-#	cl src\win32\tools\ldk_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
-	cl src\tools\ldk_bakeTool.cpp /Fe$(OUTDIR)\bake.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS) $(OUTDIR)\ldk.lib
+$(LDK_MESH_TOOL): src/tools/mesh/*.cpp
+	@echo === Building mesh tool... 
+	@IF NOT EXIST "$(OUTDIR)\tools" mkdir $(OUTDIR)\tools 2> NUL
+	cl src\tools\mesh\ldk_mesh_tool.cpp /Fe$(OUTDIR)\mesh.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS) $(OUTDIR)\ldk.lib
+
+$(LDK_FONT_TOOL): src/tools/font/*.cpp
+	@echo === Building font tool... 
+	@IF NOT EXIST "$(OUTDIR)\tools" mkdir $(OUTDIR)\tools 2> NUL
+	cl src\tools\font\ldk_font_tool.cpp /Fe$(OUTDIR)\font.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS) $(OUTDIR)\ldk.lib
 
 $(LDK_GAME): game/mo/*.cpp
 	@echo === Building game... 

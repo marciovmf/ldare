@@ -43,6 +43,7 @@ namespace ldk
 		uint32 numAssets; 			// number of assets in this file
 	};
 */
+
 	struct FontGliphRect
 	{
 		uint32 x;
@@ -51,13 +52,19 @@ namespace ldk
 		uint32 h;
 	};
 
+
+  struct FontMetrics
+  {
+		uint16 firstCodePoint;  // first character codepoint defined in the font
+		uint16 lastCodePoint;  	// last character codepoint defined in the font
+		uint16 defaultCodePoint;// default character to be substituted in the font
+  };
+
 	struct FontAsset
 	{
 		uint32 rasterWidth; 	 	// width of font raster bitmap
 		uint32 rasterHeight; 		// height of font raster bitmap
-		uint16 firstCodePoint;  // first character codepoint defined in the font
-		uint16 lastCodePoint;  	// last character codepoint defined in the font
-		uint16 defaultCodePoint;// default character to be substituted in the font
+    FontMetrics metrics;
 		FontGliphRect* gliphData;  // pointer to gliph data
 		//TODO: add font kerning information here
 	};

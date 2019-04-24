@@ -127,4 +127,15 @@ void* getTTFTablePtr(const uint8* data, uint32 tableName)
 	return nullptr;
 }
 
+uint32 getTTFFontName(const uint8* data, char* fontNameBuffer, uint32 fontNameBufferSize)
+{
+  const TTFNameTableHeader *nameTable = (TTFNameTableHeader*) 
+    getTTFTablePtr((const uint8*)data, TTF_NAME_TABLE);
+
+  uint32 fontNameLength = getTTFString(nameTable, fontNameBuffer, fontNameBufferSize, 
+      TTF_NAME_FONT_FAMILY_ID);
+
+  return fontNameLength;
+}
+
 #endif // __LDK_TTF__
