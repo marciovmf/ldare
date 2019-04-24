@@ -17,9 +17,9 @@ static HGDIOBJ installSystemFontFromTTF(HDC dc, const char* fontFile, const char
 
   LOGFONT logFont =
   {
-    //-MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), 72),
+    -MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), 72),
     //40,
-    (LONG)-fontSize,
+    //(LONG)-fontSize,
     0,
     0,
     0,
@@ -31,7 +31,7 @@ static HGDIOBJ installSystemFontFromTTF(HDC dc, const char* fontFile, const char
     OUT_TT_ONLY_PRECIS,
     CLIP_DEFAULT_PRECIS,
     ANTIALIASED_QUALITY,
-    DEFAULT_PITCH
+    PROOF_QUALITY//DEFAULT_PITCH
   };
 
   uint32 fontNameLen = strlen(fontName);
@@ -211,7 +211,7 @@ ldk::Bitmap* importFontFromTTF(FontImportSettings& settings, ldk::FontMetrics& m
     return nullptr;
   }
 
-  enableFontSmoothing();
+  //enableFontSmoothing();
 
   RECT bitmapRect = calcFontBitmapSize(dc, settings.fontString, settings.maxLineWidth, spacing);
   HBITMAP hDcBitmap = CreateCompatibleBitmap(dc, bitmapRect.right, bitmapRect.bottom);
