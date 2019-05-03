@@ -75,9 +75,9 @@ void computeBitmapSDF(ldk::Bitmap* bitmap)
   Grid grid2(width, height);
 
   // generate the grids
-	for(uint32 y = height-1; y > 0; y--)
+	for(int32 y = height-1; y >= 0; y--)
 	{
-		for (uint32 x=0; x<width; x++)
+		for (int32 x=0; x<width; x++)
 		{
 			uint32 *src = ((uint32*)((uint8*)bitmap->pixels + y*pitch)) + x;
 			uint8 color = (*src & 0x00FF0000) >> 16;
@@ -101,9 +101,9 @@ void computeBitmapSDF(ldk::Bitmap* bitmap)
 	GenerateSDF(grid2);
 
   // apply the result to the bitmap
-	for(uint32 y = height - 1; y > 0; y--)
+	for(int32 y = height - 1; y >= 0; y--)
 	{
-		for (uint32 x=0; x < width; x++)
+		for (int32 x=0; x < width; x++)
 		{
 			// Calculate the actual distance from the dx/dy
 			int32 dist1 = (int32)(sqrt((double)get(grid1, x, y).euclideanDist()));
