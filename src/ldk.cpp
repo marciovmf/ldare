@@ -1,4 +1,5 @@
 // LDK engine main compilation unit.
+//
 
 #ifndef _LDK_ENGINE_
 #define _LDK_ENGINE_
@@ -7,7 +8,7 @@
 #include <ldk/ldk.h>
 #include "ldk_platform.h"
 #include "ldk_memory.h"
-
+#include "ldk_asset_handle.h"
 
 // platform specific implementation
 #ifdef _LDK_WINDOWS_
@@ -21,6 +22,7 @@
 #include "ldk_keyboard.cpp"
 #include "ldk_mouse.cpp"
 #include "ldk_joystick.cpp"
+#include "ldk_asset_handle.cpp"
 #include "ldk_asset.cpp"
 #include "ldk_cfg.cpp"
 #include "ldk_sprite_batch.cpp"
