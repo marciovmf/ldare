@@ -71,8 +71,8 @@ static ldk::Bitmap _placeholderBmp = {};
     return &_placeholderBmp;
   }
 
-  ldk::Bitmap* loadBitmap(const char* file)
-  {	
+  Handle loadBitmap(const char* file)
+  {
     LogInfo("Loading bitmap: %s", file);
     size_t bufferSize = 0;
     const size_t bitmapStructSize = sizeof(ldk::Bitmap);
@@ -99,7 +99,7 @@ static ldk::Bitmap _placeholderBmp = {};
       ldk::freeAsset((void*)buffer);
       LogError("Unsupported bitmap type.");
 
-      return nullptr;
+      return handle_invalid();
     }
 
     ldk::Bitmap* bitmap = (ldk::Bitmap*)buffer;
@@ -109,7 +109,6 @@ static ldk::Bitmap _placeholderBmp = {};
     bitmap->height = bitmapHeader->Height;
 
     //NOTE: Pixel format in memory is ABGR. Must rearrange it as RGBA to make OpenGL happy 
-    //TODO: implement this with SIMD to make it faster
     uint32 numPixels = bitmap->width * bitmap->height;
 
     if (bitmapHeader->BitsPerPixel == 32)
@@ -150,7 +149,11 @@ static ldk::Bitmap _placeholderBmp = {};
         *((uint16*)bitmap->pixels + i) = rgb;
       }
     }
-    return bitmap;
+
+
+    // get a handle for this data
+    Handle bmpHandle = handle_store(HandleType::BITMAP, bitmap);
+    return bmpHandle;
   }
 
   bool loadFont(const char* file, ldk::FontAsset** font)
@@ -166,7 +169,7 @@ static ldk::Bitmap _placeholderBmp = {};
     return false;
   }
 
-	ldk::MeshData* loadMesh(const char* file)
+  ldk::MeshData* loadMesh(const char* file)
   {
     size_t buffSize;
     ldk::MeshData* meshData = (ldk::MeshData*) ldk::platform::loadFileToBuffer(file, &buffSize);
@@ -176,6 +179,13 @@ static ldk::Bitmap _placeholderBmp = {};
   void freeAsset(void* asset)
   {
     ldk::platform::memoryFree(asset);
+  }
+
+  void freeAsset(Handle handle)
+  {
+    void* dataPtr = handle_getData(handle);
+    ldk::platform::memoryFree(dataPtr);
+    handle_remove(handle);
   }
 
   //---------------------------------------------------------------------------

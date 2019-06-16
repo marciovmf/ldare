@@ -3,6 +3,7 @@
 
 namespace ldk
 {
+
   struct AssetHandle
   {
     uint16 slot;
@@ -24,7 +25,7 @@ namespace ldk
     HandleEntry slot[LDK_MAX_HANDLES];
   } _handleTable = {};
 
-  static inline Handle handle_encode(uint32 slot, uint32 version, HandleType assetType)
+  static constexpr inline Handle handle_encode(uint32 slot, uint32 version, HandleType assetType)
   {
     LDK_ASSERT(sizeof(Handle) == sizeof(uint32), "Handle is expected to have sizeof(uint32)");
     uint32 handle = ((uint16) slot) << 16 | ((uint8) version) << 8 | (uint8) assetType;
@@ -111,5 +112,10 @@ namespace ldk
     LDK_ASSERT(entry.assetType == assetHandle.assetType, "Handle type mismatch");
 
     return entry.data;
+  }
+
+  constexpr Handle handle_invalid()
+  {
+    return handle_encode(0, 255, HandleType::EMPTY);
   }
 }

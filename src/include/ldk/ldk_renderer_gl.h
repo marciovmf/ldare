@@ -265,7 +265,7 @@ namespace ldk
     ///@param uWrap - wrap mode on u axis
     ///@param vWrap - wrap mode on v axis
     ///@returns the gpu texture 
-    LDK_API Texture createTexture(const ldk::Bitmap* bitmap
+    LDK_API Texture createTexture(ldk::Handle handle
         ,TextureFilter minFilter = TextureFilter::LINEAR
         ,TextureFilter magFilter = TextureFilter::LINEAR
         ,TextureWrap uWrap = TextureWrap::CLAMPTOEDGE

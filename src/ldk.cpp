@@ -6,9 +6,9 @@
 #endif // _LDK_ENGINE_
 
 #include <ldk/ldk.h>
+#include "ldk_asset_handle.h"
 #include "ldk_platform.h"
 #include "ldk_memory.h"
-#include "ldk_asset_handle.h"
 
 // platform specific implementation
 #ifdef _LDK_WINDOWS_

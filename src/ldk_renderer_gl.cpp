@@ -875,7 +875,7 @@ namespace ldk
       }
     }
 
-    Texture createTexture(const ldk::Bitmap* bitmap
+    Texture createTexture(ldk::Handle bmpHandle
         ,TextureFilter minFilter 
         ,TextureFilter magFilter
         ,TextureWrap uWrap
@@ -884,10 +884,17 @@ namespace ldk
       GLuint textureId;
       glGenTextures(1, &textureId);
       glBindTexture(GL_TEXTURE_2D, textureId);
+      
+      ldk::Bitmap* bitmap = (ldk::Bitmap*) handle_getData(bmpHandle);
+      if(bitmap == nullptr)
+      {
+        bitmap = getPlaceholderBmp();
+      }
 
 	  GLenum fmt = GL_RGBA;
 	  if (bitmap->bitsPerPixel == 24)
 		  fmt = GL_RGB;
+
 
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, fmt, GL_UNSIGNED_BYTE, bitmap->pixels);
 
@@ -1159,16 +1166,9 @@ namespace ldk
               if(texturePath != nullptr)
               {
                 bool isPlaceholder = false;
-                auto bmp = ldk::loadBitmap((const char*)texturePath);
-                if(bmp == nullptr)
-                {
-                  bmp = ldk::getPlaceholderBmp();
-                  isPlaceholder = true;
-                }
-                Texture texture = renderer::createTexture(bmp, minFilter, magFilter, uWrap, vWrap);
-
-                if(!isPlaceholder) freeAsset((void*) bmp);
-
+                ldk::Handle bmpHandle = ldk::loadBitmap((const char*)texturePath);
+                Texture texture = renderer::createTexture(bmpHandle, minFilter, magFilter, uWrap, vWrap);
+                freeAsset(bmpHandle);
                 renderer::setTexture(material, (char*) &section->name, texture);
               }
               else
