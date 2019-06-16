@@ -222,7 +222,6 @@ namespace ldk
     ///@brief Initializes a VertexBuffer structure.
     ///@param buffer - The vertex buffer structur to initialize
     ///@param capacity - maximum number of vertex entries on this buffer. The size of a single vertex depends on the buffer attributes.
-    ///@param stride - Vertex data Stride.
     LDK_API void makeVertexBuffer(VertexBuffer* buffer, uint32 capacity);
 
     ///@brief Adds an attribute to a VertexBuffer. @see VertexBuffer
