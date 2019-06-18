@@ -93,7 +93,7 @@ static struct GameState
 {
   uint32 initialized;
   renderer::Sprite sprite[NUM_SPRITES];
-  renderer::Material material;
+  Handle material;
   renderer::Texture textureId;
   renderer::Context* context;
   renderer::SpriteBatch* spriteBatch;
@@ -559,16 +559,16 @@ void gameStart(void* memory)
   _gameState->context = renderer::createContext(255, renderer::Context::COLOR_BUFFER 
         | renderer::Context::DEPTH_BUFFER, 0);
 
-  renderer::loadMaterial(&_gameState->material, "./assets/jewel.mat");
+  _gameState->material = renderer::loadMaterial("./assets/jewel.mat");
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
   _gameState->projMatrix.orthographic(0, 800, 0, 800, -10, 10);
-  renderer::setMatrix4(&_gameState->material, "mprojection", &_gameState->projMatrix);
+  renderer::setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
   // model
   _gameState->modelMatrix.identity();
   _gameState->modelMatrix.translate(Vec3{0, 0, -2});
-  renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
+  renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
 
   // Initialize the sprite batch
   _gameState->spriteBatch = renderer::createSpriteBatch( _gameState->context, MAX_SPRITES);
@@ -577,7 +577,7 @@ void gameStart(void* memory)
   for (uint32 i =0; i < NUM_SPRITES; i++)
   {
     renderer::makeSprite(&_gameState->sprite[i], 
-        &_gameState->material,
+        _gameState->material,
         spriteRect[i].x,
         spriteRect[i].y,
         spriteRect[i].w,
@@ -641,9 +641,7 @@ void gameUpdate(float deltaTime)
 
 void gameStop()
 {
-  //ldk::renderer::destroyTexture(_gameState->material->texture[0]);
+  ldk::renderer::destroyMaterial(_gameState->material);
   ldk::renderer::destroyContext(_gameState->context);
   ldk::renderer::destroySpriteBatch(_gameState->spriteBatch);
 }
-
-

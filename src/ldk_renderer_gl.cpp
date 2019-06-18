@@ -328,6 +328,8 @@ namespace ldk
     static void _executeDrawCall(DrawCall* drawCall)
     {
       Renderable* renderable = drawCall->renderable; 
+      Material* material = (Material*) handle_getData(drawCall->renderable->materialHandle);
+
       if(renderable->usage == GL_STATIC_DRAW)
       {
         if (renderable->needNewSync)
@@ -342,7 +344,7 @@ namespace ldk
       }
 
       VertexBuffer* buffer = &(renderable->buffer);
-      glUseProgram(renderable->material->shader.program);
+      glUseProgram(material->shader.program);
       checkGlError();
 
       uint32 currentVboIndex = renderable->currentVboIndex;
@@ -363,13 +365,12 @@ namespace ldk
       }
 
       // enable/bind textures
-      Material& material = *drawCall->renderable->material;
-      uint32 textureCount = material.textureCount;
+      uint32 textureCount = material->textureCount;
       for (int i = 0; i < textureCount; ++i) 
       {
         glActiveTexture(GL_TEXTURE0 + i);
         checkGlError();
-        uint32 textureId = material.texture[i].id;
+        uint32 textureId = material->texture[i].id;
         glBindTexture(GL_TEXTURE_2D, textureId);
         checkGlError();
       }
@@ -493,8 +494,9 @@ namespace ldk
       return loadShader(&material->shader, vertexSource, fragmentSource);
     }
 
-    void setMatrix4(Material* material, char* name, ldk::Mat4* matrix)
+    void setMatrix4(Handle materialHandle, char* name, ldk::Mat4* matrix)
     {
+      Material* material = (Material*) handle_getData(materialHandle);
       Shader* shader = &material->shader;
       const Uniform* uniform = _findUniform(shader, name);
 
@@ -509,8 +511,9 @@ namespace ldk
       }
     }
 
-    void setInt(Material* material, char* name, uint32 intParam)
+    void setInt(Handle materialHandle, char* name, uint32 intParam)
     {
+      Material* material = (Material*) handle_getData(materialHandle);
       Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
@@ -518,8 +521,9 @@ namespace ldk
       checkGlError();
     }
 
-    void setInt(Material* material, char* name, uint32 count, uint32* intParam)
+    void setInt(Handle materialHandle, char* name, uint32 count, uint32* intParam)
     {
+      Material* material = (Material*) handle_getData(materialHandle);
       Shader* shader = &material->shader;
       glUseProgram(shader->program);
       checkGlError();
@@ -553,8 +557,9 @@ namespace ldk
       glUseProgram(0);
     }
 
-    void setFloat(Material* material, char* name, float floatParam)
+    void setFloat(Handle materialHandle, char* name, float floatParam)
     {
+      Material* material = (Material*) handle_getData(materialHandle);
       Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
@@ -562,8 +567,9 @@ namespace ldk
       checkGlError();
     }
 
-    void setFloat(Material* material, char* name, uint32 count, float* floatParam)
+    void setFloat(Handle materialHandle, char* name, uint32 count, float* floatParam)
     {
+      Material* material = (Material*) handle_getData(materialHandle);
       Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
@@ -594,8 +600,9 @@ namespace ldk
       checkGlError();
     }
 
-    bool setTexture(Material* material, char* name, Texture texture)
+    bool setTexture(Handle materialHandle, char* name, Texture texture)
     {
+      Material* material = (Material*) handle_getData(materialHandle);
       // Find the thexture slot or allocate a new one if this is a new texture
       uint32 textureSlot = -1;
       for(int i=0; i < material->textureCount; i++)
@@ -617,18 +624,19 @@ namespace ldk
         material->textureCount++;
       }
 
-      setInt(material, name, textureSlot); 
+      setInt(materialHandle, name, textureSlot); 
       return true;
     }
 
-    void setMaterial(Renderable* renderable, Material* material)
+    void setMaterial(Renderable* renderable, Handle materialHandle)
     {
-      if (renderable->material == material)
+      Material* material = (Material*) handle_getData(materialHandle);
+      if (renderable->materialHandle == materialHandle)
       {
         return;
       }
 
-      renderable->material = material;
+      renderable->materialHandle = materialHandle;
       Shader* shader = &material->shader;
 
       glGetProgramiv(shader->program, GL_ACTIVE_ATTRIBUTES, (GLint*) &renderable->attributeCount);
@@ -837,7 +845,6 @@ namespace ldk
           return GL_INVALID_ENUM;
       }
     }
-
 
     static GLenum _internalToGlMagFilter(TextureFilter filter)
     {
@@ -1055,7 +1062,8 @@ namespace ldk
       return result;
     }
 
-    bool loadMaterial(renderer::Material* material, const char* file)
+
+    ldk::Handle loadMaterial(const char* file)
     {
       auto cfgRoot = ldk::configParseFile(file);
       auto materialSection = ldk::configGetSection(cfgRoot, "material");
@@ -1070,6 +1078,7 @@ namespace ldk
         return false;
       }
 
+      // null terminate the file content
       fs = (char*) ldk::platform::loadFileToBufferOffset(path, &shaderFileSize , 1, 0);
       char* eoBuffer = fs + shaderFileSize;
       *eoBuffer = 0;
@@ -1082,6 +1091,7 @@ namespace ldk
         return false;
       }
 
+      // null terminate the file content
       vs = (char*) ldk::platform::loadFileToBufferOffset(path, &shaderFileSize, 1, 0);
       eoBuffer = vs + shaderFileSize;
       *eoBuffer = 0;
@@ -1094,6 +1104,18 @@ namespace ldk
         int32 queueOffset = 0;
         configGetInt(materialSection, "render-queue-offset", &queueOffset);
         renderQueue += queueOffset;
+      }
+
+      // allocate a material
+      ldk::renderer::Material* material = 
+        (ldk::renderer::Material*) ldk::platform::memoryAlloc(sizeof(ldk::renderer::Material));
+      ldk::Handle handle = ldk::handle_store(ldk::HandleType::MATERIAL, material);
+
+      // Store it in the handle table
+      if (handle == ldk::handle_invalid())
+      {
+        ldk::platform::memoryFree(material);
+        return handle;
       }
 
       makeMaterial(material, vs, fs, renderQueue);
@@ -1169,7 +1191,7 @@ namespace ldk
                 ldk::Handle bmpHandle = ldk::loadBitmap((const char*)texturePath);
                 Texture texture = renderer::createTexture(bmpHandle, minFilter, magFilter, uWrap, vWrap);
                 freeAsset(bmpHandle);
-                renderer::setTexture(material, (char*) &section->name, texture);
+                renderer::setTexture(handle, (char*) &section->name, texture);
               }
               else
               {
@@ -1182,11 +1204,14 @@ namespace ldk
       } // while sections ...
 
       ldk::configDispose(cfgRoot);
-      return true;
+      return handle;
     }
 
-    void destroyMaterial(renderer::Material* material)
+
+    void destroyMaterial(ldk::Handle materialHandle)
     {
+        Material* material = (Material*) ldk::handle_getData(materialHandle);
+        LDK_ASSERT(material != nullptr, "Unexpected null pointer to asset");
 
         // unload textures from GPU
         for(uint32 i = 0; i < material->textureCount; i++)
@@ -1199,6 +1224,9 @@ namespace ldk
         // unload shader from GPU
         glDeleteProgram(material->shader.program);
         checkGlError();
+
+
+        platform::memoryFree(material);
 
         //TOD(marcio): Should we delete the actual BITMAP from RAM ? Review when asset manager is done!
     }

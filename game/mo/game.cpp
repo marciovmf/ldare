@@ -20,7 +20,8 @@ struct GameState
 {
   uint32 initialized;
   renderer::Sprite sprite;
-  renderer::Material material;
+  //renderer::Material material;
+  Handle material;
   renderer::Texture texture;
   renderer::Context* context;
   renderer::SpriteBatch* spriteBatch;
@@ -62,7 +63,7 @@ void gameStart(void* memory)
 
   // Create a vertex buffer
   renderer::makeVertexBuffer(&_gameState->buffer, meshInfo.vertexCount);
-  renderer::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3,
+  renderer::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, 
       renderer::VertexAttributeType::FLOAT, 0);
 
   renderer::addVertexBufferAttribute(&_gameState->buffer, "_normal", 3, 
@@ -72,12 +73,12 @@ void gameStart(void* memory)
       renderer::VertexAttributeType::FLOAT, 6 * sizeof(float));
 
   // Initialize material
-  renderer::loadMaterial(&_gameState->material, "./assets/standard/test.mat");
+  _gameState->material = renderer::loadMaterial("./assets/standard/test.mat");
 
   // make a renderable 
   uint32 maxIndices = meshInfo.indexCount;
   renderer::makeRenderable(&_gameState->renderable, &_gameState->buffer, mesh->indices, maxIndices, true);
-  renderer::setMaterial(&_gameState->renderable, &_gameState->material);
+  renderer::setMaterial(&_gameState->renderable, _gameState->material);
 
   // Calculate matrices and send them to shader uniforms  
   // projection
@@ -87,8 +88,8 @@ void gameStart(void* memory)
   _gameState->modelMatrix.scale(Vec3{55.0, 55.0, 55.0});
   _gameState->modelMatrix.translate(Vec3{0, 0, -5});
   
-  renderer::setMatrix4(&_gameState->material, "mprojection", &_gameState->projMatrix);
-  renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
+  renderer::setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
+  renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
 
   // create draw call
   _gameState->drawCall.renderable = &_gameState->renderable;
@@ -125,7 +126,7 @@ void gameUpdate(float deltaTime)
   if(axis.x || axis.y || axis.z)
   {
     _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(80.0f) * deltaTime);
-    renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
+    renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
   }
 
   renderer::pushDrawCall(_gameState->context, &_gameState->drawCall);
@@ -134,9 +135,9 @@ void gameUpdate(float deltaTime)
 
 void gameStop()
 {
-  ldk::renderer::destroyMaterial(&_gameState->material);
-  ldk::renderer::destroyContext(_gameState->context);
+  ldk::renderer::destroyMaterial(_gameState->material);
   ldk::renderer::destroySpriteBatch(_gameState->spriteBatch);
+  ldk::renderer::destroyContext(_gameState->context);
 }
 
 

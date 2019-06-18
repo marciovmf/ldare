@@ -130,7 +130,7 @@ namespace ldk
     struct Renderable
     {
       VertexBuffer buffer;
-      Material* material;
+      ldk::Handle materialHandle;
       GLuint ibo;
       GLuint iboSize;
       GLuint attributeCount;
@@ -179,45 +179,45 @@ namespace ldk
     ///@returns true if shaders compile successfuly
     LDK_API bool  makeMaterial(Material* material, char* vertexSource, char* fragmentSource, uint32 renderQueue = RENDER_QUEUE_OPAQUE);
 
-    LDK_API bool setTexture(Material* material, char* name, Texture texture);
+    LDK_API bool setTexture(Handle materialHandle, char* name, Texture texture);
 
-    ///@brief Assigns a shader to a renderable
+    ///@brief Assigns a material to a renderable
     ///@param renderable - The Renderable to assing a shader to
-    ///@param shader - The shader to assign to the renderable
+    ///@param Material - Handle to the material
     //LDK_API void setShader(Renderable* renderable, Shader* shader);
-    LDK_API void setMaterial(Renderable* renderable, Material* material);
+    LDK_API void setMaterial(Renderable* renderable, Handle materialHandle);
 
     ///@brief Set a Matrix4 shader parameter.
-    ///@param material - The material to send the value to
+    ///@param Material - Handle to the material
     ///@param name - The shader parameter to set the value
     ///@param matrix - The matrix parameter value to set
-    LDK_API void setMatrix4(Material* material, char* name, ldk::Mat4* matrix);
+    LDK_API void setMatrix4(Handle material, char* name, ldk::Mat4* matrix);
 
     ///@brief Set an integer shader parameter.
-    ///@param material - The material to send the value to
+    ///@param Material - Handle to the material
     ///@param name - The integer parameter
     ///@param intParam - The Matrix4 value to set
-    LDK_API void setInt(Material* material, char* name, uint32 intParam);
+    LDK_API void setInt(Handle material, char* name, uint32 intParam);
 
     ///@brief Set an integer compound shader parameter.
-    ///@param material - The material to send the value to
+    ///@param Material - Handle to the material
     ///@param name - The integer parameter
     ///@param count - The number of integer components to set
     ///@param intParam - An array of integer values to set. This array length must be equals to count.
-    LDK_API void setInt(Material* material, char* name, uint32 count, uint32* intParam);
+    LDK_API void setInt(Handle materialHandle, char* name, uint32 count, uint32* intParam);
 
     ///@brief Set a float shader parameter.
-    ///@param material - The material to send the value to
+    ///@param Material - Handle to the material
     ///@param name - The float parameter
     ///@param floatParam - The float value to set
-    LDK_API void setFloat(Material* material, char* name, float floatParam);
+    LDK_API void setFloat(Handle materialHandle, char* name, float floatParam);
 
     ///@brief Set a float compound shader parameter.
-    ///@param material - The material to send the value to
+    ///@param Material - Handle to the material
     ///@param name - The float parameter
     ///@param count - The number of float components to set
     ///@param floatParam - An array of float values to set. This array length must be equals to count.
-    LDK_API void setFloat(Material* material, char* name, uint32 count, float* floatParam);
+    LDK_API void setFloat(Handle materialHandle, char* name, uint32 count, float* floatParam);
 
     ///@brief Initializes a VertexBuffer structure.
     ///@param buffer - The vertex buffer structur to initialize
@@ -274,9 +274,9 @@ namespace ldk
     ///@param texture - The gpu texture id.
     LDK_API void destroyTexture(Texture& texture);
 
-    LDK_API bool loadMaterial(renderer::Material* material, const char* file);
+    LDK_API ldk::Handle loadMaterial(const char* file);
     
-    LDK_API void destroyMaterial(renderer::Material* material);
+    LDK_API void destroyMaterial(ldk::Handle materialHandle);
     
 ///@}
   } // renderer
