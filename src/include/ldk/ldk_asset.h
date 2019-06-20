@@ -7,7 +7,6 @@ namespace ldk
 {
 	struct Audio
 	{
-		//TODO: Remove this when memory/asset manager is done
 		uint32 id;
 	};
 
@@ -32,6 +31,7 @@ namespace ldk
 		uint32 type; 						// asset type
 		uint32 dataOffset; 			// offset to data from start of file
 		uint32 dataSize; 				// size of data
+
 		uint32 assetNameId; 		// asset name id
 	};
 
@@ -62,12 +62,10 @@ namespace ldk
 		//TODO: add font kerning information here
 	};
 	
-	//LDK_API ldk::Bitmap* loadBitmap(const char* file);
 	LDK_API ldk::Handle loadBitmap(const char* file);
-  LDK_API ldk::Bitmap* getPlaceholderBmp();
-	LDK_API ldk::Audio* loadAudio(const char* file);
+	LDK_API ldk::Handle loadAudio(const char* file);
 	LDK_API bool loadFont(const char* file, ldk::FontAsset** fontAsset);
-	LDK_API void playAudio(const ldk::Audio* audio);
+	LDK_API void playAudio(ldk::Handle audioHandle);
 	LDK_API void freeAsset(void* memory);
 	LDK_API void freeAsset(Handle handle);
 } // namespace ldk

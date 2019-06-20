@@ -20,11 +20,9 @@ struct GameState
 {
   uint32 initialized;
   renderer::Sprite sprite;
-  //renderer::Material material;
   Handle material;
-  renderer::Texture texture;
+  Handle audio;
   renderer::Context* context;
-  renderer::SpriteBatch* spriteBatch;
   renderer::Renderable renderable;
   renderer::VertexBuffer buffer;
   renderer::DrawCall drawCall;
@@ -60,6 +58,10 @@ void gameStart(void* memory)
   {
     LogError("Error getting info for mesh");
   }
+
+
+  // load audio
+  _gameState->audio = loadAudio("assets/crowd.wav");
 
   // Create a vertex buffer
   renderer::makeVertexBuffer(&_gameState->buffer, meshInfo.vertexCount);
@@ -106,6 +108,12 @@ void gameUpdate(float deltaTime)
   bool update = false;
   Vec3 axis = {};
 
+
+  if(input::isKeyDown(ldk::input::LDK_KEY_SPACE))
+  {
+    playAudio(_gameState->audio);
+  }
+
   if (input::getKey(ldk::input::LDK_KEY_H))
   {
     axis.y = 1;
@@ -136,7 +144,6 @@ void gameUpdate(float deltaTime)
 void gameStop()
 {
   ldk::renderer::destroyMaterial(_gameState->material);
-  ldk::renderer::destroySpriteBatch(_gameState->spriteBatch);
   ldk::renderer::destroyContext(_gameState->context);
 }
 

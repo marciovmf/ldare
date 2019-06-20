@@ -210,7 +210,7 @@ static ldk::Bitmap _placeholderBmp = {};
     return nullptr;
   }
 
-  ldk::Audio* loadAudio(const char* file)
+  ldk::Handle loadAudio(const char* file)
   {
     size_t bufferSize;
     size_t audioStructSize = sizeof(ldk::Audio);
@@ -228,14 +228,16 @@ static ldk::Bitmap _placeholderBmp = {};
       freeAsset(buffer);
     }
 
+    const ldk::Handle invalidHandle = ldk::handle_invalid();
+
     // find 'fmt' chunk
     uint32 fmtSize;
     void* fmt = findAudioChunk(riffData, riffHeader->chunkSize, RIFF_FOURCC_FMT, &fmtSize);
-    if ( fmt == nullptr) 
+    if (fmt == nullptr) 
     {
       LogError("Error loading wave format table");
       freeAsset(buffer);
-      return nullptr;
+      return invalidHandle;
     }
 
     // find 'data' chunk
@@ -245,15 +247,17 @@ static ldk::Bitmap _placeholderBmp = {};
     {
       LogError("Error loading wave data table");
       freeAsset(buffer);
-      return nullptr;
+      return invalidHandle;
     }
 
     audio->id = ldk::platform::createAudioBuffer(fmt, fmtSize, data, dataSize);
-    return (ldk::Audio*) buffer;
+    ldk::Handle audioHandle = ldk::handle_store(ldk::HandleType::AUDIO, (void*) audio);
+    return audioHandle;
   }
 
-  void playAudio(const ldk::Audio* audio)
+  void playAudio(ldk::Handle audioHandle)
   {
+    ldk::Audio* audio = (ldk::Audio*) ldk::handle_getData(audioHandle);
     ldk::platform::playAudioBuffer(audio->id);
   }
 
