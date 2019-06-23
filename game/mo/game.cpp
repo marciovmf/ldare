@@ -147,4 +147,3 @@ void gameStop()
   ldk::renderer::destroyContext(_gameState->context);
 }
 
-

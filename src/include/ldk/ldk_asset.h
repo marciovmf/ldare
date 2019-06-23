@@ -66,8 +66,7 @@ namespace ldk
 	LDK_API ldk::Handle loadAudio(const char* file);
 	LDK_API bool loadFont(const char* file, ldk::FontAsset** fontAsset);
 	LDK_API void playAudio(ldk::Handle audioHandle);
-	LDK_API void freeAsset(void* memory);
-	LDK_API void freeAsset(Handle handle);
+	LDK_API void unloadAsset(Handle handle);
 } // namespace ldk
 
 #endif // __LDK_ASSET_H__

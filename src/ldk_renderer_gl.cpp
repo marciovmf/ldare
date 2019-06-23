@@ -1190,7 +1190,7 @@ namespace ldk
                 bool isPlaceholder = false;
                 ldk::Handle bmpHandle = ldk::loadBitmap((const char*)texturePath);
                 Texture texture = renderer::createTexture(bmpHandle, minFilter, magFilter, uWrap, vWrap);
-                freeAsset(bmpHandle);
+                unloadAsset(bmpHandle);
                 renderer::setTexture(handle, (char*) &section->name, texture);
               }
               else

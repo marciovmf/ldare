@@ -7,7 +7,6 @@ namespace ldk
   enum HandleType : uint8
   {
     EMPTY = 0,
-    RAW,
     BITMAP,
     AUDIO,
     MESH,

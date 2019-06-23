@@ -96,7 +96,7 @@ static ldk::Bitmap _placeholderBmp = {};
         && bitmapHeader->BitsPerPixel != 32)
     {
 
-      ldk::freeAsset((void*)buffer);
+      ldk::platform::memoryFree((void*)buffer);
       LogError("Unsupported bitmap type.");
 
       return handle_invalid();
@@ -176,12 +176,7 @@ static ldk::Bitmap _placeholderBmp = {};
     return meshData;
   }
 
-  void freeAsset(void* asset)
-  {
-    ldk::platform::memoryFree(asset);
-  }
-
-  void freeAsset(Handle handle)
+  void unloadAsset(Handle handle)
   {
     void* dataPtr = handle_getData(handle);
     ldk::platform::memoryFree(dataPtr);
@@ -225,7 +220,7 @@ static ldk::Bitmap _placeholderBmp = {};
     if (riffHeader->signature != RIFF_FOURCC_RIFF || riffHeader->chunkType != RIFF_FORMAT_WAVE)
     {
       LogError("Invalid wave file");
-      freeAsset(buffer);
+      ldk::platform::memoryFree((void*)buffer);
     }
 
     const ldk::Handle invalidHandle = ldk::handle_invalid();
@@ -236,7 +231,7 @@ static ldk::Bitmap _placeholderBmp = {};
     if (fmt == nullptr) 
     {
       LogError("Error loading wave format table");
-      freeAsset(buffer);
+      ldk::platform::memoryFree((void*)buffer);
       return invalidHandle;
     }
 
@@ -246,7 +241,7 @@ static ldk::Bitmap _placeholderBmp = {};
     if ( data == nullptr) 
     {
       LogError("Error loading wave data table");
-      freeAsset(buffer);
+      ldk::platform::memoryFree((void*)buffer);
       return invalidHandle;
     }
 
