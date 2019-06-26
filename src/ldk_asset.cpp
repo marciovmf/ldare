@@ -1,55 +1,9 @@
 
-#define RIFF_FORMAT_WAVE 0x45564157
-#define RIFF_FOURCC_RIFF 0x46464952
-#define RIFF_FOURCC_FMT 0x20746d66
-#define RIFF_FOURCC_DATA 0x61746164
+#include "ldk_wav.h"
+#include "ldk_bitmap.h"
+
 namespace ldk
 {
-
-#ifdef _MSC_VER
-#pragma pack(push,1)
-#endif
-  //---------------------------------------------------------------------------
-  // BMP file format specifics
-  //---------------------------------------------------------------------------
-  struct BITMAP_FILE_HEADER
-  {
-    uint16	FileType;					/* File type, always 4D42h ("BM") */
-    uint32	FileSize;					//* Size of the file in bytes */
-    uint16	Reserved1;				//* Always 0 */
-    uint16	Reserved2;				//* Always 0 */
-    uint32	BitmapOffset;			//* Starting position of image data in bytes */
-    uint32	Size;							//* Size of this header in bytes */
-    int32	Width;          		//* Image width in pixels */
-    int32	Height;         		//* Image height in pixels */
-    uint16  Planes;       		//* Number of color planes */
-    uint16  BitsPerPixel; 		//* Number of bits per pixel */
-    uint32	Compression;  		//* Compression methods used */
-    uint32	SizeOfBitmap; 		//* Size of bitmap in bytes */
-    int32	HorzResolution; 		//* Horizontal resolution in pixels per meter */
-    int32	VertResolution; 		//* Vertical resolution in pixels per meter */
-    uint32	ColorsUsed;   		//* Number of colors in the image */
-    uint32	ColorsImportant;	//* Minimum number of important colors */
-  };
-
-  //---------------------------------------------------------------------------
-  // WAV file format specifics
-  //---------------------------------------------------------------------------
-  struct RIFFAudioHeaderChunk
-  {
-    uint32 signature;
-    uint32 chunkSize;
-    uint32 chunkType;
-  };
-
-  struct RIFFAudioChunk
-  {
-    uint32 signature;
-    uint32 chunkSize;
-  };
-#ifdef _MSC_VER
-#pragma pack(pop)
-#endif
 
 static int32 _placeholderBmpData = 0xFFFF00FF;
 static ldk::Bitmap _placeholderBmp = {};
@@ -85,8 +39,8 @@ static ldk::Bitmap _placeholderBmp = {};
     if (!buffer || bufferSize == 0) { return false; }
 
     // bitmap data starts after the ldk::Bitmap struct data
-    BITMAP_FILE_HEADER *bitmapHeader =
-      (BITMAP_FILE_HEADER*)(buffer + bitmapStructSize);
+    LDK_BITMAP_FILE_HEADER *bitmapHeader =
+      (LDK_BITMAP_FILE_HEADER*)(buffer + bitmapStructSize);
 
     //NOTE: compression info at https://msdn.microsoft.com/en-us/library/cc250415.aspx
     if (bitmapHeader->FileType != BITMAP_FILE_HEADER_SIGNATURE
@@ -157,7 +111,6 @@ static ldk::Bitmap _placeholderBmp = {};
 
   ldk::Handle loadFont(const char* file)
   {
-
     size_t fontFileSize=0;
     size_t fontStructSize = sizeof(ldk::Font);
     ldk::Font* font = (ldk::Font*) ldk::platform::loadFileToBufferOffset(file,
@@ -202,13 +155,13 @@ static ldk::Bitmap _placeholderBmp = {};
 
     while ( data < endOfBuffer)
     {
-      RIFFAudioChunk *chunk = (RIFFAudioChunk*) data;
+      LDK_RIFFAudioChunk *chunk = (LDK_RIFFAudioChunk*) data;
       if ( chunk->signature == fourcc)
       {
         *outSize = chunk->chunkSize;
-        return data + sizeof(RIFFAudioChunk);
+        return data + sizeof(LDK_RIFFAudioChunk);
       }
-      data += chunk->chunkSize + sizeof(RIFFAudioChunk);
+      data += chunk->chunkSize + sizeof(LDK_RIFFAudioChunk);
     }
     return nullptr;
   }
@@ -223,10 +176,10 @@ static ldk::Bitmap _placeholderBmp = {};
     if (!buffer || bufferSize == 0) return false; 
 
     ldk::Audio* audio = (ldk::Audio*)buffer;
-    RIFFAudioHeaderChunk* riffHeader = (RIFFAudioHeaderChunk*) (buffer + audioStructSize);
-    void* riffData = ((uint8*) buffer + audioStructSize + sizeof(RIFFAudioHeaderChunk));
+    LDK_RIFFAudioHeaderChunk* riffHeader = (LDK_RIFFAudioHeaderChunk*) (buffer + audioStructSize);
+    void* riffData = ((uint8*) buffer + audioStructSize + sizeof(LDK_RIFFAudioHeaderChunk));
 
-    if (riffHeader->signature != RIFF_FOURCC_RIFF || riffHeader->chunkType != RIFF_FORMAT_WAVE)
+    if (riffHeader->signature != LDK_RIFF_FOURCC_RIFF || riffHeader->chunkType != LDK_RIFF_FORMAT_WAVE)
     {
       LogError("Invalid wave file");
       ldk::platform::memoryFree((void*)buffer);
@@ -236,7 +189,7 @@ static ldk::Bitmap _placeholderBmp = {};
 
     // find 'fmt' chunk
     uint32 fmtSize;
-    void* fmt = findAudioChunk(riffData, riffHeader->chunkSize, RIFF_FOURCC_FMT, &fmtSize);
+    void* fmt = findAudioChunk(riffData, riffHeader->chunkSize, LDK_RIFF_FOURCC_FMT, &fmtSize);
     if (fmt == nullptr) 
     {
       LogError("Error loading wave format table");
@@ -246,7 +199,7 @@ static ldk::Bitmap _placeholderBmp = {};
 
     // find 'data' chunk
     uint32 dataSize;
-    void* data = findAudioChunk(riffData, riffHeader->chunkSize, RIFF_FOURCC_DATA, &dataSize);
+    void* data = findAudioChunk(riffData, riffHeader->chunkSize, LDK_RIFF_FOURCC_DATA, &dataSize);
     if ( data == nullptr) 
     {
       LogError("Error loading wave data table");

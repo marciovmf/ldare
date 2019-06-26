@@ -1,14 +1,6 @@
 
 namespace ldk
 {
-
-  //ldk::MeshData* mesh_loadFromFile(const char* file)
-  //{
-  //  size_t buffSize;
-  //  ldk::MeshData* meshData = (ldk::MeshData*) ldk::platform::loadFileToBuffer(file, &buffSize);
-  //  return meshData;
-  //}
-
   ldk::Handle mesh_loadFromFile(const char* file)
   {
 
@@ -50,7 +42,6 @@ namespace ldk
     *meshInfo = mesh->meshData->info;
     return true;
   }
-
 
   static inline size_t mesh_getVertexSizeInternal(ldk::MeshInfo::VertexFormat format)
   {
