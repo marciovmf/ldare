@@ -7,11 +7,12 @@ namespace ldk
   enum HandleType : uint8
   {
     EMPTY = 0,
-    BITMAP,
     AUDIO,
+    BITMAP,
+    FONT,
     MESH,
+    MATERIAL,
     SHADER,
-    MATERIAL
   };
 
   Handle handle_store(HandleType assetType, void* data);

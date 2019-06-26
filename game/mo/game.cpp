@@ -21,6 +21,8 @@ struct GameState
   uint32 initialized;
   renderer::Sprite sprite;
   Handle material;
+  Handle fontMaterial;
+  Handle font;
   Handle audio;
   renderer::Context* context;
   renderer::Renderable renderable;
@@ -59,7 +61,6 @@ void gameStart(void* memory)
     LogError("Error getting info for mesh");
   }
 
-
   // load audio
   _gameState->audio = loadAudio("assets/crowd.wav");
 
@@ -74,8 +75,12 @@ void gameStart(void* memory)
   renderer::addVertexBufferAttribute(&_gameState->buffer, "_uv", 2,
       renderer::VertexAttributeType::FLOAT, 6 * sizeof(float));
 
+  // Load font
+  _gameState->font = loadFont("./assets/standard/Inconsolata_18.font");
+
   // Initialize material
   _gameState->material = renderer::loadMaterial("./assets/standard/test.mat");
+  _gameState->fontMaterial = renderer::loadMaterial("./assets/standard/inconsolata_18.mat");
 
   // make a renderable 
   uint32 maxIndices = meshInfo.indexCount;

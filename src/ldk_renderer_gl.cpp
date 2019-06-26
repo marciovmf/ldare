@@ -899,12 +899,21 @@ namespace ldk
       }
 
 	  GLenum fmt = GL_RGBA;
+    GLenum pixelDataFmt = GL_UNSIGNED_BYTE;
+
 	  if (bitmap->bitsPerPixel == 24)
 		  fmt = GL_RGB;
+    else if (bitmap->bitsPerPixel == 16)
+    {
+      fmt = GL_RGBA;
+      pixelDataFmt = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+    }
 
 
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, fmt, GL_UNSIGNED_BYTE, bitmap->pixels);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height,
+          0, fmt, pixelDataFmt, bitmap->pixels);
 
+      checkGlError();
       glGenerateMipmap(GL_TEXTURE_2D);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, _internalToGlMinFilter(minFilter));
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, _internalToGlMagFilter(magFilter));
@@ -1065,6 +1074,7 @@ namespace ldk
 
     ldk::Handle loadMaterial(const char* file)
     {
+		  LogInfo("Loading Material:\t'%s'", file);
       auto cfgRoot = ldk::configParseFile(file);
       auto materialSection = ldk::configGetSection(cfgRoot, "material");
 

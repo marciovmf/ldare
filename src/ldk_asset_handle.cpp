@@ -94,10 +94,7 @@ namespace ldk
     HandleTable& handleTable = handle_getGlobalHandleTable();
     AssetHandle assetHandle = handle_decode(handle);
     HandleEntry& entry = handleTable.slot[assetHandle.slot];
-
-
     LDK_ASSERT(entry.assetType != HandleType::EMPTY, "Trying to remove an empty handle");
-
     entry.assetType = HandleType::EMPTY;
     entry.data = nullptr;
   }

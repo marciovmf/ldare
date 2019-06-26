@@ -73,7 +73,7 @@ static ldk::Bitmap _placeholderBmp = {};
 
   Handle loadBitmap(const char* file)
   {
-    LogInfo("Loading bitmap: %s", file);
+    LogInfo("Loading Bitmap:\t'%s'", file);
     size_t bufferSize = 0;
     const size_t bitmapStructSize = sizeof(ldk::Bitmap);
     const int8* buffer = (int8*) ldk::platform::loadFileToBufferOffset(
@@ -150,27 +150,35 @@ static ldk::Bitmap _placeholderBmp = {};
       }
     }
 
-
     // get a handle for this data
     Handle bmpHandle = handle_store(HandleType::BITMAP, bitmap);
     return bmpHandle;
   }
 
-  bool loadFont(const char* file, ldk::FontAsset** font)
+  ldk::Handle loadFont(const char* file)
   {
-    //TODO(marcio): Review this when implemening text rendering again...
-    //size_t fontAssetSize;
-    //ldk::FontAsset* fontAsset = (ldk::FontAsset*) ldk::platform::loadFileToBuffer(file, &fontAssetSize);
-    //if (!fontAsset || fontAssetSize == 0) { return false; }
 
-    //fontAsset->gliphData = (FontGliphRect*) (((uint8*)fontAsset + (uint32) fontAsset->gliphData));
-    //*font = fontAsset;
-    //return true;
-    return false;
+    size_t fontFileSize=0;
+    size_t fontStructSize = sizeof(ldk::Font);
+    ldk::Font* font = (ldk::Font*) ldk::platform::loadFileToBufferOffset(file,
+        &fontFileSize,
+        fontStructSize,
+        fontStructSize);
+    
+    if (!font || fontFileSize < sizeof(ldk::FontData)) return ldk::handle_invalid();
+    
+    ldk::FontData* fontData = (ldk::FontData*) ((char8*) font + sizeof(ldk::Font));
+    font->fontInfo = &fontData->info;
+    font->gliphData = (ldk::FontGliphRect*) (((char8*)fontData) + sizeof(ldk::FontData));
+
+    // get a handle for this data
+    ldk::Handle fontHandle = ldk::handle_store(HandleType::FONT, font);
+    return fontHandle;
   }
 
   ldk::MeshData* loadMesh(const char* file)
   {
+    LogInfo("Loading Mesh:\t'%s'", file);
     size_t buffSize;
     ldk::MeshData* meshData = (ldk::MeshData*) ldk::platform::loadFileToBuffer(file, &buffSize);
     return meshData;
@@ -207,6 +215,7 @@ static ldk::Bitmap _placeholderBmp = {};
 
   ldk::Handle loadAudio(const char* file)
   {
+    LogInfo("Loading Audio:\t\t'%s'", file);
     size_t bufferSize;
     size_t audioStructSize = sizeof(ldk::Audio);
     int8* buffer = (int8*)ldk::platform::loadFileToBufferOffset(file, &bufferSize, audioStructSize, audioStructSize);
@@ -255,7 +264,5 @@ static ldk::Bitmap _placeholderBmp = {};
     ldk::Audio* audio = (ldk::Audio*) ldk::handle_getData(audioHandle);
     ldk::platform::playAudioBuffer(audio->id);
   }
-
-
 
 } // namespace ldk

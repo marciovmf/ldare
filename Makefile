@@ -44,9 +44,9 @@ $(LDK_ENGINE): src/*.cpp src/*.h src/include/ldk/*.h
 	xcopy assets\standard $(OUTDIR)\assets\standard /Y /I /E /F > nul
 	copy /Y ldk_game.cfg $(OUTDIR) > nul
 
-$(LDK_BAKE_TOOL): src/tools/*.cpp
+$(LDK_BAKE_TOOL): src/tools/*.cpp src/win32/tools/*.cpp
 	@IF NOT EXIST "$(OUTDIR)" mkdir $(OUTDIR) 2> NUL
-#	cl src\win32\tools\ldk_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
+	cl src\win32\tools\ldk_tool_font.cpp /Fe$(OUTDIR)\makefont.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS)
 	cl src\tools\ldk_bakeTool.cpp /Fe$(OUTDIR)\bake.exe /Fo$(OUTDIR)\ $(CFLAGS) $(LINKFLAGS) $(OUTDIR)\ldk.lib
 
 $(LDK_GAME): game/mo/*.cpp
