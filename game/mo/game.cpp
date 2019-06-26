@@ -1,19 +1,5 @@
 #include <ldk/ldk.h>
 
-ldk::Mesh* mesh;
-
-ldk::Mesh makeMesh(ldk::MeshData* meshData)
-{
-  ldk::Mesh mesh;
-  int8* mem = (int8*) meshData;
-  mesh.meshData = meshData;
-  mesh.indices = (uint32*)(mem + meshData->indicesOffset);
-  mesh.vertices = (mem + meshData->verticesOffset);
-  return mesh;
-}
-
-constexpr uint32 VERTEX_SIZE = 6 * sizeof(float);
-
 using namespace ldk;
 
 struct GameState
@@ -21,6 +7,7 @@ struct GameState
   uint32 initialized;
   renderer::Sprite sprite;
   Handle material;
+  Handle mesh;
   Handle renderable;
   renderer::Context* context;
   renderer::DrawCall drawCall;
@@ -47,11 +34,10 @@ void gameStart(void* memory)
   _gameState->context =
   renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
 
-
   // Initialize material
-  ldk::Handle mesh = ldk::mesh_loadFromFile("assets/monkey.mesh");
+  _gameState->mesh = ldk::mesh_loadFromFile("assets/monkey.mesh");
   _gameState->material = renderer::loadMaterial("./assets/standard/test.mat");
-  _gameState->renderable = renderer::makeRenderable(mesh, _gameState->material);
+  _gameState->renderable = renderer::makeRenderable(_gameState->mesh, _gameState->material);
 
   // Calculate matrices and send them to shader uniforms  
   // projection
