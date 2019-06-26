@@ -1,62 +1,12 @@
 
-#define RIFF_FORMAT_WAVE 0x45564157
-#define RIFF_FOURCC_RIFF 0x46464952
-#define RIFF_FOURCC_FMT 0x20746d66
-#define RIFF_FOURCC_DATA 0x61746164
+#include "ldk_wav.h"
+#include "ldk_bitmap.h"
+
 namespace ldk
 {
 
-#ifdef _MSC_VER
-#pragma pack(push,1)
-#endif
-  //---------------------------------------------------------------------------
-  // BMP file format specifics
-  //---------------------------------------------------------------------------
-  struct BITMAP_FILE_HEADER
-  {
-    uint16	FileType;					/* File type, always 4D42h ("BM") */
-    uint32	FileSize;					//* Size of the file in bytes */
-    uint16	Reserved1;				//* Always 0 */
-    uint16	Reserved2;				//* Always 0 */
-    uint32	BitmapOffset;			//* Starting position of image data in bytes */
-    uint32	Size;							//* Size of this header in bytes */
-    int32	Width;          		//* Image width in pixels */
-    int32	Height;         		//* Image height in pixels */
-    uint16  Planes;       		//* Number of color planes */
-    uint16  BitsPerPixel; 		//* Number of bits per pixel */
-    uint32	Compression;  		//* Compression methods used */
-    uint32	SizeOfBitmap; 		//* Size of bitmap in bytes */
-    int32	HorzResolution; 		//* Horizontal resolution in pixels per meter */
-    int32	VertResolution; 		//* Vertical resolution in pixels per meter */
-    uint32	ColorsUsed;   		//* Number of colors in the image */
-    uint32	ColorsImportant;	//* Minimum number of important colors */
-  };
-
-  //---------------------------------------------------------------------------
-  // WAV file format specifics
-  //---------------------------------------------------------------------------
-  struct RIFFAudioHeaderChunk
-  {
-    uint32 signature;
-    uint32 chunkSize;
-    uint32 chunkType;
-  };
-
-  struct RIFFAudioChunk
-  {
-    uint32 signature;
-    uint32 chunkSize;
-  };
-#ifdef _MSC_VER
-#pragma pack(pop)
-#endif
-
 static int32 _placeholderBmpData = 0xFFFF00FF;
 static ldk::Bitmap _placeholderBmp = {};
-
-  //---------------------------------------------------------------------------
-  // Material functions
-  //---------------------------------------------------------------------------
 
   ldk::Bitmap* getPlaceholderBmp()
   {
@@ -71,9 +21,9 @@ static ldk::Bitmap _placeholderBmp = {};
     return &_placeholderBmp;
   }
 
-  ldk::Bitmap* loadBitmap(const char* file)
-  {	
-    LogInfo("Loading bitmap: %s", file);
+  Handle loadBitmap(const char* file)
+  {
+    LogInfo("Loading Bitmap:\t'%s'", file);
     size_t bufferSize = 0;
     const size_t bitmapStructSize = sizeof(ldk::Bitmap);
     const int8* buffer = (int8*) ldk::platform::loadFileToBufferOffset(
@@ -85,8 +35,8 @@ static ldk::Bitmap _placeholderBmp = {};
     if (!buffer || bufferSize == 0) { return false; }
 
     // bitmap data starts after the ldk::Bitmap struct data
-    BITMAP_FILE_HEADER *bitmapHeader =
-      (BITMAP_FILE_HEADER*)(buffer + bitmapStructSize);
+    LDK_BITMAP_FILE_HEADER *bitmapHeader =
+      (LDK_BITMAP_FILE_HEADER*)(buffer + bitmapStructSize);
 
     //NOTE: compression info at https://msdn.microsoft.com/en-us/library/cc250415.aspx
     if (bitmapHeader->FileType != BITMAP_FILE_HEADER_SIGNATURE
@@ -96,10 +46,10 @@ static ldk::Bitmap _placeholderBmp = {};
         && bitmapHeader->BitsPerPixel != 32)
     {
 
-      ldk::freeAsset((void*)buffer);
+      ldk::platform::memoryFree((void*)buffer);
       LogError("Unsupported bitmap type.");
 
-      return nullptr;
+      return handle_invalid();
     }
 
     ldk::Bitmap* bitmap = (ldk::Bitmap*)buffer;
@@ -109,7 +59,6 @@ static ldk::Bitmap _placeholderBmp = {};
     bitmap->height = bitmapHeader->Height;
 
     //NOTE: Pixel format in memory is ABGR. Must rearrange it as RGBA to make OpenGL happy 
-    //TODO: implement this with SIMD to make it faster
     uint32 numPixels = bitmap->width * bitmap->height;
 
     if (bitmapHeader->BitsPerPixel == 32)
@@ -150,32 +99,45 @@ static ldk::Bitmap _placeholderBmp = {};
         *((uint16*)bitmap->pixels + i) = rgb;
       }
     }
-    return bitmap;
+
+    // get a handle for this data
+    Handle bmpHandle = handle_store(HandleType::BITMAP, bitmap);
+    return bmpHandle;
   }
 
-  bool loadFont(const char* file, ldk::FontAsset** font)
+  ldk::Handle loadFont(const char* file)
   {
-    //TODO(marcio): Review this when implemening text rendering again...
-    //size_t fontAssetSize;
-    //ldk::FontAsset* fontAsset = (ldk::FontAsset*) ldk::platform::loadFileToBuffer(file, &fontAssetSize);
-    //if (!fontAsset || fontAssetSize == 0) { return false; }
+    size_t fontFileSize=0;
+    size_t fontStructSize = sizeof(ldk::Font);
+    ldk::Font* font = (ldk::Font*) ldk::platform::loadFileToBufferOffset(file,
+        &fontFileSize,
+        fontStructSize,
+        fontStructSize);
+    
+    if (!font || fontFileSize < sizeof(ldk::FontData)) return ldk::handle_invalid();
+    
+    ldk::FontData* fontData = (ldk::FontData*) ((char8*) font + sizeof(ldk::Font));
+    font->fontInfo = &fontData->info;
+    font->gliphData = (ldk::FontGliphRect*) (((char8*)fontData) + sizeof(ldk::FontData));
 
-    //fontAsset->gliphData = (FontGliphRect*) (((uint8*)fontAsset + (uint32) fontAsset->gliphData));
-    //*font = fontAsset;
-    //return true;
-    return false;
+    // get a handle for this data
+    ldk::Handle fontHandle = ldk::handle_store(HandleType::FONT, font);
+    return fontHandle;
   }
 
-	ldk::MeshData* loadMesh(const char* file)
+  ldk::MeshData* loadMesh(const char* file)
   {
+    LogInfo("Loading Mesh:\t'%s'", file);
     size_t buffSize;
     ldk::MeshData* meshData = (ldk::MeshData*) ldk::platform::loadFileToBuffer(file, &buffSize);
     return meshData;
   }
 
-  void freeAsset(void* asset)
+  void unloadAsset(Handle handle)
   {
-    ldk::platform::memoryFree(asset);
+    void* dataPtr = handle_getData(handle);
+    ldk::platform::memoryFree(dataPtr);
+    handle_remove(handle);
   }
 
   //---------------------------------------------------------------------------
@@ -189,19 +151,20 @@ static ldk::Bitmap _placeholderBmp = {};
 
     while ( data < endOfBuffer)
     {
-      RIFFAudioChunk *chunk = (RIFFAudioChunk*) data;
+      LDK_RIFFAudioChunk *chunk = (LDK_RIFFAudioChunk*) data;
       if ( chunk->signature == fourcc)
       {
         *outSize = chunk->chunkSize;
-        return data + sizeof(RIFFAudioChunk);
+        return data + sizeof(LDK_RIFFAudioChunk);
       }
-      data += chunk->chunkSize + sizeof(RIFFAudioChunk);
+      data += chunk->chunkSize + sizeof(LDK_RIFFAudioChunk);
     }
     return nullptr;
   }
 
-  ldk::Audio* loadAudio(const char* file)
+  ldk::Handle loadAudio(const char* file)
   {
+    LogInfo("Loading Audio:\t\t'%s'", file);
     size_t bufferSize;
     size_t audioStructSize = sizeof(ldk::Audio);
     int8* buffer = (int8*)ldk::platform::loadFileToBufferOffset(file, &bufferSize, audioStructSize, audioStructSize);
@@ -209,44 +172,47 @@ static ldk::Bitmap _placeholderBmp = {};
     if (!buffer || bufferSize == 0) return false; 
 
     ldk::Audio* audio = (ldk::Audio*)buffer;
-    RIFFAudioHeaderChunk* riffHeader = (RIFFAudioHeaderChunk*) (buffer + audioStructSize);
-    void* riffData = ((uint8*) buffer + audioStructSize + sizeof(RIFFAudioHeaderChunk));
+    LDK_RIFFAudioHeaderChunk* riffHeader = (LDK_RIFFAudioHeaderChunk*) (buffer + audioStructSize);
+    void* riffData = ((uint8*) buffer + audioStructSize + sizeof(LDK_RIFFAudioHeaderChunk));
 
-    if (riffHeader->signature != RIFF_FOURCC_RIFF || riffHeader->chunkType != RIFF_FORMAT_WAVE)
+    if (riffHeader->signature != LDK_RIFF_FOURCC_RIFF || riffHeader->chunkType != LDK_RIFF_FORMAT_WAVE)
     {
       LogError("Invalid wave file");
-      freeAsset(buffer);
+      ldk::platform::memoryFree((void*)buffer);
     }
+
+    const ldk::Handle invalidHandle = ldk::handle_invalid();
 
     // find 'fmt' chunk
     uint32 fmtSize;
-    void* fmt = findAudioChunk(riffData, riffHeader->chunkSize, RIFF_FOURCC_FMT, &fmtSize);
-    if ( fmt == nullptr) 
+    void* fmt = findAudioChunk(riffData, riffHeader->chunkSize, LDK_RIFF_FOURCC_FMT, &fmtSize);
+    if (fmt == nullptr) 
     {
       LogError("Error loading wave format table");
-      freeAsset(buffer);
-      return nullptr;
+      ldk::platform::memoryFree((void*)buffer);
+      return invalidHandle;
     }
 
     // find 'data' chunk
     uint32 dataSize;
-    void* data = findAudioChunk(riffData, riffHeader->chunkSize, RIFF_FOURCC_DATA, &dataSize);
+    void* data = findAudioChunk(riffData, riffHeader->chunkSize, LDK_RIFF_FOURCC_DATA, &dataSize);
     if ( data == nullptr) 
     {
       LogError("Error loading wave data table");
-      freeAsset(buffer);
-      return nullptr;
+      ldk::platform::memoryFree((void*)buffer);
+      return invalidHandle;
     }
 
     audio->id = ldk::platform::createAudioBuffer(fmt, fmtSize, data, dataSize);
-    return (ldk::Audio*) buffer;
+    ldk::Handle audioHandle = ldk::handle_store(ldk::HandleType::AUDIO, (void*) audio);
+    return audioHandle;
   }
 
-  void playAudio(const ldk::Audio* audio)
+  //TODO: Move this to some other place
+  void playAudio(ldk::Handle audioHandle)
   {
+    ldk::Audio* audio = (ldk::Audio*) ldk::handle_getData(audioHandle);
     ldk::platform::playAudioBuffer(audio->id);
   }
-
-
 
 } // namespace ldk

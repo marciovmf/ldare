@@ -694,7 +694,6 @@ namespace ldk
 	{
 		size_t fileSize;
 		void* buffer = platform::loadFileToBufferOffset(fileName, &fileSize, 1, 0);
-		LogInfo("Parsing file '%s'", fileName);
 		if (!buffer)
 		{
 		  return nullptr;

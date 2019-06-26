@@ -22,10 +22,10 @@
 #else
   #define LDK_API __declspec(dllimport)
   #define LDK_GAME_CALLBACK extern "C" __declspec(dllexport) 
-#endif
+#endif // _LDK_ENGINE_
+
 
 #include <stdio.h>
-
 #include "ldk_types.h"
 #include "ldk_string.h"
 #include "ldk_debug.h"

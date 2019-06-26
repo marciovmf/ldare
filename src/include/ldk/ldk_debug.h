@@ -4,13 +4,15 @@
 
 #ifdef _LDK_DEBUG_
 #include <stdio.h>
-	#define LogMsg(prefix, msg, ...) do {printf("\n%s - ", prefix); printf(msg, __VA_ARGS__); printf("\n\t%s:%d", __FILE__, __LINE__); } while(0)
+	#define LogMsg(prefix, msg, ...) do {printf("\n%s - ", prefix); printf(msg, __VA_ARGS__);} while(0)
+	#define LogMsgAndFileLine(prefix, msg, ...) do {printf("\n%s - ", prefix); printf(msg, __VA_ARGS__); printf("@ %s:%d", __FILE__, __LINE__); } while(0)
 	#define LogInfo(msg, ...) LogMsg("[INFO]", msg, __VA_ARGS__)
-	#define LogWarning(msg, ...) LogMsg("[WARNING]", msg, __VA_ARGS__)
-	#define LogError(msg, ...) LogMsg("[ERROR]", msg, __VA_ARGS__)
-	#define LDK_ASSERT(condition, msg, ...) do{if (!(condition)) { LogMsg("[Assertion Failed]", msg, __VA_ARGS__); *((int*)0) = 0;} } while(0)
+	#define LogWarning(msg, ...) LogMsgAndFileLine("[WARNING]", msg, __VA_ARGS__)
+	#define LogError(msg, ...) LogMsgAndFileLine("[ERROR]", msg, __VA_ARGS__)
+	#define LDK_ASSERT(condition, msg, ...) do{if (!(condition)) { LogMsgAndFileLine("[Assertion Failed]", msg, __VA_ARGS__); *((int*)0) = 0;} } while(0)
 #else
 	#define LogMsg(prefix, msg, ...)
+	#define LogMsgAndFileLine(prefix, msg, ...)
 	#define LogInfo(msg, ...) 
 	#define LogWarning(msg, ...) 
 	#define LogError(msg, ...) 

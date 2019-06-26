@@ -14,7 +14,7 @@ namespace ldk
     struct SpriteBatch
     {
       Context* context;
-      Material* currentMaterial;
+      Handle currentMaterial;
       Renderable renderable;
       VertexBuffer buffer;
       uint32 maxSprites;
@@ -24,26 +24,26 @@ namespace ldk
       SpriteVertexData *vertices;
     };
 
-    void makeSprite(Sprite* sprite, const Material* material, uint32 x, uint32 y, uint32 width, uint32 height)
+    void makeSprite(Sprite* sprite, Handle materialHandle, uint32 x, uint32 y, uint32 width, uint32 height)
     {
-      sprite->material = (Material*) material;
+      sprite->material = materialHandle;
       sprite->x = x;
       sprite->y = y;
       sprite->width = width;
       sprite->height = height;
     }
 
-    static void _initBatch(SpriteBatch* spriteBatch, Context* context, Material* material)
+    static void _initBatch(SpriteBatch* spriteBatch, Context* context, Handle materialHandle)
     {
-      spriteBatch->currentMaterial = material;
+      spriteBatch->currentMaterial = materialHandle;
       spriteBatch->spriteCount = 0;
-      setMaterial(&spriteBatch->renderable, spriteBatch->currentMaterial);
+      setMaterial(&spriteBatch->renderable, materialHandle);
     }
 
     static void _flushBatch(SpriteBatch* spriteBatch)
     {
       // assign the material to the renderable if material changed
-      if(spriteBatch->renderable.material != spriteBatch->currentMaterial)
+      if(spriteBatch->renderable.materialHandle != spriteBatch->currentMaterial)
       {
         setMaterial(&spriteBatch->renderable, spriteBatch->currentMaterial);
       }
@@ -55,7 +55,7 @@ namespace ldk
       drawCall.vertices = spriteBatch->vertices;
       drawCall.indexStart = 0;
       drawCall.indexCount = spriteBatch->spriteCount * 6;
-      spriteBatch->currentMaterial = nullptr;
+      spriteBatch->currentMaterial = handle_invalid();
 
       pushDrawCall(spriteBatch->context, &drawCall);
       renderer::flush(spriteBatch->context);
@@ -71,7 +71,7 @@ namespace ldk
       SpriteBatch* spriteBatch =
         (SpriteBatch*) ldk::platform::memoryAlloc(sizeof(SpriteBatch) + indexBufferSize + vertexBufferSize);
       spriteBatch->context = context;
-      spriteBatch->currentMaterial = nullptr;
+      spriteBatch->currentMaterial = handle_invalid();
       spriteBatch->spriteCount = 0;
       spriteBatch->maxSprites = maxSprites;
       spriteBatch->state = 0;
@@ -126,7 +126,7 @@ namespace ldk
         float rotY)
     {
       // Flush the batch if material changed or the buffer is full
-      if (spriteBatch->currentMaterial == nullptr)
+      if (spriteBatch->currentMaterial == handle_invalid())
       {
         spriteBatch->currentMaterial = sprite->material;
       }
@@ -135,7 +135,7 @@ namespace ldk
         _flushBatch(spriteBatch);
       }
 
-      Material* material = sprite->material;
+      Material* material = (Material*) handle_getData(sprite->material);
 
       if (material->textureCount == 0)
       {

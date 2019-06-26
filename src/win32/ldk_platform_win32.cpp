@@ -665,11 +665,8 @@ namespace ldk
       // initialize timer data
       QueryPerformanceFrequency(&_platform.ticksPerSecond);
       QueryPerformanceCounter(&_platform.ticksSinceEngineStartup);
-    
-    
-      LogInfo("Running from: '%s'", path);
       SetCurrentDirectory(path);
-    
+      LogInfo("LDK Running from '%s'", path);
       ldk_win32_initXInput();
       ldk_win32_initXAudio();
       return ldk_win32_registerWindowClass(_appInstance);
@@ -796,7 +793,7 @@ namespace ldk
       }
     
       //LogInfo("Initialized OpenGL %s\n\t%s\n\t%s", 
-      LogInfo("Initialized OpenGL\n\tVERSION: %s\n\tVENDOR: %s\n\tRENDERER: %s", 
+      LogInfo("Initialized OpenGL\tVERSION: %s\tVENDOR: %s\tRENDERER: %s", 
           glGetString(GL_VERSION),
           glGetString(GL_VENDOR),
           glGetString(GL_RENDERER));
@@ -995,10 +992,14 @@ namespace ldk
     
     ldk::platform::SharedLib* loadSharedLib(char* sharedLibName)
     {
+      LogInfo("Loading Module:\t'%s'", sharedLibName);
       HMODULE hmodule = LoadLibrary(sharedLibName);
     
       if (!hmodule)
+      {
+        LogError("Could not load shared lib:\t'%s'", sharedLibName);
         return nullptr;
+      }
     
       //TODO: Use custom allocation here
       SharedLib* sharedLib = new SharedLib;
@@ -1008,13 +1009,28 @@ namespace ldk
     
     bool unloadSharedLib(ldk::platform::SharedLib* sharedLib)
     {
-      if (sharedLib->handle && FreeLibrary(sharedLib->handle))
+
+      if(sharedLib->handle)
       {
-        sharedLib->handle = NULL;
-        delete sharedLib;
-        return true;
+        const uint32 buffSize = 255;
+        char8 moduleName[buffSize];
+        uint32 nameLen = GetModuleFileNameA(sharedLib->handle, (LPSTR)&moduleName, buffSize);
+        if(nameLen < buffSize)
+          moduleName[nameLen] = 0;
+        LogInfo("Unloading Module:\t'%s'", moduleName);
+
+        if (FreeLibrary(sharedLib->handle))
+        {
+
+          sharedLib->handle = NULL;
+          delete sharedLib;
+          return true;
+        }
+
       }
-    
+
+
+    LogError("Could not unload unknown sahred lib");
       return false;
     }
     
