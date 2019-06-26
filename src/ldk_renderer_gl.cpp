@@ -325,8 +325,9 @@ namespace ldk
       _unmapBuffer();
     }
 
-    static void _executeDrawCall(DrawCall* drawCall)
+    static void _executeDrawCall(DrawCall* drawCall) 
     {
+      // if there is no pointer to a renderable, try fetching from a handle
       Renderable* renderable = drawCall->renderable; 
       Material* material = (Material*) handle_getData(drawCall->renderable->materialHandle);
 
@@ -792,6 +793,50 @@ namespace ldk
       checkGlError();
     }
 
+
+    ldk::Handle makeRenderable(ldk::Handle meshHandle, ldk::Handle materialHandle)
+    {
+      char8* mem =
+        (char8*) ldk::platform::memoryAlloc(sizeof(ldk::renderer::Renderable) + sizeof(ldk::renderer::VertexBuffer));
+
+      ldk::renderer::Renderable* renderable = (ldk::renderer::Renderable*) mem;
+      
+      ldk::renderer::VertexBuffer* vertexBuffer =
+        (ldk::renderer::VertexBuffer*) (mem + sizeof(ldk::renderer::Renderable));
+
+      ldk::Mesh* mesh = (ldk::Mesh*) ldk::handle_getData(meshHandle);
+      ldk::MeshInfo* meshInfo = &(mesh->meshData->info);
+      
+      if(mesh->meshData->info.format == ldk::MeshInfo::VertexFormat::PNUV)
+      {
+        // Set buffer layout for PNUV mesh
+        renderer::makeVertexBuffer(vertexBuffer, meshInfo->vertexCount);
+        renderer::addVertexBufferAttribute(vertexBuffer, "_pos", 3,
+            renderer::VertexAttributeType::FLOAT, 0);
+
+        renderer::addVertexBufferAttribute(vertexBuffer, "_normal", 3, 
+            renderer::VertexAttributeType::FLOAT, 3 * sizeof(float));
+
+        renderer::addVertexBufferAttribute(vertexBuffer, "_uv", 2,
+            renderer::VertexAttributeType::FLOAT, 6 * sizeof(float));
+      }
+      else
+      {
+        LDK_ASSERT(false, "Unknown vertex format on mesh");
+        return ldk::handle_invalid();
+      }
+
+      // Initialize an indexed vertex buffer
+      makeRenderable(renderable, vertexBuffer, mesh->indices, meshInfo->indexCount, true);
+      
+      // Set material to renderable
+      renderer::setMaterial(renderable, materialHandle);
+
+      renderable->meshHandle = meshHandle;
+      ldk::Handle renderableHandle = ldk::handle_store(HandleType::RENDERABLE, (void*)renderable);
+      return renderableHandle;
+    }
+
     //
     // Render functions
     //
@@ -799,6 +844,23 @@ namespace ldk
     {
       LDK_ASSERT(context->drawCallCount < context->maxDrawCalls, "Exceeded maximum draw calls per frame at current context");
       context->drawCalls[context->drawCallCount++] = *drawCall;
+    }
+
+
+    LDK_API void drawIndexed(Context* context, ldk::Handle renderableHandle)
+    {
+      ldk::renderer::Renderable* renderable = (ldk::renderer::Renderable*) ldk::handle_getData(renderableHandle);
+      ldk::Mesh* mesh = (ldk::Mesh*) ldk::handle_getData(renderable->meshHandle);
+      ldk::MeshInfo* meshInfo = &mesh->meshData->info;
+
+      ldk::renderer::DrawCall drawCall;
+      drawCall.renderable = renderable;
+      drawCall.type = renderer::DrawCall::DRAW_INDEXED;
+      drawCall.vertexCount = meshInfo->vertexCount;
+      drawCall.vertices = (void*)mesh->vertices;
+      drawCall.indexStart = 0;
+      drawCall.indexCount = meshInfo->indexCount;
+      pushDrawCall(context, &drawCall);
     }
 
     void flush(Context* context)
@@ -1070,7 +1132,6 @@ namespace ldk
 
       return result;
     }
-
 
     ldk::Handle loadMaterial(const char* file)
     {

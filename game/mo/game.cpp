@@ -21,12 +21,8 @@ struct GameState
   uint32 initialized;
   renderer::Sprite sprite;
   Handle material;
-  Handle fontMaterial;
-  Handle font;
-  Handle audio;
+  Handle renderable;
   renderer::Context* context;
-  renderer::Renderable renderable;
-  renderer::VertexBuffer buffer;
   renderer::DrawCall drawCall;
   Mat4 modelMatrix;
   Mat4 projMatrix;
@@ -51,41 +47,11 @@ void gameStart(void* memory)
   _gameState->context =
   renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
 
-  // load the meshData
-  ldk::Handle meshHandle = ldk::mesh_loadFromFile("assets/monkey.mesh");
-  mesh = ldk::mesh_getMesh_DEBUG(meshHandle);
-  ldk::MeshInfo meshInfo;
-
-  if(!ldk::mesh_getInfo(meshHandle, &meshInfo))
-  {
-    LogError("Error getting info for mesh");
-  }
-
-  // load audio
-  _gameState->audio = loadAudio("assets/crowd.wav");
-
-  // Create a vertex buffer
-  renderer::makeVertexBuffer(&_gameState->buffer, meshInfo.vertexCount);
-  renderer::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3, 
-      renderer::VertexAttributeType::FLOAT, 0);
-
-  renderer::addVertexBufferAttribute(&_gameState->buffer, "_normal", 3, 
-      renderer::VertexAttributeType::FLOAT, 3 * sizeof(float));
-
-  renderer::addVertexBufferAttribute(&_gameState->buffer, "_uv", 2,
-      renderer::VertexAttributeType::FLOAT, 6 * sizeof(float));
-
-  // Load font
-  _gameState->font = loadFont("./assets/standard/Inconsolata_18.font");
 
   // Initialize material
+  ldk::Handle mesh = ldk::mesh_loadFromFile("assets/monkey.mesh");
   _gameState->material = renderer::loadMaterial("./assets/standard/test.mat");
-  _gameState->fontMaterial = renderer::loadMaterial("./assets/standard/inconsolata_18.mat");
-
-  // make a renderable 
-  uint32 maxIndices = meshInfo.indexCount;
-  renderer::makeRenderable(&_gameState->renderable, &_gameState->buffer, mesh->indices, maxIndices, true);
-  renderer::setMaterial(&_gameState->renderable, _gameState->material);
+  _gameState->renderable = renderer::makeRenderable(mesh, _gameState->material);
 
   // Calculate matrices and send them to shader uniforms  
   // projection
@@ -98,13 +64,6 @@ void gameStart(void* memory)
   renderer::setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
   renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
 
-  // create draw call
-  _gameState->drawCall.renderable = &_gameState->renderable;
-  _gameState->drawCall.type = renderer::DrawCall::DRAW_INDEXED;
-  _gameState->drawCall.vertexCount = meshInfo.vertexCount;
-  _gameState->drawCall.vertices = (void*)mesh->vertices;
-  _gameState->drawCall.indexStart = 0;
-  _gameState->drawCall.indexCount = maxIndices;
   _gameState->initialized = 1;
 }
 
@@ -112,12 +71,6 @@ void gameUpdate(float deltaTime)
 {
   bool update = false;
   Vec3 axis = {};
-
-
-  if(input::isKeyDown(ldk::input::LDK_KEY_SPACE))
-  {
-    playAudio(_gameState->audio);
-  }
 
   if (input::getKey(ldk::input::LDK_KEY_H))
   {
@@ -141,8 +94,8 @@ void gameUpdate(float deltaTime)
     _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(80.0f) * deltaTime);
     renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
   }
-
-  renderer::pushDrawCall(_gameState->context, &_gameState->drawCall);
+  
+  renderer::drawIndexed(_gameState->context, _gameState->renderable);
   renderer::flush(_gameState->context);
 }
 

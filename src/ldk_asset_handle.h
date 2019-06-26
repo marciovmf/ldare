@@ -12,6 +12,7 @@ namespace ldk
     FONT,
     MESH,
     MATERIAL,
+    RENDERABLE,
     SHADER,
   };
 

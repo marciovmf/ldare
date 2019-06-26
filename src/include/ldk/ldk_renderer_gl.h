@@ -131,6 +131,7 @@ namespace ldk
     {
       VertexBuffer buffer;
       ldk::Handle materialHandle;
+      ldk::Handle meshHandle;       // **If** this renderable was build from a mesh, this is a reference to it.
       GLuint ibo;
       GLuint iboSize;
       GLuint attributeCount;
@@ -146,20 +147,18 @@ namespace ldk
 
     struct DrawCall
     {
+      void* vertices;
+      Renderable* renderable;
+      GLuint indexStart;
+      GLuint vertexCount;
+      GLuint indexCount;
       enum 
       {
         DRAW = 0,
         DRAW_INDEXED
         // 
       } type;
-
-      void* vertices;
-      Renderable* renderable;
-      GLuint indexStart;
-      GLuint vertexCount;
-      GLuint indexCount;
     };
-
 
     ///@brief Creates arendering context
     ///@param maxDrawCalls - Maximum number of draw calls per frame
@@ -248,10 +247,14 @@ namespace ldk
     //static renderable is uploaded to the GPU only once instead of every frame
     LDK_API void makeRenderable(Renderable* renderable, VertexBuffer* vertexBuffer, uint32* indices, uint32 maxIndexCount, bool isStatic);
 
+    LDK_API ldk::Handle makeRenderable(ldk::Handle meshHandle, ldk::Handle materialHandle);
+
     ///@brief Submits a draw call for execution.
     ///@param context - The rendering context to push the draw call into
     ///@param drawCall - The draw call to push.
     LDK_API void pushDrawCall(Context* context, DrawCall* drawCall);
+
+    LDK_API void drawIndexed(Context* context, ldk::Handle renderable);
 
     ///@brief Flushes the draw call queue forcing draw calls to execute.
     ///@param context - Rendering contex to flush draw calls

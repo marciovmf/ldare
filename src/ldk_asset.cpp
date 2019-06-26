@@ -8,10 +8,6 @@ namespace ldk
 static int32 _placeholderBmpData = 0xFFFF00FF;
 static ldk::Bitmap _placeholderBmp = {};
 
-  //---------------------------------------------------------------------------
-  // Material functions
-  //---------------------------------------------------------------------------
-
   ldk::Bitmap* getPlaceholderBmp()
   {
     if (_placeholderBmp.pixels == nullptr)
@@ -212,6 +208,7 @@ static ldk::Bitmap _placeholderBmp = {};
     return audioHandle;
   }
 
+  //TODO: Move this to some other place
   void playAudio(ldk::Handle audioHandle)
   {
     ldk::Audio* audio = (ldk::Audio*) ldk::handle_getData(audioHandle);
