@@ -3,10 +3,8 @@
 
 namespace ldk
 {
-
   namespace renderer
   {
-
     struct SpriteBatch;
     struct Material;
 

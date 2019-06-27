@@ -3,56 +3,47 @@
 
 namespace ldk
 {
-	struct Audio
-	{
-		uint32 id;
-	};
+/// @defgroup Asset Asset
+/// @details Functions for loading and unloading asset files
+/// @{
 
-	struct Bitmap
-	{
-		uint32 width;
-		uint32 height;
-		uint32 bitsPerPixel;
-		const uchar *pixels;
-	};
-
-  struct FontGliphRect
-	{
-		uint32 x;
-		uint32 y;
-		uint32 w;
-		uint32 h;
-	};
-
-  const uint32 LDK_MAX_FONT_NAME = 32;
-  struct FontInfo
-  {
-    char8 name[LDK_MAX_FONT_NAME];
-    uint32 fontSize;
-		uint16 firstCodePoint;  // first character codepoint defined in the font
-		uint16 lastCodePoint;  	// last character codepoint defined in the font
-		uint16 defaultCodePoint;// default character to be substituted in the font
-  };
-
-	struct FontData
-	{
-    FontInfo info;
-		uint32 rasterWidth; 	 	// width of font raster bitmap
-		uint32 rasterHeight; 		// height of font raster bitmap
-		//TODO: add font kerning information here
-	};
-
-  struct Font
-  {
-    FontInfo* fontInfo;
-    FontGliphRect* gliphData;
-  };
-
+  ///@brief Loads a Bitmap asset from file and returns a Handle to it. 
+  ///@param file - A file to load the asset from.
+  ///@returns the Handle to the asset.
+  ///@see Handle
 	LDK_API ldk::Handle loadBitmap(const char* file);
-	LDK_API ldk::Handle loadAudio(const char* file);
+	
+  ///@brief Loads an Audio asset from file and returns a Handle to it. 
+  ///@param file - A file to load the asset from.
+  ///@returns the Handle to the asset.
+  ///@see Handle
+  LDK_API ldk::Handle loadAudio(const char* file);
+
+  ///@brief Loads a Font asset from file and returns a Handle to it. 
+  ///@param file - A file to load the asset from.
+  ///@returns the Handle to the asset.
+  ///@see Handle
 	LDK_API ldk::Handle loadFont(const char* file);
-	LDK_API void playAudio(ldk::Handle audioHandle);
-	LDK_API void unloadAsset(Handle handle);
+
+  ///@brief Loads a Mesh asset from file and returns a Handle to it. 
+  ///@param file - A file to load the asset from.
+  ///@returns the Handle to the asset.
+  ///@see Handle
+	LDK_API ldk::Handle loadMesh(const char* file);
+
+  ///@brief Loads a Material from file and returns a Handle to it. 
+  ///@param file - A file to load the asset from.
+  ///@returns the Handle to the asset.
+  ///@see Handle
+  LDK_API ldk::Handle loadMaterial(const char* file);
+
+  ///@brief Loads a Bitmap from file and returns a Handle to it. 
+  ///@param file - A file to load the asset from.
+  ///@returns the Handle to the asset.
+  ///@see Handle
+	LDK_API void unloadAsset(ldk::Handle handle);
+  ///@}
+
 } // namespace ldk
 
 #endif // _LDK_ASSET_H_

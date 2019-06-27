@@ -8,6 +8,7 @@ struct GameState
   renderer::Sprite sprite;
   Handle material;
   Handle mesh;
+  Handle audio;
   Handle renderable;
   renderer::Context* context;
   renderer::DrawCall drawCall;
@@ -35,9 +36,11 @@ void gameStart(void* memory)
   renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
 
   // Initialize material
-  _gameState->mesh = ldk::mesh_loadFromFile("assets/monkey.mesh");
-  _gameState->material = renderer::loadMaterial("./assets/standard/test.mat");
-  _gameState->renderable = renderer::makeRenderable(_gameState->mesh, _gameState->material);
+  _gameState->mesh = ldk::loadMesh("assets/monkey.mesh");
+  _gameState->material = ldk::renderer::createMaterial("./assets/standard/test.mat"); //TODO(marcio): make possible to createMaterial(loadMaterial("my_material.mat")). Separate material file loading from material creation
+  _gameState->renderable = renderer::createRenderable(_gameState->mesh, _gameState->material);
+
+  _gameState->audio = ldk::loadAudio("assets/crowd.wav");
 
   // Calculate matrices and send them to shader uniforms  
   // projection
@@ -75,6 +78,11 @@ void gameUpdate(float deltaTime)
     axis.x = -1;
   }
 
+  if(input::isKeyDown(ldk::input::LDK_KEY_SPACE))
+  {
+    ldk::playAudio(_gameState->audio);
+  }
+
   if(axis.x || axis.y || axis.z)
   {
     _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(80.0f) * deltaTime);
@@ -87,6 +95,7 @@ void gameUpdate(float deltaTime)
 
 void gameStop()
 {
+  ldk::renderer::destroyRenderable(_gameState->renderable);
   ldk::renderer::destroyMaterial(_gameState->material);
   ldk::renderer::destroyContext(_gameState->context);
 }

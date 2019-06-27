@@ -559,7 +559,7 @@ void gameStart(void* memory)
   _gameState->context = renderer::createContext(255, renderer::Context::COLOR_BUFFER 
         | renderer::Context::DEPTH_BUFFER, 0);
 
-  _gameState->material = renderer::loadMaterial("./assets/jewel.mat");
+  _gameState->material = loadMaterial("./assets/jewel.mat");
 
   // Calculate matrices and send them to shader uniforms  
   // projection 

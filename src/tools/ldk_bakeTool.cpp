@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ldk/ldk.h>
+#include <ldkengine/ldk_asset_internal.h>
 
 ldk::MeshData* createMeshDataPNUV(
     ldk::VertexPNUV* vertexData,

@@ -1,6 +1,6 @@
 #include <ldk/ldk.h>
-#include <ldk/ldk_asset.h>
-#include "../../ldk_ttf.h"
+#include <ldkengine/ldk_asset_internal.h>
+#include <ldkengine/ldk_ttf.h>
 #include <windows.h>
 #include <tchar.h>
 #include <fstream>

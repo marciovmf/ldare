@@ -247,13 +247,27 @@ namespace ldk
     //static renderable is uploaded to the GPU only once instead of every frame
     LDK_API void makeRenderable(Renderable* renderable, VertexBuffer* vertexBuffer, uint32* indices, uint32 maxIndexCount, bool isStatic);
 
-    LDK_API ldk::Handle makeRenderable(ldk::Handle meshHandle, ldk::Handle materialHandle);
+    ///@brief Creates a rendereable from a mesh.
+    ///@param meshHandle - Handle to mesh.
+    ///@param materialHandle - Handle to material.
+    ///@returns a Handle to the renderable.
+    LDK_API ldk::Handle createRenderable(ldk::Handle meshHandle, ldk::Handle materialHandle);
+
+    ///@brief Creates a material from a mesh.
+    ///@param meshHandle - Handle to mesh.
+    ///@param materialHandle - Handle to material.
+    ///@returns a Handle to the renderable.
+    LDK_API ldk::Handle createMaterial(const char* file);
 
     ///@brief Submits a draw call for execution.
     ///@param context - The rendering context to push the draw call into
     ///@param drawCall - The draw call to push.
     LDK_API void pushDrawCall(Context* context, DrawCall* drawCall);
 
+    ///@brief Composes and submits a drawcall for a drawing a given renderable
+    ///@param context - The rendering context to push the draw call into
+    ///@param drawCall - The draw call to push.
+    ///@see Handle
     LDK_API void drawIndexed(Context* context, ldk::Handle renderable);
 
     ///@brief Flushes the draw call queue forcing draw calls to execute.
@@ -277,9 +291,13 @@ namespace ldk
     ///@param texture - The gpu texture id.
     LDK_API void destroyTexture(Texture& texture);
 
-    LDK_API ldk::Handle loadMaterial(const char* file);
-    
+    ///@brief Destroys a Material
+    ///@param materialHandle - handle to the material to destroy
     LDK_API void destroyMaterial(ldk::Handle materialHandle);
+
+    ///@brief Destroys a Renderable
+    ///@param materialHandle - handle to the renderable to destroy
+    LDK_API void destroyRenderable(ldk::Handle renderableHandle);
     
 ///@}
   } // renderer

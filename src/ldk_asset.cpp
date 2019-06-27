@@ -1,6 +1,17 @@
-
 #include "ldk_wav.h"
 #include "ldk_bitmap.h"
+#include  <ldkengine/ldk_asset_internal.h>
+
+// Renderer dependency
+namespace ldk
+{
+  namespace renderer
+  {
+    //TODO(marcio): We must separate material file loading/parsing from GPU resource allocation
+    ldk::Handle createMaterial(const char* file);
+  }
+}
+
 
 namespace ldk
 {
@@ -125,19 +136,41 @@ static ldk::Bitmap _placeholderBmp = {};
     return fontHandle;
   }
 
-  ldk::MeshData* loadMesh(const char* file)
-  {
-    LogInfo("Loading Mesh:\t'%s'", file);
-    size_t buffSize;
-    ldk::MeshData* meshData = (ldk::MeshData*) ldk::platform::loadFileToBuffer(file, &buffSize);
-    return meshData;
-  }
-
   void unloadAsset(Handle handle)
   {
     void* dataPtr = handle_getData(handle);
     ldk::platform::memoryFree(dataPtr);
     handle_remove(handle);
+  }
+
+  //---------------------------------------------------------------------------
+  // Mesh functions
+  //---------------------------------------------------------------------------
+	ldk::Handle loadMesh(const char* file)
+  {
+    // Loads the MeshData from file but reserves space at the beggining for a Mesh
+    size_t buffSize;
+    ldk::Mesh* mesh = (ldk::Mesh*) ldk::platform::loadFileToBufferOffset(
+          file,
+          nullptr,
+          sizeof(ldk::Mesh),
+          sizeof(ldk::Mesh));
+
+    if(!mesh)
+      return handle_invalid();
+
+    // Memory layout
+    // -----------------------
+    // |   MESH   | MESHDATA |
+    // | MESHDATA |          |
+    // -----------------------
+    ldk::MeshData* meshData = (ldk::MeshData*) (sizeof(ldk::Mesh) + (char*) mesh);
+    mesh->meshData = meshData;
+    mesh->indices = (uint32*) (meshData->indicesOffset + (char*) meshData);
+    mesh->vertices = (int8*) (meshData->verticesOffset + (char*) meshData);
+
+    ldk::Handle handle = handle_store(HandleType::MESH, (void*)mesh);
+    return handle;
   }
 
   //---------------------------------------------------------------------------
@@ -208,6 +241,12 @@ static ldk::Bitmap _placeholderBmp = {};
     return audioHandle;
   }
 
+    LDK_API ldk::Handle loadMaterial(const char* file)
+    {
+		  LogInfo("Loading Material:\t'%s'", file);
+      return ldk::renderer::createMaterial(file);
+    }
+
   //TODO: Move this to some other place
   void playAudio(ldk::Handle audioHandle)
   {
@@ -216,3 +255,4 @@ static ldk::Bitmap _placeholderBmp = {};
   }
 
 } // namespace ldk
+

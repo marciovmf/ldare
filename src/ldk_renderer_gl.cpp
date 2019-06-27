@@ -793,8 +793,7 @@ namespace ldk
       checkGlError();
     }
 
-
-    ldk::Handle makeRenderable(ldk::Handle meshHandle, ldk::Handle materialHandle)
+    ldk::Handle createRenderable(ldk::Handle meshHandle, ldk::Handle materialHandle)
     {
       char8* mem =
         (char8*) ldk::platform::memoryAlloc(sizeof(ldk::renderer::Renderable) + sizeof(ldk::renderer::VertexBuffer));
@@ -1133,7 +1132,7 @@ namespace ldk
       return result;
     }
 
-    ldk::Handle loadMaterial(const char* file)
+    ldk::Handle createMaterial(const char* file)
     {
 		  LogInfo("Loading Material:\t'%s'", file);
       auto cfgRoot = ldk::configParseFile(file);
@@ -1278,7 +1277,6 @@ namespace ldk
       return handle;
     }
 
-
     void destroyMaterial(ldk::Handle materialHandle)
     {
         Material* material = (Material*) ldk::handle_getData(materialHandle);
@@ -1300,6 +1298,20 @@ namespace ldk
         platform::memoryFree(material);
 
         //TOD(marcio): Should we delete the actual BITMAP from RAM ? Review when asset manager is done!
+    }
+
+
+    void destroyRenderable(ldk::Handle renderableHandle)
+    {
+      ldk::renderer::Renderable* renderable = (ldk::renderer::Renderable*) ldk::handle_getData(renderableHandle);
+      ldk::Mesh* mesh = (ldk::Mesh*) ldk::handle_getData(renderable->meshHandle);
+      ldk::MeshInfo* meshInfo = &mesh->meshData->info;
+
+      glDeleteBuffers((GLsizei)renderable->vboCount, &(renderable->vbos[0]));
+      glDeleteBuffers((GLsizei)1, &renderable->ibo);
+
+      ldk::handle_remove(renderableHandle);
+      ldk::platform::memoryFree(renderable);
     }
 
   } // renderer

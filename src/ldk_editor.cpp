@@ -1,7 +1,8 @@
 
 #include <ldk/ldk.h>
-#include "ldk_platform.h"
+#include <ldkengine/ldk_platform.h>
 #include "ldk_memory.h"
+
 #include <string.h> // for memset()
 
 struct FrameTime
