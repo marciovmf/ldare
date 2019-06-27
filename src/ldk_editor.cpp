@@ -66,7 +66,11 @@ bool reloadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
 	// new dll version ?
 	if (gameModuleTime != lastGameDllTime)
 	{
-		LogInfo("Game updated. Reloading ...");
+    if (lastGameDllTime == 0)
+      LogInfo("Loading game module.");
+    else
+      LogInfo("Game module recompiled. Reloading ...");
+
 		if (lastGameDllTime != 0)
 			ldk::platform::unloadSharedLib(*sharedLib);
 

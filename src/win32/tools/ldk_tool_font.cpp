@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define MAX_FONT_NAME_SIZE 32
+const uint32 MAX_FONT_NAME_SIZE = 32;
 
 struct FontImportInput
 {
@@ -87,7 +87,7 @@ static HGDIOBJ installSystemFontFromTTF(HDC dc, const char* fontFile,  const cha
 	{
 		//-MulDiv(fontSize, GetDeviceCaps(dc, LOGPIXELSX), 72),
 		//40,
-		-fontSize,
+		(LONG)-fontSize,
 		0,
 		0,
 		0,
@@ -181,167 +181,172 @@ static void saveBitmap(HDC dc, RECT bitmapRect, const char* filename)
 	DeleteObject(bitmap);
 }
 
-//TODO(marcio): FIX font rendering. It is totaly broken!
 //TODO: Make the font asset AND the bitmap a single file?
-static void saveFontAsset(const char* fileName, uint16 firstChar, uint16 lastChar, uint16 defaultCharacter,
+static void saveFontAsset(const char* fontName, uint32 fontSize, const char* fileName, uint16 firstChar, uint16 lastChar, uint16 defaultCharacter,
 		uint32 bitmapWidth, uint32 bitmapHeight, void* gliphData, uint32 gliphDataSize)
 {
-	ldk::FontAsset fontAsset;
-	fontAsset.rasterWidth = bitmapWidth;
-	fontAsset.rasterHeight = bitmapHeight;
-	fontAsset.firstCodePoint = firstChar;
-	fontAsset.lastCodePoint = lastChar;
-	fontAsset.defaultCodePoint = defaultCharacter;
-	fontAsset.gliphData = (ldk::FontGliphRect*)sizeof(ldk::FontAsset);
+  // File layout:
+  // FONT_ASSET | GLIPH ASSET 
+	ldk::FontData fontData;
+	fontData.rasterWidth = bitmapWidth;
+	fontData.rasterHeight = bitmapHeight;
+  fontData.info.fontSize = fontSize;
+  strncpy((char*)&fontData.info.name, fontName, MAX_FONT_NAME_SIZE);
+	fontData.info.firstCodePoint = firstChar;
+	fontData.info.lastCodePoint = lastChar;
+	fontData.info.defaultCodePoint = defaultCharacter;
 
 	// create file
 	ofstream file(fileName, ios::binary);
 	if(!file) return;
 
-	file.write((char*) &fontAsset, sizeof(ldk::FontAsset)); // save font header
-	file.write((char*)gliphData, gliphDataSize); 							// save gliph data
+	file.write((char*)&fontData, sizeof(ldk::FontData)); // save font header
+	file.write((char*)gliphData, gliphDataSize); 						// save gliph data
 	file.close();
 }
 
 void enableFontSmoothing()
 {
-SystemParametersInfo(SPI_SETFONTSMOOTHING,
-                     TRUE,
-                     0,
-                     SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
-SystemParametersInfo(SPI_SETFONTSMOOTHINGTYPE,
-                     0,
-                     (PVOID)FE_FONTSMOOTHINGCLEARTYPE,
-                     SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+  SystemParametersInfo(SPI_SETFONTSMOOTHING,
+      TRUE,
+      0,
+      SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+  SystemParametersInfo(SPI_SETFONTSMOOTHINGTYPE,
+      0,
+      (PVOID)FE_FONTSMOOTHINGCLEARTYPE,
+      SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
 }
 
 int _tmain(int argc, _TCHAR** argv)
 {
-	FontImportInput input;
-	char fontName[MAX_FONT_NAME_SIZE];
+  FontImportInput input;
+  char fontName[MAX_FONT_NAME_SIZE];
 
-	if (argc != 4)
-	{
-		printf("usage:\n makefont TTF-file font-size maxwidth\n");
-		return 0;
-	}
+  if (argc != 4)
+  {
+    printf("usage:\n makefont TTF-file font-size maxwidth\n");
+    return 0;
+  }
 
-	input.ttfFontFile = argv[1];
-	input.fontSize = atoi(argv[2]);
-	input.maxLineWidth = nextPow2(atoi(argv[3])-1);
+  input.ttfFontFile = argv[1];
+  input.fontSize = atoi(argv[2]);
+  input.maxLineWidth = nextPow2(atoi(argv[3])-1);
 
-	// Load font name from the TTF file
-	getFontName(input.ttfFontFile, fontName, MAX_FONT_NAME_SIZE);
+  // Load font name from the TTF file
+  getFontName(input.ttfFontFile, fontName, MAX_FONT_NAME_SIZE);
 
-	uint32 fontWidth = 1024;
-	uint32 fontHeight = 1024;
-	uint32 dcBitmapSize = 1024 * 1024 * 4;
+  uint32 fontWidth = 1024;
+  uint32 fontHeight = 1024;
+  uint32 dcBitmapSize = 1024 * 1024 * 4;
 
-	// Create device context
-	void* bmpMem;
-	HDC dc = makeFontDC(&bmpMem, fontWidth, fontHeight);
-	memset(bmpMem, 0, dcBitmapSize);
+  // Create device context
+  void* bmpMem;
+  HDC dc = makeFontDC(&bmpMem, fontWidth, fontHeight);
+  memset(bmpMem, 0, dcBitmapSize);
 
-	if (dc == 0)
-	{
-		LogInfo("Could not create a compatible Device context");
-		return 1; 
-	}
+  if (dc == 0)
+  {
+    LogInfo("Could not create a compatible Device context");
+    return 1; 
+  }
 
-	// Load the TTF font file
-	HFONT hFont = (HFONT)installSystemFontFromTTF(dc, input.ttfFontFile, fontName, input.fontSize);
-	if (!hFont)
-	{
-		LogInfo("Could not load font file %s", input.ttfFontFile);
-		return 1;
-	}
+  // Load the TTF font file
+  HFONT hFont = (HFONT)installSystemFontFromTTF(dc, input.ttfFontFile, fontName, input.fontSize);
+  if (!hFont)
+  {
+    LogInfo("Could not load font file %s", input.ttfFontFile);
+    return 1;
+  }
 
-	// Get some font meterics
-	TEXTMETRIC fontMetrics;
-	if (!GetTextMetrics(dc, &fontMetrics))
-	{
-		LogInfo("Could not get metrics for font file %s", input.ttfFontFile);
-		return 1; 
-	}
+  // Get some font meterics
+  TEXTMETRIC fontMetrics;
+  if (!GetTextMetrics(dc, &fontMetrics))
+  {
+    LogInfo("Could not get metrics for font file %s", input.ttfFontFile);
+    return 1; 
+  }
 
-	// filling the fontInput structure
-	const uint32 spacing = 2;
+  // filling the fontInput structure
+  const uint32 spacing = 2;
 
-	input.fontStringLen =  fontMetrics.tmLastChar - fontMetrics.tmFirstChar;
-	int8* fontBuffer = new int8[input.fontStringLen];
-	input.fontString = (char*)fontBuffer;
+  input.fontStringLen =  fontMetrics.tmLastChar - fontMetrics.tmFirstChar;
+  int8* fontBuffer = new int8[input.fontStringLen];
+  input.fontString = (char*)fontBuffer;
 
-	// Create the font string
-	for (uint32 i = 0; i < input.fontStringLen; i++ )
-	{
-		uint8 codePoint = MAX(1, fontMetrics.tmFirstChar + i);
+  // Create the font string
+  for (uint32 i = 0; i < input.fontStringLen; i++ )
+  {
+    uint8 codePoint = MAX(1, fontMetrics.tmFirstChar + i);
 
-	//TODO: Make sure it happens only for ocidental fonts
-	if (codePoint < 32)
-		codePoint = fontMetrics.tmDefaultChar;
-	else if (codePoint == 127)
-		codePoint = fontMetrics.tmDefaultChar;
+    //TODO: Make sure it happens only for ocidental fonts
+    if (codePoint < 32)
+      codePoint = fontMetrics.tmDefaultChar;
+    else if (codePoint == 127)
+      codePoint = fontMetrics.tmDefaultChar;
 
-		fontBuffer[i] = codePoint;
-	}
+    fontBuffer[i] = codePoint;
+  }
 
-	enableFontSmoothing();
+  enableFontSmoothing();
 
-	RECT bitmapRect = calcFontBitmapSize(dc, input.fontString, input.maxLineWidth, spacing);
-	HBITMAP hDcBitmap = CreateCompatibleBitmap(dc, bitmapRect.right, bitmapRect.bottom);
-	SelectObject(dc, hDcBitmap);
-	//SetBkMode(dc, TRANSPARENT);
-	SetBkColor(dc, RGB(0,0,0));
-	SetTextColor(dc, RGB(255,255,255));
+  RECT bitmapRect = calcFontBitmapSize(dc, input.fontString, input.maxLineWidth, spacing);
+  HBITMAP hDcBitmap = CreateCompatibleBitmap(dc, bitmapRect.right, bitmapRect.bottom);
+  SelectObject(dc, hDcBitmap);
+  //SetBkMode(dc, TRANSPARENT);
+  SetBkColor(dc, RGB(0,0,0));
+  SetTextColor(dc, RGB(255,255,255));
 
-	uint32 gliphX = 0;
-	uint32 gliphY = 0;
-	char gliph;
-	char* fontStringPtr = input.fontString;
+  uint32 gliphX = 0;
+  uint32 gliphY = 0;
+  char gliph;
+  char* fontStringPtr = input.fontString;
 
-	SetBkMode(dc, TRANSPARENT);
-	uint32 nextLine = input.fontStringLen/2;
+  SetBkMode(dc, TRANSPARENT);
+  uint32 nextLine = input.fontStringLen/2;
 
-	ldk::FontGliphRect* fontGliphData = new ldk::FontGliphRect[input.fontStringLen];
+  ldk::FontGliphRect* fontGliphData = new ldk::FontGliphRect[input.fontStringLen];
 
-	//gliphY = bitmapRect.bottom;
-	// Output gliphs to the Bitmap
-	for (int i=0; i < input.fontStringLen; i++)
-	{
-		// TODO: get proper gliph height
-		SIZE gliphSize;
-		gliph = *fontStringPtr;
-		++fontStringPtr;
+  //gliphY = bitmapRect.bottom;
+  // Output gliphs to the Bitmap
+  for (int i=0; i < input.fontStringLen; i++)
+  {
+    // TODO: get proper gliph height
+    SIZE gliphSize;
+    gliph = *fontStringPtr;
+    ++fontStringPtr;
 
-		GetTextExtentPoint32(dc, &gliph, 1, &gliphSize);
+    GetTextExtentPoint32(dc, &gliph, 1, &gliphSize);
 
-		// check if we need to break the line
-		if (gliphX + gliphSize.cx >= input.maxLineWidth)
-		{
-			gliphX = 0;
-			gliphY += gliphSize.cy + spacing;
-		}
+    // check if we need to break the line
+    if (gliphX + gliphSize.cx >= input.maxLineWidth)
+    {
+      gliphX = 0;
+      gliphY += gliphSize.cy + spacing;
+    }
 
-		//fontGliphData[i] = {gliphX, bitmapRect.bottom - gliphY - gliphSize.cy, gliphSize.cx, gliphSize.cy};
-		//LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, bitmapRect.bottom - gliphY - gliphSize.cy, gliphSize.cx, gliphSize.cy, 0);
-		fontGliphData[i] = {gliphX, gliphY, gliphSize.cx, gliphSize.cy};
-		LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
-		TextOut(dc, gliphX, gliphY, &gliph, 1);
-		gliphX += gliphSize.cx + spacing;
-	}
+    fontGliphData[i] = {gliphX,
+      gliphY,
+      (uint32)gliphSize.cx,
+      (uint32)gliphSize.cy};
+#ifdef _LDK_DEBUG_ 
+    LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
+#endif
+    TextOut(dc, gliphX, gliphY, &gliph, 1);
+    gliphX += gliphSize.cx + spacing;
+  }
 
-	char bmpFileName[128];
-	sprintf(bmpFileName, "%s.bmp", fontName);
-	saveBitmap(dc, bitmapRect, bmpFileName);
+  char bmpFileName[128];
+  sprintf(bmpFileName, "%s_%d.bmp", fontName, input.fontSize);
+  saveBitmap(dc, bitmapRect, bmpFileName);
 
-	// Save the asset file
-	sprintf(bmpFileName, "%s.font", fontName);
-	saveFontAsset(bmpFileName, fontMetrics.tmFirstChar, fontMetrics.tmLastChar, 
-			fontMetrics.tmDefaultChar, bitmapRect.right, bitmapRect.bottom, 
-			fontGliphData, sizeof(ldk::FontGliphRect) * input.fontStringLen);
+  // Save the asset file
+  sprintf(bmpFileName, "%s_%d.font", fontName, input.fontSize);
+  saveFontAsset(fontName, input.fontSize, bmpFileName, fontMetrics.tmFirstChar, fontMetrics.tmLastChar, 
+      fontMetrics.tmDefaultChar, bitmapRect.right, bitmapRect.bottom, 
+      fontGliphData, sizeof(ldk::FontGliphRect) * input.fontStringLen);
 
-	delete fontGliphData;
-	delete fontBuffer;
-	return 0;
+  delete fontGliphData;
+  delete fontBuffer;
+  return 0;
 }
 

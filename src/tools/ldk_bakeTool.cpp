@@ -45,12 +45,12 @@ ldk::MeshData* createMeshDataPNUV(
   int8* verticesPtr = mem + meshDataSize + indexDataSize;
 
   ldk::MeshData* mesh = (ldk::MeshData*) mem;
-  mesh->format = ldk::MeshData::PNUV;
-  mesh->indexCount = indexCount;
-  mesh->vertexCount = vertexCount;
+  mesh->info.format = ldk::MeshInfo::PNUV;
+  mesh->info.indexCount = indexCount;
+  mesh->info.vertexCount = vertexCount;
   mesh->indicesOffset = indicesPtr - mem;
   mesh->verticesOffset = verticesPtr - mem;
-  mesh->totalSize = totalSize;
+  mesh->info.totalSize = totalSize;
 
   // write indices
   memcpy(indicesPtr, indexData, indexDataSize);
@@ -110,9 +110,9 @@ static bool bakeMeshFromObjFile(ArgumentFile* argumentFile, FILE* fd)
   const ldk::MeshData* meshData = ldk::parseObjFile((const char*)argumentFile->mem, argumentFile->size);
   if(meshData == nullptr) return false;
 
-  size_t result = fwrite((const void*)meshData, sizeof(int8), meshData->totalSize, fd);
+  size_t result = fwrite((const void*)meshData, sizeof(int8), meshData->info.totalSize, fd);
   free((void*)meshData);
-  return result == meshData->totalSize;
+  return result == meshData->info.totalSize;
 }
 
 int32 main(int argc, char** argv)

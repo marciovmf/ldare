@@ -1,31 +1,15 @@
 #include <ldk/ldk.h>
 
-ldk::Mesh mesh;
-
-ldk::Mesh makeMesh(ldk::MeshData* meshData)
-{
-  ldk::Mesh mesh;
-  int8* mem = (int8*) meshData;
-  mesh.meshData = meshData;
-  mesh.indices = (uint32*)(mem + meshData->indicesOffset);
-  mesh.vertices = (mem + meshData->verticesOffset);
-  return mesh;
-}
-
-constexpr uint32 VERTEX_SIZE = 6 * sizeof(float);
-
 using namespace ldk;
 
 struct GameState
 {
   uint32 initialized;
   renderer::Sprite sprite;
-  renderer::Material material;
-  renderer::Texture texture;
+  Handle material;
+  Handle mesh;
+  Handle renderable;
   renderer::Context* context;
-  renderer::SpriteBatch* spriteBatch;
-  renderer::Renderable renderable;
-  renderer::VertexBuffer buffer;
   renderer::DrawCall drawCall;
   Mat4 modelMatrix;
   Mat4 projMatrix;
@@ -50,29 +34,10 @@ void gameStart(void* memory)
   _gameState->context =
   renderer::createContext(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
 
-  // load the meshData
-  ldk::MeshData* meshData = ldk::loadMesh("assets/monkey.mesh");
-  mesh = makeMesh(meshData);
-
-  // Create a vertex buffer
-  renderer::makeVertexBuffer(&_gameState->buffer, meshData->vertexCount);
-  renderer::addVertexBufferAttribute(&_gameState->buffer, "_pos", 3,
-      renderer::VertexAttributeType::FLOAT, 0);
-
-  renderer::addVertexBufferAttribute(&_gameState->buffer, "_normal", 3, 
-      renderer::VertexAttributeType::FLOAT, 3 * sizeof(float));
-
-  renderer::addVertexBufferAttribute(&_gameState->buffer, "_uv", 2,
-      renderer::VertexAttributeType::FLOAT, 6 * sizeof(float));
-
   // Initialize material
-  renderer::loadMaterial(&_gameState->material, "./assets/standard/test.mat");
-
-
-  // make a renderable 
-  uint32 maxIndices = mesh.meshData->indexCount;
-  renderer::makeRenderable(&_gameState->renderable, &_gameState->buffer, mesh.indices, maxIndices, true);
-  renderer::setMaterial(&_gameState->renderable, &_gameState->material);
+  _gameState->mesh = ldk::mesh_loadFromFile("assets/monkey.mesh");
+  _gameState->material = renderer::loadMaterial("./assets/standard/test.mat");
+  _gameState->renderable = renderer::makeRenderable(_gameState->mesh, _gameState->material);
 
   // Calculate matrices and send them to shader uniforms  
   // projection
@@ -82,16 +47,9 @@ void gameStart(void* memory)
   _gameState->modelMatrix.scale(Vec3{55.0, 55.0, 55.0});
   _gameState->modelMatrix.translate(Vec3{0, 0, -5});
   
-  renderer::setMatrix4(&_gameState->material, "mprojection", &_gameState->projMatrix);
-  renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
+  renderer::setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
+  renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
 
-  // create draw call
-  _gameState->drawCall.renderable = &_gameState->renderable;
-  _gameState->drawCall.type = renderer::DrawCall::DRAW_INDEXED;
-  _gameState->drawCall.vertexCount = mesh.meshData->vertexCount;
-  _gameState->drawCall.vertices = (void*)mesh.vertices;
-  _gameState->drawCall.indexStart = 0;
-  _gameState->drawCall.indexCount = maxIndices;
   _gameState->initialized = 1;
 }
 
@@ -120,18 +78,16 @@ void gameUpdate(float deltaTime)
   if(axis.x || axis.y || axis.z)
   {
     _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(80.0f) * deltaTime);
-    renderer::setMatrix4(&_gameState->material, "mmodel", &_gameState->modelMatrix);
+    renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
   }
-
-  renderer::pushDrawCall(_gameState->context, &_gameState->drawCall);
+  
+  renderer::drawIndexed(_gameState->context, _gameState->renderable);
   renderer::flush(_gameState->context);
 }
 
 void gameStop()
 {
-  ldk::renderer::destroyMaterial(&_gameState->material);
+  ldk::renderer::destroyMaterial(_gameState->material);
   ldk::renderer::destroyContext(_gameState->context);
-  ldk::renderer::destroySpriteBatch(_gameState->spriteBatch);
 }
-
 
