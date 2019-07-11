@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "ldk_heap.h"
 
 #define LogUnexpectedToken(expected, line, column)	LogError("Unexpected token '%c' at %d,%d", (expected), (line), (column));
 #define LDK_CFG_MAX_IDENTIFIER 128
@@ -476,7 +477,7 @@ namespace ldk
 		uint32 necessarySize = sizeof(VariantSection);
 		int32 availableSize = heap.size - heap.used;
 
-		if(availableSize < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
+		if(availableSize < necessarySize && !heap_resize(&heap, necessarySize))
 		{
 			return -1;
 		}
@@ -512,7 +513,7 @@ namespace ldk
 
 		int32 availableSize = heap.size - heap.used;
 
-		if(availableSize < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
+		if(availableSize < necessarySize && !heap_resize(&heap, necessarySize))
 		{
 			return -1;
 		}
@@ -579,7 +580,7 @@ namespace ldk
 
 		int32 availableSize = heap.size - heap.used;
 
-		if(availableSize < necessarySize && !ldk_memory_resizeHeap(&heap, necessarySize))
+		if(availableSize < necessarySize && !heap_resize(&heap, necessarySize))
 		{
 			return -1;
 		}
@@ -654,7 +655,7 @@ namespace ldk
 	{
 		TextStreamReader stream(buffer, size);
 		Heap heap;
-		ldk_memory_allocHeap(&heap, LDK_CFG_DEFAULT_BUFFER_SIZE);
+		heap_alloc(&heap, LDK_CFG_DEFAULT_BUFFER_SIZE);
 
 		int32 currentSectionOffset = pushRootSection(heap);
 
@@ -865,7 +866,7 @@ namespace ldk
 
   void configDispose(const VariantSectionRoot* root)
 	{
-		ldk::ldk_memory_freeHeap((Heap*) root);
+		ldk::heap_free((Heap*) root);
 	}
 
   

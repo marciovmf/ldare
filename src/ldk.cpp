@@ -9,7 +9,7 @@
 #include <ldk/ldk.h>
 #include "ldk_handle.h"
 #include  <ldkengine/ldk_platform.h>
-#include "ldk_memory.h"
+#include  <ldkengine/ldk_memory.h>
 
 // platform specific implementation
 #ifdef _LDK_WINDOWS_
@@ -19,7 +19,6 @@
 #endif
 
 #include "ldk_math.cpp"
-#include "ldk_memory.cpp"
 #include "ldk_keyboard.cpp"
 #include "ldk_mouse.cpp"
 #include "ldk_joystick.cpp"
@@ -29,3 +28,5 @@
 #include "ldk_sprite_batch.cpp"
 #include "ldk_renderer_gl.cpp"
 #include "ldk_game.cpp"
+#include "ldk_heap.cpp"
+#include "ldk_memory.cpp"

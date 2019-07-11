@@ -1,8 +1,4 @@
 
-
-#define LDK_GL_ALLOC(size) malloc((size))
-#define LDK_GL_FREE(ptr) free((ptr))
-
 namespace ldk
 {
   namespace renderer
@@ -695,18 +691,22 @@ namespace ldk
 
     Context* createContext(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits)
     {
-      Context* context = (Context*) LDK_GL_ALLOC(sizeof(Context));
+
+      Context* context = (Context*) 
+        ldkEngine::memory_alloc(sizeof(Context), ldkEngine::Allocation::Tag::RENDERER);
+
       if (!context) return nullptr;
 
       context->clearBits = clearBits;
       context->settingsBits = settingsBits;
       context->maxDrawCalls = maxDrawCalls;
       context->drawCallCount = 0;
-      context->drawCalls = (ldk::renderer::DrawCall*) LDK_GL_ALLOC(sizeof(ldk::renderer::DrawCall) * maxDrawCalls);
+      context->drawCalls = (ldk::renderer::DrawCall*) 
+        ldkEngine::memory_alloc(sizeof(ldk::renderer::DrawCall) * maxDrawCalls, ldkEngine::Allocation::Tag::RENDERER);
 
       if(!context->drawCalls)
       {
-        LDK_GL_FREE(context);
+        ldkEngine::memory_free(context);
         return nullptr;
       }
 
@@ -722,8 +722,8 @@ namespace ldk
 
     void destroyContext(Context* context)
     {
-      LDK_GL_FREE(context->drawCalls);
-      LDK_GL_FREE(context);
+      ldkEngine::memory_free(context->drawCalls);
+      ldkEngine::memory_free(context);
     }
 
     //

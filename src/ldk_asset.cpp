@@ -7,7 +7,7 @@ namespace ldk
 {
   namespace renderer
   {
-    //TODO(marcio): We must separate material file loading/parsing from GPU resource allocation
+    //TODO(marcio): It would be nice to separate .mat file parsing from material creation
     ldk::Handle createMaterial(const char* file);
   }
 }
@@ -15,9 +15,8 @@ namespace ldk
 
 namespace ldk
 {
-
-static int32 _placeholderBmpData = 0xFFFF00FF;
-static ldk::Bitmap _placeholderBmp = {};
+  static int32 _placeholderBmpData = 0xFFFF00FF;
+  static ldk::Bitmap _placeholderBmp = {};
 
   ldk::Bitmap* getPlaceholderBmp()
   {
@@ -44,6 +43,8 @@ static ldk::Bitmap _placeholderBmp = {};
         ,bitmapStructSize);
 
     if (!buffer || bufferSize == 0) { return false; }
+
+    ldkEngine::memory_tag((void*)buffer, ldkEngine::Allocation::Tag::BITMAP);
 
     // bitmap data starts after the ldk::Bitmap struct data
     LDK_BITMAP_FILE_HEADER *bitmapHeader =
@@ -124,9 +125,11 @@ static ldk::Bitmap _placeholderBmp = {};
         &fontFileSize,
         fontStructSize,
         fontStructSize);
-    
+
     if (!font || fontFileSize < sizeof(ldk::FontData)) return ldk::handle_invalid();
-    
+
+    ldkEngine::memory_tag((void*)font, ldkEngine::Allocation::Tag::FONT);
+
     ldk::FontData* fontData = (ldk::FontData*) ((char8*) font + sizeof(ldk::Font));
     font->fontInfo = &fontData->info;
     font->gliphData = (ldk::FontGliphRect*) (((char8*)fontData) + sizeof(ldk::FontData));
@@ -146,18 +149,20 @@ static ldk::Bitmap _placeholderBmp = {};
   //---------------------------------------------------------------------------
   // Mesh functions
   //---------------------------------------------------------------------------
-	ldk::Handle loadMesh(const char* file)
+  ldk::Handle loadMesh(const char* file)
   {
     // Loads the MeshData from file but reserves space at the beggining for a Mesh
     size_t buffSize;
     ldk::Mesh* mesh = (ldk::Mesh*) ldk::platform::loadFileToBufferOffset(
-          file,
-          nullptr,
-          sizeof(ldk::Mesh),
-          sizeof(ldk::Mesh));
+        file,
+        nullptr,
+        sizeof(ldk::Mesh),
+        sizeof(ldk::Mesh));
 
     if(!mesh)
       return handle_invalid();
+
+    ldkEngine::memory_tag((void*)mesh, ldkEngine::Allocation::Tag::MESH);
 
     // Memory layout
     // -----------------------
@@ -204,6 +209,7 @@ static ldk::Bitmap _placeholderBmp = {};
 
     if (!buffer || bufferSize == 0) return false; 
 
+    ldkEngine::memory_tag((void*)buffer, ldkEngine::Allocation::Tag::AUDIO);
     ldk::Audio* audio = (ldk::Audio*)buffer;
     LDK_RIFFAudioHeaderChunk* riffHeader = (LDK_RIFFAudioHeaderChunk*) (buffer + audioStructSize);
     void* riffData = ((uint8*) buffer + audioStructSize + sizeof(LDK_RIFFAudioHeaderChunk));
@@ -241,11 +247,11 @@ static ldk::Bitmap _placeholderBmp = {};
     return audioHandle;
   }
 
-    LDK_API ldk::Handle loadMaterial(const char* file)
-    {
-		  LogInfo("Loading Material:\t'%s'", file);
-      return ldk::renderer::createMaterial(file);
-    }
+  LDK_API ldk::Handle loadMaterial(const char* file)
+  {
+    LogInfo("Loading Material:\t'%s'", file);
+    return ldk::renderer::createMaterial(file);
+  }
 
   //TODO: Move this to some other place
   void playAudio(ldk::Handle audioHandle)

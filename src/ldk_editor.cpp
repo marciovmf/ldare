@@ -1,7 +1,6 @@
 
 #include <ldk/ldk.h>
 #include <ldkengine/ldk_platform.h>
-#include "ldk_memory.h"
 
 #include <string.h> // for memset()
 
@@ -128,7 +127,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 	void* gameStateMemory = nullptr;
   size_t gameMemorySize = gameSettings.preallocMemorySize;
-  gameStateMemory = malloc(gameMemorySize);
+  gameStateMemory = ldk::platform::memoryAlloc(gameMemorySize);
   memset(gameStateMemory, 0, (size_t)gameMemorySize);
 
 	game.start(gameStateMemory);
@@ -183,7 +182,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 	game.stop();
 	// release game state memory
-	free(gameStateMemory);
+  ldk::platform::memoryFree(gameStateMemory);
 
 	if (gameSharedLib)
 		ldk::platform::unloadSharedLib(gameSharedLib);

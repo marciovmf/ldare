@@ -161,6 +161,8 @@ namespace ldk
 		LDK_API void* memoryAlloc(size_t size);
 
 		LDK_API void memoryFree(void* memory);
+		
+    LDK_API void* memoryRealloc(void* memory);
 
 		//---------------------------------------------------------------------------
 		// Time
