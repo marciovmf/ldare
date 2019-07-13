@@ -18,13 +18,13 @@ namespace ldk
     };
 
     LDK_API void makeSprite(Sprite* sprite, Handle materialHandle, uint32 x, uint32 y, uint32 width, uint32 height);
-    LDK_API SpriteBatch* createSpriteBatch(Context* context, uint32 maxSprites);
-    LDK_API void spriteBatchBegin(SpriteBatch* spriteBatch);
-    LDK_API void spriteBatchDraw(SpriteBatch* spriteBatch,const Sprite* sprite, float x, float y, float width, float height, float angle = 0.0f, float pivotX = 0.0f, float pivotY = 0.0f);
-    LDK_API void spriteBatchEnd(SpriteBatch* spriteBatch);
-    LDK_API void destroySpriteBatch(SpriteBatch* spriteBatch);
+    LDK_API SpriteBatch* spriteBatch_create(Context* context, uint32 maxSprites);
+    LDK_API void spriteBatch_begin(SpriteBatch* spriteBatch);
+    LDK_API void spriteBatch_draw(SpriteBatch* spriteBatch,const Sprite* sprite, float x, float y, float width, float height, float angle = 0.0f, float pivotX = 0.0f, float pivotY = 0.0f);
+    LDK_API Vec2 spriteBatch_drawText(SpriteBatch* spriteBatch, ldk::Handle material, ldk::Handle font, Vec3& position, const char* text, float scale, Vec4& color);
+    LDK_API void spriteBatch_end(SpriteBatch* spriteBatch);
+    LDK_API void spriteBatch_destroy(SpriteBatch* spriteBatch);
   }
-
 }
 
 #endif// _LDK_SPRITE_BATCH_

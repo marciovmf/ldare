@@ -11,6 +11,5 @@ void main()
 {
   gl_Position = mprojection * mmodel * vec4(_pos, 1.0);
   vertexColor = vec4(_normal, 1.0);
-  //fragCoord = _uv;
-  fragCoord = _pos.xy;
+  fragCoord = _uv;
 }

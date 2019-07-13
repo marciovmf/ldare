@@ -119,22 +119,23 @@ namespace ldk
 
   ldk::Handle loadFont(const char* file)
   {
-    size_t fontFileSize=0;
-    size_t fontStructSize = sizeof(ldk::Font);
-    ldk::Font* font = (ldk::Font*) ldk::platform::loadFileToBufferOffset(file,
-        &fontFileSize,
-        fontStructSize,
-        fontStructSize);
+    size_t fileSize=0;
+    size_t additionalSize = sizeof(ldk::Font);
+    char* mem = (char*) ldk::platform::loadFileToBufferOffset(file,
+        &fileSize,
+        additionalSize,
+        additionalSize);
 
-    if (!font || fontFileSize < sizeof(ldk::FontData)) return ldk::handle_invalid();
+    if (!mem || fileSize < sizeof(ldk::FontData)) return ldk::handle_invalid();
+
+    ldk::Font* font = (ldk::Font*) mem;
+    ldk::FontData* fontData = (ldk::FontData*) mem + 1;
+    ldk::Rect* gliphs = (ldk::Rect*) fontData + 1;
+
+    font->fontData = fontData;
+    font->gliphs = gliphs;
 
     ldkEngine::memory_tag((void*)font, ldkEngine::Allocation::Tag::FONT);
-
-    ldk::FontData* fontData = (ldk::FontData*) ((char8*) font + sizeof(ldk::Font));
-    font->fontInfo = &fontData->info;
-    font->gliphData = (ldk::FontGliphRect*) (((char8*)fontData) + sizeof(ldk::FontData));
-
-    // get a handle for this data
     ldk::Handle fontHandle = ldk::handle_store(HandleType::FONT, font);
     return fontHandle;
   }
@@ -167,7 +168,6 @@ namespace ldk
     // Memory layout
     // -----------------------
     // |   MESH   | MESHDATA |
-    // | MESHDATA |          |
     // -----------------------
     ldk::MeshData* meshData = (ldk::MeshData*) (sizeof(ldk::Mesh) + (char*) mesh);
     mesh->meshData = meshData;

@@ -1,10 +1,8 @@
 
 namespace ldk
 {
-
   namespace renderer
   {
-
     struct SpriteVertexData
     {
       Vec3 position;
@@ -42,6 +40,9 @@ namespace ldk
 
     static void _flushBatch(SpriteBatch* spriteBatch)
     {
+      if(spriteBatch->currentMaterial == ldk::handle_invalid())
+        return;
+
       // assign the material to the renderable if material changed
       if(spriteBatch->renderable.materialHandle != spriteBatch->currentMaterial)
       {
@@ -61,15 +62,17 @@ namespace ldk
       renderer::flush(spriteBatch->context);
     }
 
-    SpriteBatch* createSpriteBatch(Context* context, uint32 maxSprites)
+    SpriteBatch* spriteBatch_create(Context* context, uint32 maxSprites)
     {
       const uint32 numIndices = 6 * maxSprites;
       const uint32 indexBufferSize = numIndices * sizeof(uint32);
       const uint32 numVertices = maxSprites * 4;
       const uint32 vertexBufferSize = numVertices * sizeof(SpriteVertexData);
 
+      size_t totalSize = (sizeof(SpriteBatch) + indexBufferSize + vertexBufferSize);
       SpriteBatch* spriteBatch =
-        (SpriteBatch*) ldk::platform::memoryAlloc(sizeof(SpriteBatch) + indexBufferSize + vertexBufferSize);
+        (SpriteBatch*) ldkEngine::memory_alloc(totalSize, ldkEngine::Allocation::Tag::SPRITE_BATCH);
+
       spriteBatch->context = context;
       spriteBatch->currentMaterial = handle_invalid();
       spriteBatch->spriteCount = 0;
@@ -100,7 +103,7 @@ namespace ldk
       return spriteBatch;
     }
 
-    void spriteBatchBegin(SpriteBatch* spriteBatch)
+    void spriteBatch_begin(SpriteBatch* spriteBatch)
     {
       if(spriteBatch->state)
       {
@@ -112,8 +115,7 @@ namespace ldk
       spriteBatch->spriteCount = 0;
     }
 
-
-    void spriteBatchDraw(
+    void spriteBatch_draw(
         SpriteBatch* spriteBatch,
         const Sprite* sprite,
         // Bottom left corner of sprite
@@ -220,16 +222,89 @@ namespace ldk
       spriteBatch->spriteCount++;
     }
 
-    void spriteBatchEnd(SpriteBatch* spriteBatch)
+    Vec2 spriteBatch_drawText(
+        SpriteBatch* spriteBatch,
+        ldk::Handle material,
+        ldk::Handle font,
+        Vec3& position,
+        const char* text,
+        float scale,
+        Vec4& color)
+    {
+      ldk::Font* fontAsset = (Font*) ldk::handle_getData(font);
+
+      if (fontAsset == nullptr)
+      {
+        LogError("Invalid font handle");
+        return {-1,-1};
+      }
+
+      if (fontAsset->gliphs == nullptr)
+        return {-1,-1};
+
+      char c;
+      const char* ptrChar = text;
+      //sprite.color = color;
+
+      ldk::Rect* gliphList = fontAsset->gliphs;
+      uint16 firstCodePoint = fontAsset->fontData->firstCodePoint;
+      uint16 lastCodePoint = fontAsset->fontData->lastCodePoint;
+      uint16 defaultCodePoint = fontAsset->fontData->defaultCodePoint;
+
+      if (scale <= 0) scale = 1.0f;
+
+      Vec2 textSize = {};
+      //submit each character as an individual sprite
+      while ((c = *ptrChar) != 0)
+      {
+        ++ptrChar;
+        Rect* gliph;
+
+        // avoid indexing undefined characters
+        if (c < firstCodePoint || c > lastCodePoint)
+        {
+          gliph = &(gliphList[defaultCodePoint]);
+        }
+        else
+        {
+          c = c - firstCodePoint;
+          gliph = &(gliphList[c]);
+        }
+
+        //calculate advance
+        uint32 advance = 0;
+        advance += gliph->w * scale;
+
+        Sprite sprite;
+        makeSprite(&sprite, material, gliph->x, gliph->y, gliph->w, gliph->h);
+        
+        spriteBatch_draw(spriteBatch,
+            &sprite,
+            position.x + advance,
+            position.y,
+            gliph->w * scale,
+            gliph->h * scale,
+            0.0f,
+            0.0f,
+            0.0f);
+
+        //TODO: account for multi line text
+        textSize.x += sprite.width;
+        textSize.y = MAX(textSize.y, sprite.height); 	
+        
+      }
+      return textSize;
+    }
+
+    void spriteBatch_end(SpriteBatch* spriteBatch)
     {
       spriteBatch->state = 0;
       _flushBatch(spriteBatch);
     }
 
-    void destroySpriteBatch(SpriteBatch* spriteBatch)
+    void spriteBatch_destroy(SpriteBatch* spriteBatch)
     {
-      ldk::platform::memoryFree(spriteBatch);
+      ldkEngine::memory_free(spriteBatch);
     }
   }
-
 }

@@ -14,6 +14,7 @@ namespace ldkEngine
       GENERAL = 0,
       MATERIAL,
       RENDERER,
+      SPRITE_BATCH,
       BITMAP,
       AUDIO,
       FONT,

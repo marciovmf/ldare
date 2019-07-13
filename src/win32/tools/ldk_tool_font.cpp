@@ -186,22 +186,21 @@ static void saveFontAsset(const char* fontName, uint32 fontSize, const char* fil
 		uint32 bitmapWidth, uint32 bitmapHeight, void* gliphData, uint32 gliphDataSize)
 {
   // File layout:
-  // FONT_ASSET | GLIPH ASSET 
+  // FONT_DATA | GLIPH ASSET 
 	ldk::FontData fontData;
-	fontData.rasterWidth = bitmapWidth;
-	fontData.rasterHeight = bitmapHeight;
-  fontData.info.fontSize = fontSize;
-  strncpy((char*)&fontData.info.name, fontName, MAX_FONT_NAME_SIZE);
-	fontData.info.firstCodePoint = firstChar;
-	fontData.info.lastCodePoint = lastChar;
-	fontData.info.defaultCodePoint = defaultCharacter;
+  fontData.signature = ldk::LDK_FONT_HEADER_SIGNATURE;
+  fontData.size = fontSize;
+  strncpy((char*)&fontData.name, fontName, ldk::LDK_MAX_FONT_NAME_LEN);
+	fontData.firstCodePoint = firstChar;
+	fontData.lastCodePoint = lastChar;
+	fontData.defaultCodePoint = defaultCharacter;
 
 	// create file
 	ofstream file(fileName, ios::binary);
 	if(!file) return;
 
-	file.write((char*)&fontData, sizeof(ldk::FontData)); // save font header
-	file.write((char*)gliphData, gliphDataSize); 						// save gliph data
+	file.write((char*)&fontData, sizeof(ldk::FontData));  // save font header
+	file.write((char*)gliphData, gliphDataSize);          // save gliph data
 	file.close();
 }
 
@@ -304,7 +303,7 @@ int _tmain(int argc, _TCHAR** argv)
   SetBkMode(dc, TRANSPARENT);
   uint32 nextLine = input.fontStringLen/2;
 
-  ldk::FontGliphRect* fontGliphData = new ldk::FontGliphRect[input.fontStringLen];
+  ldk::Rect* fontGliphData = new ldk::Rect[input.fontStringLen];
 
   //gliphY = bitmapRect.bottom;
   // Output gliphs to the Bitmap
@@ -324,10 +323,11 @@ int _tmain(int argc, _TCHAR** argv)
       gliphY += gliphSize.cy + spacing;
     }
 
-    fontGliphData[i] = {gliphX,
-      gliphY,
-      (uint32)gliphSize.cx,
-      (uint32)gliphSize.cy};
+    fontGliphData[i] = {
+      (float)gliphX,
+      (float)gliphY,
+      (float)gliphSize.cx,
+      (float)gliphSize.cy};
 #ifdef _LDK_DEBUG_ 
     LogInfo("Gliph '%c' (%d) {%d, %d, %d, %d}", gliph, gliph, gliphX, gliphY, gliphSize.cx, gliphSize.cy, 0);
 #endif
@@ -335,7 +335,7 @@ int _tmain(int argc, _TCHAR** argv)
     gliphX += gliphSize.cx + spacing;
   }
 
-  char bmpFileName[128];
+  char bmpFileName[512];
   sprintf(bmpFileName, "%s_%d.bmp", fontName, input.fontSize);
   saveBitmap(dc, bitmapRect, bmpFileName);
 
@@ -343,7 +343,7 @@ int _tmain(int argc, _TCHAR** argv)
   sprintf(bmpFileName, "%s_%d.font", fontName, input.fontSize);
   saveFontAsset(fontName, input.fontSize, bmpFileName, fontMetrics.tmFirstChar, fontMetrics.tmLastChar, 
       fontMetrics.tmDefaultChar, bitmapRect.right, bitmapRect.bottom, 
-      fontGliphData, sizeof(ldk::FontGliphRect) * input.fontStringLen);
+      fontGliphData, sizeof(ldk::Rect) * input.fontStringLen);
 
   delete fontGliphData;
   delete fontBuffer;

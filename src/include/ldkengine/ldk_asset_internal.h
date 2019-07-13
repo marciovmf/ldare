@@ -40,7 +40,6 @@ namespace ldk
     int8* vertices;
   };
 
-
   //---------------------------------------------------------------------------
   // Bitmap Asset
   //---------------------------------------------------------------------------
@@ -55,36 +54,24 @@ namespace ldk
   //---------------------------------------------------------------------------
   // Font Asset
   //---------------------------------------------------------------------------
-  struct FontGliphRect
-	{
-		uint32 x;
-		uint32 y;
-		uint32 w;
-		uint32 h;
-	};
 
-  const uint32 LDK_MAX_FONT_NAME = 32;
-  struct FontInfo
+  const uint32 LDK_MAX_FONT_NAME_LEN = 32;
+  const uint32 LDK_FONT_HEADER_SIGNATURE = 0x544e4f46; // 'F''O''N''T'
+
+  struct FontData
   {
-    char8 name[LDK_MAX_FONT_NAME];
-    uint32 fontSize;
-		uint16 firstCodePoint;  // first character codepoint defined in the font
-		uint16 lastCodePoint;  	// last character codepoint defined in the font
-		uint16 defaultCodePoint;// default character to be substituted in the font
+    uint32 signature;
+    char8 name[LDK_MAX_FONT_NAME_LEN];
+    uint16 firstCodePoint;  // first character codepoint defined in the font
+    uint16 lastCodePoint;  	// last character codepoint defined in the font
+    uint16 defaultCodePoint;// default character to be substituted in the font
+    uint16 size;            // size of the font
   };
-
-	struct FontData
-	{
-    FontInfo info;
-		uint32 rasterWidth; 	 	// width of font raster bitmap
-		uint32 rasterHeight; 		// height of font raster bitmap
-		//TODO: add font kerning information here
-	};
 
   struct Font
   {
-    FontInfo* fontInfo;
-    FontGliphRect* gliphData;
+    FontData* fontData;
+    Rect* gliphs;
   };
 
   //---------------------------------------------------------------------------

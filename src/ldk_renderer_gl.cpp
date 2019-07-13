@@ -1178,12 +1178,13 @@ namespace ldk
 
       // allocate a material
       ldk::renderer::Material* material = 
-        (ldk::renderer::Material*) ldk::platform::memoryAlloc(sizeof(ldk::renderer::Material));
+        (ldk::renderer::Material*) ldkEngine::memory_alloc(sizeof(ldk::renderer::Material), ldkEngine::Allocation::MATERIAL);
       ldk::Handle handle = ldk::handle_store(ldk::HandleType::MATERIAL, material);
 
       // Store it in the handle table
       if (handle == ldk::handle_invalid())
       {
+        ldkEngine::memory_free(material);
         ldk::platform::memoryFree(material);
         return handle;
       }
