@@ -18,7 +18,9 @@ namespace ldkEngine
       BITMAP,
       AUDIO,
       FONT,
-      MESH
+      MESH,
+
+      NUM_TAGS
     };
 
     uint32 signature; // 'LDKM' 0x4C444B4D
@@ -32,6 +34,7 @@ namespace ldkEngine
   void* memory_realloc(void* mem, size_t size);
   void memory_free(void* mem);
   void memory_tag(void* mem, Allocation::Tag tag);
-  size_t memory_getTotalUsed();
+  LDK_API size_t memory_getTotalUsed();
+  LDK_API void memory_printReport();
 }
 #endif		// _LDK_MEMORY_H_

@@ -1,6 +1,7 @@
 
 #include <ldk/ldk.h>
 #include <ldkengine/ldk_platform.h>
+#include  <ldkengine/ldk_memory.h>
 
 #include <string.h> // for memset()
 
@@ -27,15 +28,20 @@ void windowResizeCallback(ldk::platform::LDKWindow* window, int32 width, int32 h
 
 static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window)
 {
-	if (ldk::input::isKeyDown(ldk::input::LDK_KEY_ESCAPE))
-	{
-		ldk::platform::setWindowCloseFlag(window, true);
-	}
-	
-	if (ldk::input::isKeyDown(ldk::input::LDK_KEY_F12))
-	{
-		ldk::platform::toggleFullScreen(window, !ldk::platform::isFullScreen(window));
-	}
+  if (ldk::input::isKeyDown(ldk::input::LDK_KEY_ESCAPE))
+  {
+    ldk::platform::setWindowCloseFlag(window, true);
+  }
+
+  if (ldk::input::isKeyDown(ldk::input::LDK_KEY_F12))
+  {
+    ldk::platform::toggleFullScreen(window, !ldk::platform::isFullScreen(window));
+  }
+
+  if (ldk::input::isKeyDown(ldk::input::LDK_KEY_F2))
+  {
+    ldkEngine::memory_printReport();
+  }
 }
 
 bool loadGameModule(char* gameModuleName, ldk::Game* game, ldk::platform::SharedLib** sharedLib)
@@ -86,7 +92,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 {
 	ldk::Game game = {};
 	ldk::platform::SharedLib* gameSharedLib;
-	
+
   if (! ldk::platform::initialize())
 	{
 		LogError("Error initializing platform layer");

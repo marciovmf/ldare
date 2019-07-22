@@ -10,11 +10,13 @@ struct GameState
   Handle mesh;
   Handle audio;
   Handle renderable;
+  Handle renderable2;
   Handle font;
   Handle fontMaterial;
   renderer::Context* context;
   renderer::SpriteBatch* spriteBatch;
   Mat4 modelMatrix;
+  Mat4 modelMatrix2;
   Mat4 modelMatrixText;
   Mat4 projMatrix;
   Mat4 projMatrixText;
@@ -46,27 +48,24 @@ void gameStart(void* memory)
   _gameState->fontMaterial = ldk::renderer::createMaterial("./assets/standard/Inconsolata_18.mat"); 
   _gameState->font = ldk::loadFont("./assets/standard/Inconsolata_18.font"); 
   _gameState->renderable = renderer::createRenderable(_gameState->mesh, _gameState->material);
+  _gameState->renderable2 = renderer::createRenderable(_gameState->mesh, _gameState->material);
 
   _gameState->audio = ldk::loadAudio("assets/crowd.wav");
 
   // Calculate matrices and send them to shader uniforms  
-  // projection
+  // projection matrix
   _gameState->projMatrix.perspective(RADIAN(40), 16/9, 50.0f, -50.0f);
-  
-  // model
-  _gameState->modelMatrix.identity();
-  _gameState->modelMatrixText.identity();
-
-  // 2d Projection matrix
-  _gameState->projMatrixText.orthographic(0, 800, 0, 800, -10, 10);
-  renderer::setMatrix4(_gameState->fontMaterial, "mprojection", &_gameState->projMatrixText);
-  renderer::setMatrix4(_gameState->fontMaterial, "mmodel", &_gameState->modelMatrixText);
-
-  // 3d projection matrix
-  _gameState->modelMatrix.scale(Vec3{55.0, 55.0, 55.0});
-  _gameState->modelMatrix.translate(Vec3{0, 0, -5});
   renderer::setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
-  renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
+  
+  // model matrices
+  // mesh 1
+  _gameState->modelMatrix.identity();
+  _gameState->modelMatrix.scale(Vec3{55.0, 55.0, 55.0});
+  _gameState->modelMatrix.translate(Vec3{1, 0, -5});
+  // mesh 2 
+  _gameState->modelMatrix2.identity();
+  _gameState->modelMatrix2.scale(Vec3{30.0, 30.0, 30.0});
+  _gameState->modelMatrix2.translate(Vec3{-1, 0, -5});
 
   _gameState->initialized = 1;
 }
@@ -76,53 +75,17 @@ void gameUpdate(float deltaTime)
   bool update = false;
   Vec3 axis = {};
 
-  if (input::getKey(ldk::input::LDK_KEY_H))
-  {
-    axis.y = 1;
-  }
-  else if (input::getKey(ldk::input::LDK_KEY_L))
-  {
-    axis.y = -1;
-  }
-  else if (input::getKey(ldk::input::LDK_KEY_J))
-  {
-    axis.x = 1;
-  }
-  else if (input::getKey(ldk::input::LDK_KEY_K))
-  {
-    axis.x = -1;
-  }
-
-  if(input::isKeyDown(ldk::input::LDK_KEY_SPACE))
-  {
-    ldk::playAudio(_gameState->audio);
-  }
-
+  // draw mesh 1
   renderer::setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
-  if(axis.x || axis.y || axis.z)
-  {
-    _gameState->modelMatrix.rotate(axis.x, axis.y, axis.z, RADIAN(80.0f) * deltaTime);
-    renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
-  }
-  
+  renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
   renderer::drawIndexed(_gameState->context, _gameState->renderable);
 
-  Vec3 pos = {100.0f, 150.0f, 0.0f};
-  Vec4 color = {1.0f, 1.0f, 1.0f, 1.0f};
+  // draw mesh 2
+  renderer::setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
+  renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix2);
+  renderer::drawIndexed(_gameState->context, _gameState->renderable2);
 
-  // Text/2D rendering
-  //renderer::setMatrix4(_gameState->fontMaterial, "mprojection", &_gameState->projMatrixText);
-  //renderer::setMatrix4(_gameState->fontMaterial, "mmodel", &_gameState->modelMatrixText);
-  //renderer::spriteBatch_begin(_gameState->spriteBatch);
-  //renderer::spriteBatch_drawText(_gameState->spriteBatch,
-  //    _gameState->fontMaterial,
-  //    _gameState->font,
-  //    pos,
-  //    "Hello world!",
-  //    1.0f,
-  //    color);
-  //renderer::spriteBatch_end(_gameState->spriteBatch);
-  //renderer::flush(_gameState->context);
+  renderer::flush(_gameState->context);
 }
 
 void gameStop()
