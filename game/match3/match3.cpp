@@ -414,7 +414,7 @@ inline void drawGameplay()
   Vec2 cursor = ldk::input::getMouseCursor();
   Piece* pieceUnderCursor = getPieceUnderCursor((int)cursor.x, (int)cursor.y);
 
-  ldk::renderer::spriteBatchBegin(_gameState->spriteBatch);
+  ldk::renderer::spriteBatch_begin(_gameState->spriteBatch);
 
   for (int column = 0; column < GAME_GRID_SIZE; column++)
   {
@@ -430,7 +430,7 @@ inline void drawGameplay()
       Vec2 piecePos;
       pieceToScreenPosition(piece.row, piece.column, &piecePos);
 
-      ldk::renderer::spriteBatchDraw(_gameState->spriteBatch
+      ldk::renderer::spriteBatch_draw(_gameState->spriteBatch
           ,&sprite
           ,piecePos.x + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
           ,piecePos.y + highlight + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
@@ -455,7 +455,7 @@ inline void drawGameplay()
 
   //std::string scoreText = std::to_string(_gameState->score);
   //mEngine.Write(scoreText.c_str(), 100, 200);
-  ldk::renderer::spriteBatchEnd(_gameState->spriteBatch);
+  ldk::renderer::spriteBatch_end(_gameState->spriteBatch);
 }
 
 inline void drawGameOver()
@@ -556,7 +556,7 @@ void gameStart(void* memory)
 
   _gameState->initialized = true;
 
-  _gameState->context = renderer::createContext(255, renderer::Context::COLOR_BUFFER 
+  _gameState->context = renderer::context_create(255, renderer::Context::COLOR_BUFFER 
         | renderer::Context::DEPTH_BUFFER, 0);
 
   _gameState->material = loadMaterial("./assets/jewel.mat");
@@ -564,14 +564,14 @@ void gameStart(void* memory)
   // Calculate matrices and send them to shader uniforms  
   // projection 
   _gameState->projMatrix.orthographic(0, 800, 0, 800, -10, 10);
-  renderer::setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
+  renderer::material_setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
   // model
   _gameState->modelMatrix.identity();
   _gameState->modelMatrix.translate(Vec3{0, 0, -2});
-  renderer::setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
+  renderer::material_setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
 
   // Initialize the sprite batch
-  _gameState->spriteBatch = renderer::createSpriteBatch( _gameState->context, MAX_SPRITES);
+  _gameState->spriteBatch = renderer::spriteBatch_create(_gameState->context, MAX_SPRITES);
 
   // initialize sprites
   for (uint32 i =0; i < NUM_SPRITES; i++)
@@ -641,7 +641,7 @@ void gameUpdate(float deltaTime)
 
 void gameStop()
 {
-  ldk::renderer::destroyMaterial(_gameState->material);
-  ldk::renderer::destroyContext(_gameState->context);
-  ldk::renderer::destroySpriteBatch(_gameState->spriteBatch);
+  ldk::renderer::material_destroy(_gameState->material);
+  ldk::renderer::spriteBatch_destroy(_gameState->spriteBatch);
+  ldk::renderer::context_destroy(_gameState->context);
 }

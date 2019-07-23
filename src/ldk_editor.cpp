@@ -38,10 +38,12 @@ static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window)
     ldk::platform::toggleFullScreen(window, !ldk::platform::isFullScreen(window));
   }
 
+#ifdef _LDK_DEBUG_
   if (ldk::input::isKeyDown(ldk::input::LDK_KEY_F2))
   {
     ldkEngine::memory_printReport();
   }
+#endif
 }
 
 bool loadGameModule(char* gameModuleName, ldk::Game* game, ldk::platform::SharedLib** sharedLib)
@@ -187,6 +189,12 @@ uint32 ldkMain(uint32 argc, char** argv)
 	}
 
 	game.stop();
+
+#ifdef _LDK_DEBUG_
+  LogInfo("Game stopped.");
+  ldkEngine::memory_printReport();
+#endif
+
 	// release game state memory
   ldk::platform::memoryFree(gameStateMemory);
 

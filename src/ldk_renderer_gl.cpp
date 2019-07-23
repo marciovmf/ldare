@@ -7,6 +7,8 @@ namespace ldk
     // Internal functions
     //
 
+    void _setMatrix4(Material* material, char* name, ldk::Mat4* matrix, bool bindShader);
+
 #ifdef _LDK_DEBUG_
 #define checkGlError() _checkNoGlError(__FILE__, __LINE__)
 
@@ -344,6 +346,11 @@ namespace ldk
       glUseProgram(material->shader.program);
       checkGlError();
 
+      // send model matrix
+      _setMatrix4(material, "mmodel", &renderable->modelMatrix, false);
+      checkGlError();
+
+
       uint32 currentVboIndex = renderable->currentVboIndex;
       uint32 vbo = renderable->vbos[currentVboIndex];
       glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -371,6 +378,7 @@ namespace ldk
         glBindTexture(GL_TEXTURE_2D, textureId);
         checkGlError();
       }
+
 
       //TODO(marcio): implement instanced rendering
       switch (drawCall->type) 
@@ -491,9 +499,8 @@ namespace ldk
       return loadShader(&material->shader, vertexSource, fragmentSource);
     }
 
-    void setMatrix4(Handle materialHandle, char* name, ldk::Mat4* matrix)
+    static void _setMatrix4(Material* material, char* name, ldk::Mat4* matrix, bool bindShader)
     {
-      Material* material = (Material*) handle_getData(materialHandle);
       Shader* shader = &material->shader;
       const Uniform* uniform = _findUniform(shader, name);
 
@@ -502,13 +509,23 @@ namespace ldk
         LDK_ASSERT((uniform->type == ldk::renderer::VertexAttributeType::FLOAT
               && uniform->size == 1), "Mismatching uniform types");
 
-        glUseProgram(shader->program);
+        if(bindShader) 
+          glUseProgram(shader->program);
+        
         glUniformMatrix4fv(uniform->id, 1, 0, matrix->element);
-        glUseProgram(0);
+
+        if(bindShader)
+          glUseProgram(0);
       }
     }
 
-    void setInt(Handle materialHandle, char* name, uint32 intParam)
+    void material_setMatrix4(Handle materialHandle, char* name, ldk::Mat4* matrix)
+    {
+      Material* material = (Material*) handle_getData(materialHandle);
+      _setMatrix4(material, name, matrix, true);
+    }
+
+    void material_setInt(Handle materialHandle, char* name, uint32 intParam)
     {
       Material* material = (Material*) handle_getData(materialHandle);
       Shader* shader = &material->shader;
@@ -518,7 +535,7 @@ namespace ldk
       checkGlError();
     }
 
-    void setInt(Handle materialHandle, char* name, uint32 count, uint32* intParam)
+    void material_setInt(Handle materialHandle, char* name, uint32 count, uint32* intParam)
     {
       Material* material = (Material*) handle_getData(materialHandle);
       Shader* shader = &material->shader;
@@ -554,7 +571,7 @@ namespace ldk
       glUseProgram(0);
     }
 
-    void setFloat(Handle materialHandle, char* name, float floatParam)
+    void material_setFloat(Handle materialHandle, char* name, float floatParam)
     {
       Material* material = (Material*) handle_getData(materialHandle);
       Shader* shader = &material->shader;
@@ -564,7 +581,7 @@ namespace ldk
       checkGlError();
     }
 
-    void setFloat(Handle materialHandle, char* name, uint32 count, float* floatParam)
+    void material_setFloat(Handle materialHandle, char* name, uint32 count, float* floatParam)
     {
       Material* material = (Material*) handle_getData(materialHandle);
       Shader* shader = &material->shader;
@@ -597,7 +614,7 @@ namespace ldk
       checkGlError();
     }
 
-    bool setTexture(Handle materialHandle, char* name, Texture texture)
+    bool material_setTexture(Handle materialHandle, char* name, Texture texture)
     {
       Material* material = (Material*) handle_getData(materialHandle);
       // Find the thexture slot or allocate a new one if this is a new texture
@@ -621,11 +638,11 @@ namespace ldk
         material->textureCount++;
       }
 
-      setInt(materialHandle, name, textureSlot); 
+      material_setInt(materialHandle, name, textureSlot); 
       return true;
     }
 
-    void setMaterial(Renderable* renderable, Handle materialHandle)
+    void renderable_setMaterial(Renderable* renderable, Handle materialHandle)
     {
       Material* material = (Material*) handle_getData(materialHandle);
       if (renderable->materialHandle == materialHandle)
@@ -689,9 +706,8 @@ namespace ldk
     // Context functions
     //
 
-    Context* createContext(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits)
+    Context* context_create(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits)
     {
-
       Context* context = (Context*) 
         ldkEngine::memory_alloc(sizeof(Context), ldkEngine::Allocation::Tag::RENDERER);
 
@@ -720,7 +736,7 @@ namespace ldk
       return context;
     }
 
-    void destroyContext(Context* context)
+    void context_destroy(Context* context)
     {
       ldkEngine::memory_free(context->drawCalls);
       ldkEngine::memory_free(context);
@@ -793,10 +809,10 @@ namespace ldk
       checkGlError();
     }
 
-    ldk::Handle createRenderable(ldk::Handle meshHandle, ldk::Handle materialHandle)
+    ldk::Handle renderable_create(ldk::Handle meshHandle, ldk::Handle materialHandle)
     {
-      char8* mem =
-        (char8*) ldk::platform::memoryAlloc(sizeof(ldk::renderer::Renderable) + sizeof(ldk::renderer::VertexBuffer));
+      size_t totalSize = sizeof(ldk::renderer::Renderable) + sizeof(ldk::renderer::VertexBuffer);
+      char8* mem = (char8*) ldkEngine::memory_alloc(totalSize, ldkEngine::Allocation::Tag::RENDERER);
 
       ldk::renderer::Renderable* renderable = (ldk::renderer::Renderable*) mem;
       
@@ -829,11 +845,18 @@ namespace ldk
       makeRenderable(renderable, vertexBuffer, mesh->indices, meshInfo->indexCount, true);
       
       // Set material to renderable
-      renderer::setMaterial(renderable, materialHandle);
+      renderer::renderable_setMaterial(renderable, materialHandle);
 
       renderable->meshHandle = meshHandle;
       ldk::Handle renderableHandle = ldk::handle_store(HandleType::RENDERABLE, (void*)renderable);
       return renderableHandle;
+    }
+
+
+    void renderable_setMatrix(ldk::Handle renderableHandle, const Mat4* modelMatrix)
+    {
+      renderer::Renderable* renderable = (renderer::Renderable*) ldk::handle_getData(renderableHandle);
+      renderable->modelMatrix = *modelMatrix;
     }
 
     //
@@ -1132,9 +1155,8 @@ namespace ldk
       return result;
     }
 
-    ldk::Handle createMaterial(const char* file)
+    ldk::Handle loadMaterial(const char* file)
     {
-		  LogInfo("Loading Material:\t'%s'", file);
       auto cfgRoot = ldk::configParseFile(file);
       auto materialSection = ldk::configGetSection(cfgRoot, "material");
 
@@ -1259,10 +1281,10 @@ namespace ldk
               if(texturePath != nullptr)
               {
                 bool isPlaceholder = false;
-                ldk::Handle bmpHandle = ldk::loadBitmap((const char*)texturePath);
+                ldk::Handle bmpHandle = ldk::asset_loadBitmap((const char*)texturePath);
                 Texture texture = renderer::createTexture(bmpHandle, minFilter, magFilter, uWrap, vWrap);
-                unloadAsset(bmpHandle);
-                renderer::setTexture(handle, (char*) &section->name, texture);
+                asset_unload(bmpHandle);
+                renderer::material_setTexture(handle, (char*) &section->name, texture);
               }
               else
               {
@@ -1278,7 +1300,7 @@ namespace ldk
       return handle;
     }
 
-    void destroyMaterial(ldk::Handle materialHandle)
+    void material_destroy(ldk::Handle materialHandle)
     {
         Material* material = (Material*) ldk::handle_getData(materialHandle);
         LDK_ASSERT(material != nullptr, "Unexpected null pointer to asset");
@@ -1302,17 +1324,14 @@ namespace ldk
     }
 
 
-    void destroyRenderable(ldk::Handle renderableHandle)
+    void renderable_destroy(ldk::Handle renderableHandle)
     {
+      //NOTE:this does not unload the associated mesh
       ldk::renderer::Renderable* renderable = (ldk::renderer::Renderable*) ldk::handle_getData(renderableHandle);
-      ldk::Mesh* mesh = (ldk::Mesh*) ldk::handle_getData(renderable->meshHandle);
-      ldk::MeshInfo* meshInfo = &mesh->meshData->info;
-
       glDeleteBuffers((GLsizei)renderable->vboCount, &(renderable->vbos[0]));
       glDeleteBuffers((GLsizei)1, &renderable->ibo);
-
       ldk::handle_remove(renderableHandle);
-      ldk::platform::memoryFree(renderable);
+      ldkEngine::memory_free(renderable);
     }
 
   } // renderer

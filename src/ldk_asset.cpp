@@ -12,7 +12,6 @@ namespace ldk
   }
 }
 
-
 namespace ldk
 {
   static int32 _placeholderBmpData = 0xFFFF00FF;
@@ -31,7 +30,7 @@ namespace ldk
     return &_placeholderBmp;
   }
 
-  Handle loadBitmap(const char* file)
+  Handle asset_loadBitmap(const char* file)
   {
     LogInfo("Loading Bitmap:\t'%s'", file);
     size_t bufferSize = 0;
@@ -117,7 +116,7 @@ namespace ldk
     return bmpHandle;
   }
 
-  ldk::Handle loadFont(const char* file)
+  ldk::Handle asset_loadFont(const char* file)
   {
     size_t fileSize=0;
     size_t additionalSize = sizeof(ldk::Font);
@@ -140,7 +139,7 @@ namespace ldk
     return fontHandle;
   }
 
-  void unloadAsset(Handle handle)
+  void asset_unload(Handle handle)
   {
     void* dataPtr = handle_getData(handle);
     ldk::platform::memoryFree(dataPtr);
@@ -150,7 +149,7 @@ namespace ldk
   //---------------------------------------------------------------------------
   // Mesh functions
   //---------------------------------------------------------------------------
-  ldk::Handle loadMesh(const char* file)
+  ldk::Handle asset_loadMesh(const char* file)
   {
     // Loads the MeshData from file but reserves space at the beggining for a Mesh
     size_t buffSize;
@@ -200,7 +199,7 @@ namespace ldk
     return nullptr;
   }
 
-  ldk::Handle loadAudio(const char* file)
+  ldk::Handle asset_loadAudio(const char* file)
   {
     LogInfo("Loading Audio:\t\t'%s'", file);
     size_t bufferSize;
@@ -250,7 +249,7 @@ namespace ldk
   LDK_API ldk::Handle loadMaterial(const char* file)
   {
     LogInfo("Loading Material:\t'%s'", file);
-    return ldk::renderer::createMaterial(file);
+    return ldk::renderer::loadMaterial(file);
   }
 
   //TODO: Move this to some other place

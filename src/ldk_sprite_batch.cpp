@@ -35,7 +35,7 @@ namespace ldk
     {
       spriteBatch->currentMaterial = materialHandle;
       spriteBatch->spriteCount = 0;
-      setMaterial(&spriteBatch->renderable, materialHandle);
+      renderable_setMaterial(&spriteBatch->renderable, materialHandle);
     }
 
     static void _flushBatch(SpriteBatch* spriteBatch)
@@ -46,7 +46,7 @@ namespace ldk
       // assign the material to the renderable if material changed
       if(spriteBatch->renderable.materialHandle != spriteBatch->currentMaterial)
       {
-        setMaterial(&spriteBatch->renderable, spriteBatch->currentMaterial);
+        renderable_setMaterial(&spriteBatch->renderable, spriteBatch->currentMaterial);
       }
       
       DrawCall drawCall;
