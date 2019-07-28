@@ -10,7 +10,7 @@ namespace ldk
 
     struct Sprite
     {
-      Handle material;
+      HMaterial material;
       uint32 x;
       uint32 y;
       uint32 width;

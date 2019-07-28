@@ -50,5 +50,11 @@ namespace ldk
       assetHandle.handle = ldkEngine::handle_invalid();
       return assetHandle;
     }
+
+  template <typename T>
+    void* typedHandle_getData(T assetHandle)
+    {
+      return ldkEngine::handle_getData(assetHandle.data);
+    }
 }
 #endif// _LDK_TYPED_HANDLE_

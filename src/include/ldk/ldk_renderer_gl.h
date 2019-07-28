@@ -131,8 +131,8 @@ namespace ldk
     struct Renderable
     {
       VertexBuffer buffer;
-      ldk::Handle materialHandle;
-      ldk::Handle meshHandle;       // **If** this renderable was build from a mesh, this is a reference to it.
+      ldk::HMaterial materialHandle;
+      ldk::HMesh meshHandle;       // **If** this renderable was build from a mesh, this is a reference to it.
       GLuint ibo;
       GLuint iboSize;
       GLuint attributeCount;
@@ -185,13 +185,13 @@ namespace ldk
     ///@param renderable - The Renderable to assing a shader to
     ///@param Material - Handle to the material
     //LDK_API void setShader(Renderable* renderable, Shader* shader);
-    LDK_API void renderable_setMaterial(Renderable* renderable, Handle materialHandle);
+    LDK_API void renderable_setMaterial(Renderable* renderable, HMaterial materialHandle);
 
     ///@brief Set a Texture id shader parameter
     ///@param materialHandle - Handle to the material
     ///@param name - The shader parameter to set the value
     ///@param matrix - The matrix parameter value to set
-    LDK_API bool material_setTexture(Handle materialHandle, char* name, Texture texture);
+    LDK_API bool material_setTexture(HMaterial materialHandle, char* name, Texture texture);
 
     ///@brief Set a Matrix4 shader parameter.
     ///@param material - Handle to the material
@@ -203,27 +203,27 @@ namespace ldk
     ///@param materialHandle - Handle to the material
     ///@param name - The integer parameter
     ///@param intParam - The Matrix4 value to set
-    LDK_API void material_setInt(Handle materialHandle, char* name, uint32 intParam);
+    LDK_API void material_setInt(HMaterial materialHandle, char* name, uint32 intParam);
 
     ///@brief Set an integer compound shader parameter.
     ///@param materialHandle - Handle to the material
     ///@param name - The integer parameter
     ///@param count - The number of integer components to set
     ///@param intParam - An array of integer values to set. This array length must be equals to count.
-    LDK_API void material_setInt(Handle materialHandle, char* name, uint32 count, uint32* intParam);
+    LDK_API void material_setInt(HMaterial materialHandle, char* name, uint32 count, uint32* intParam);
 
     ///@brief Set a float shader parameter.
     ///@param Material - Handle to the material
     ///@param name - The float parameter
     ///@param floatParam - The float value to set
-    LDK_API void material_setFloat(Handle materialHandle, char* name, float floatParam);
+    LDK_API void material_setFloat(HMaterial materialHandle, char* name, float floatParam);
 
     ///@brief Set a float compound shader parameter.
     ///@param Material - Handle to the material
     ///@param name - The float parameter
     ///@param count - The number of float components to set
     ///@param floatParam - An array of float values to set. This array length must be equals to count.
-    LDK_API void material_setFloat(Handle materialHandle, char* name, uint32 count, float* floatParam);
+    LDK_API void material_setFloat(HMaterial materialHandle, char* name, uint32 count, float* floatParam);
 
     ///@brief Initializes a VertexBuffer structure.
     ///@param buffer - The vertex buffer structur to initialize
