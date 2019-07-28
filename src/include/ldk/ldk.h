@@ -3,7 +3,7 @@
 
 // Compile time defines
 // plaforms:
-// _LDK_WINDOWS_, _LDK_ANDROID_, _LDK_MAC_, _LDK_IOS_
+// _LDK_WINDOWS_
 //
 // Debug options:
 // _LDK_DEBUG_
@@ -33,6 +33,7 @@
 #include "ldk_mouse.h"
 #include "ldk_joystick.h"
 #include "ldk_cfg.h"
+#include "ldk_typed_handle.h"
 #include "ldk_asset.h"
 #include "ldk_audio.h"
 #include "ldk_renderer_gl.h"

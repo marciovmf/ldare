@@ -327,7 +327,7 @@ namespace ldk
     {
       // if there is no pointer to a renderable, try fetching from a handle
       Renderable* renderable = drawCall->renderable; 
-      Material* material = (Material*) handle_getData(drawCall->renderable->materialHandle);
+      Material* material = (Material*) ldkEngine::handle_getData(drawCall->renderable->materialHandle);
 
       if(renderable->usage == GL_STATIC_DRAW)
       {
@@ -519,15 +519,15 @@ namespace ldk
       }
     }
 
-    void material_setMatrix4(Handle materialHandle, char* name, ldk::Mat4* matrix)
+    void material_setMatrix4(HMaterial materialHandle, char* name, ldk::Mat4* matrix)
     {
-      Material* material = (Material*) handle_getData(materialHandle);
+      Material* material = (Material*) ldkEngine::handle_getData(materialHandle.handle);
       _setMatrix4(material, name, matrix, true);
     }
 
     void material_setInt(Handle materialHandle, char* name, uint32 intParam)
     {
-      Material* material = (Material*) handle_getData(materialHandle);
+      Material* material = (Material*) ldkEngine::handle_getData(materialHandle);
       Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
@@ -537,7 +537,7 @@ namespace ldk
 
     void material_setInt(Handle materialHandle, char* name, uint32 count, uint32* intParam)
     {
-      Material* material = (Material*) handle_getData(materialHandle);
+      Material* material = (Material*) ldkEngine::handle_getData(materialHandle);
       Shader* shader = &material->shader;
       glUseProgram(shader->program);
       checkGlError();
@@ -573,7 +573,7 @@ namespace ldk
 
     void material_setFloat(Handle materialHandle, char* name, float floatParam)
     {
-      Material* material = (Material*) handle_getData(materialHandle);
+      Material* material = (Material*) ldkEngine::handle_getData(materialHandle);
       Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
@@ -583,7 +583,7 @@ namespace ldk
 
     void material_setFloat(Handle materialHandle, char* name, uint32 count, float* floatParam)
     {
-      Material* material = (Material*) handle_getData(materialHandle);
+      Material* material = (Material*) ldkEngine::handle_getData(materialHandle);
       Shader* shader = &material->shader;
       glUseProgram(shader->program);
       const Uniform* uniform = _findUniform(shader, name);
@@ -616,7 +616,7 @@ namespace ldk
 
     bool material_setTexture(Handle materialHandle, char* name, Texture texture)
     {
-      Material* material = (Material*) handle_getData(materialHandle);
+      Material* material = (Material*) ldkEngine::handle_getData(materialHandle);
       // Find the thexture slot or allocate a new one if this is a new texture
       uint32 textureSlot = -1;
       for(int i=0; i < material->textureCount; i++)
@@ -644,7 +644,7 @@ namespace ldk
 
     void renderable_setMaterial(Renderable* renderable, Handle materialHandle)
     {
-      Material* material = (Material*) handle_getData(materialHandle);
+      Material* material = (Material*) ldkEngine::handle_getData(materialHandle);
       if (renderable->materialHandle == materialHandle)
       {
         return;
@@ -809,19 +809,19 @@ namespace ldk
       checkGlError();
     }
 
-    ldk::Handle renderable_create(ldk::Handle meshHandle, ldk::Handle materialHandle)
+    ldk::HRenderable renderable_create(ldk::HMesh meshHandle, ldk::HMaterial materialHandle)
     {
       size_t totalSize = sizeof(ldk::renderer::Renderable) + sizeof(ldk::renderer::VertexBuffer);
       char8* mem = (char8*) ldkEngine::memory_alloc(totalSize, ldkEngine::Allocation::Tag::RENDERER);
 
       ldk::renderer::Renderable* renderable = (ldk::renderer::Renderable*) mem;
-      
+
       ldk::renderer::VertexBuffer* vertexBuffer =
         (ldk::renderer::VertexBuffer*) (mem + sizeof(ldk::renderer::Renderable));
 
-      ldk::Mesh* mesh = (ldk::Mesh*) ldk::handle_getData(meshHandle);
+      ldk::Mesh* mesh = (ldk::Mesh*) ldkEngine::handle_getData(meshHandle.handle);
       ldk::MeshInfo* meshInfo = &(mesh->meshData->info);
-      
+
       if(mesh->meshData->info.format == ldk::MeshInfo::VertexFormat::PNUV)
       {
         // Set buffer layout for PNUV mesh
@@ -838,24 +838,26 @@ namespace ldk
       else
       {
         LDK_ASSERT(false, "Unknown vertex format on mesh");
-        return ldk::handle_invalid();
+        return typedHandle_invalid<HRenderable>();
       }
 
       // Initialize an indexed vertex buffer
       makeRenderable(renderable, vertexBuffer, mesh->indices, meshInfo->indexCount, true);
-      
-      // Set material to renderable
-      renderer::renderable_setMaterial(renderable, materialHandle);
 
-      renderable->meshHandle = meshHandle;
-      ldk::Handle renderableHandle = ldk::handle_store(HandleType::RENDERABLE, (void*)renderable);
-      return renderableHandle;
+      // Set material to renderable
+      renderer::renderable_setMaterial(renderable, materialHandle.handle);
+
+      renderable->meshHandle = meshHandle.handle;
+      ldk::Handle renderableHandle =
+        ldkEngine::handle_store(ldkEngine::HandleType::RENDERABLE, (void*)renderable);
+      return typedHandle_make<HRenderable>(renderableHandle);
     }
 
 
-    void renderable_setMatrix(ldk::Handle renderableHandle, const Mat4* modelMatrix)
+    void renderable_setMatrix(ldk::HRenderable renderableHandle, const Mat4* modelMatrix)
     {
-      renderer::Renderable* renderable = (renderer::Renderable*) ldk::handle_getData(renderableHandle);
+      renderer::Renderable* renderable =
+        (renderer::Renderable*) ldkEngine::handle_getData(renderableHandle.handle);
       renderable->modelMatrix = *modelMatrix;
     }
 
@@ -869,10 +871,11 @@ namespace ldk
     }
 
 
-    LDK_API void drawIndexed(Context* context, ldk::Handle renderableHandle)
+    LDK_API void drawIndexed(Context* context, ldk::HRenderable renderableHandle)
     {
-      ldk::renderer::Renderable* renderable = (ldk::renderer::Renderable*) ldk::handle_getData(renderableHandle);
-      ldk::Mesh* mesh = (ldk::Mesh*) ldk::handle_getData(renderable->meshHandle);
+      ldk::renderer::Renderable* renderable = 
+        (ldk::renderer::Renderable*) ldkEngine::handle_getData(renderableHandle.handle);
+      ldk::Mesh* mesh = (ldk::Mesh*) ldkEngine::handle_getData(renderable->meshHandle);
       ldk::MeshInfo* meshInfo = &mesh->meshData->info;
 
       ldk::renderer::DrawCall drawCall;
@@ -966,7 +969,7 @@ namespace ldk
       }
     }
 
-    Texture createTexture(ldk::Handle bmpHandle
+    Texture createTexture(ldk::HBitmap bmpHandle
         ,TextureFilter minFilter 
         ,TextureFilter magFilter
         ,TextureWrap uWrap
@@ -975,23 +978,23 @@ namespace ldk
       GLuint textureId;
       glGenTextures(1, &textureId);
       glBindTexture(GL_TEXTURE_2D, textureId);
-      
-      ldk::Bitmap* bitmap = (ldk::Bitmap*) handle_getData(bmpHandle);
+
+      ldk::Bitmap* bitmap = (ldk::Bitmap*) ldkEngine::handle_getData(bmpHandle.handle);
       if(bitmap == nullptr)
       {
         bitmap = getPlaceholderBmp();
       }
 
-	  GLenum fmt = GL_RGBA;
-    GLenum pixelDataFmt = GL_UNSIGNED_BYTE;
+      GLenum fmt = GL_RGBA;
+      GLenum pixelDataFmt = GL_UNSIGNED_BYTE;
 
-	  if (bitmap->bitsPerPixel == 24)
-		  fmt = GL_RGB;
-    else if (bitmap->bitsPerPixel == 16)
-    {
-      fmt = GL_RGBA;
-      pixelDataFmt = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-    }
+      if (bitmap->bitsPerPixel == 24)
+        fmt = GL_RGB;
+      else if (bitmap->bitsPerPixel == 16)
+      {
+        fmt = GL_RGBA;
+        pixelDataFmt = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+      }
 
 
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height,
@@ -1155,7 +1158,7 @@ namespace ldk
       return result;
     }
 
-    ldk::Handle loadMaterial(const char* file)
+    ldk::HMaterial loadMaterial(const char* file)
     {
       auto cfgRoot = ldk::configParseFile(file);
       auto materialSection = ldk::configGetSection(cfgRoot, "material");
@@ -1167,7 +1170,7 @@ namespace ldk
       {
         LogError("Error loading material. Missing Fragment shader.");
         ldk::configDispose(cfgRoot);
-        return false;
+        return typedHandle_invalid<HMaterial>();
       }
 
       // null terminate the file content
@@ -1180,7 +1183,7 @@ namespace ldk
       {
         LogError("Error loading material. Missing Vertex shader.");
         ldk::configDispose(cfgRoot);
-        return false;
+        return typedHandle_invalid<HMaterial>();
       }
 
       // null terminate the file content
@@ -1201,14 +1204,14 @@ namespace ldk
       // allocate a material
       ldk::renderer::Material* material = 
         (ldk::renderer::Material*) ldkEngine::memory_alloc(sizeof(ldk::renderer::Material), ldkEngine::Allocation::MATERIAL);
-      ldk::Handle handle = ldk::handle_store(ldk::HandleType::MATERIAL, material);
+      ldk::Handle handle = ldkEngine::handle_store(ldkEngine::HandleType::MATERIAL, material);
 
       // Store it in the handle table
-      if (handle == ldk::handle_invalid())
+      if (handle == ldkEngine::handle_invalid())
       {
         ldkEngine::memory_free(material);
         ldk::platform::memoryFree(material);
-        return handle;
+        return typedHandle_invalid<HMaterial>();
       }
 
       makeMaterial(material, vs, fs, renderQueue);
@@ -1229,108 +1232,110 @@ namespace ldk
             ||section->hash == texture2 ||section->hash == texture3
             ||section->hash == texture4 ||section->hash == texture5 
             ||section->hash == texture6 ||section->hash == texture7)
+        {
+          auto variant = ldk::configGetFirstVariant(section);
+          while  (variant != nullptr)
+          {
+
+            const uint32 keyLen = strlen(variant->key);
+            char *value;
+
+            if(variant->hash == keyUWrap
+                && strncmp(STR_PARAM_U_WRAP, variant->key, keyLen) == 0)
             {
-              auto variant = ldk::configGetFirstVariant(section);
-              while  (variant != nullptr)
-              {
-
-                const uint32 keyLen = strlen(variant->key);
-                char *value;
-
-                if(variant->hash == keyUWrap
-                    && strncmp(STR_PARAM_U_WRAP, variant->key, keyLen) == 0)
-                {
-                  configGetString(section, (const char*) variant, &value);
-                  uWrap = cfgStringToTextureWrap(value);
-                }
-                else if (variant->hash == keyVWrap
-                    && strncmp(STR_PARAM_V_WRAP, variant->key, keyLen) == 0)
-                {
-                  configGetString(section, (const char*) variant, &value);
-                  vWrap = cfgStringToTextureWrap(value);
-                }
-                else if(variant->hash == keyPath
-                    && strncmp(STR_PARAM_PATH, variant->key, keyLen) == 0)
-                {
-                  configGetString(section, (const char*) variant, &texturePath);
-                }
-                else if (variant->hash == keyMinFilter
-                    && strncmp(STR_PARAM_MIN_FILTER, variant->key, keyLen) == 0)
-                {
-                  configGetString(section, (const char*) variant, &value);
-                  minFilter = cfgStringToTextureFilter(value);
-                }
-                else if (variant->hash == keyMagFilter
-                    && strncmp(STR_PARAM_MAG_FILTER, variant->key, keyLen) == 0)
-                {
-                  configGetString(section, (const char*) variant, &value);
-                  magFilter = cfgStringToTextureFilter(value);
-                }
-                else
-                {
-                  // ignore if not a valid texture parameter
-                  LogWarning("Ignoring unknown texture parameter '%s' for texture '%s'",
-                      variant->key, section->name);
-                  continue;
-                }
-
-                variant = configGetNextVariant(section, variant);
-              } // whie variant...
-
-              // create the texture based on the parsed parameters
-              if(texturePath != nullptr)
-              {
-                bool isPlaceholder = false;
-                ldk::Handle bmpHandle = ldk::asset_loadBitmap((const char*)texturePath);
-                Texture texture = renderer::createTexture(bmpHandle, minFilter, magFilter, uWrap, vWrap);
-                asset_unload(bmpHandle);
-                renderer::material_setTexture(handle, (char*) &section->name, texture);
-              }
-              else
-              {
-                LogWarning("%s has no path and will be ignored.",
-                    section->name);
-              }
+              configGetString(section, (const char*) variant, &value);
+              uWrap = cfgStringToTextureWrap(value);
             }
+            else if (variant->hash == keyVWrap
+                && strncmp(STR_PARAM_V_WRAP, variant->key, keyLen) == 0)
+            {
+              configGetString(section, (const char*) variant, &value);
+              vWrap = cfgStringToTextureWrap(value);
+            }
+            else if(variant->hash == keyPath
+                && strncmp(STR_PARAM_PATH, variant->key, keyLen) == 0)
+            {
+              configGetString(section, (const char*) variant, &texturePath);
+            }
+            else if (variant->hash == keyMinFilter
+                && strncmp(STR_PARAM_MIN_FILTER, variant->key, keyLen) == 0)
+            {
+              configGetString(section, (const char*) variant, &value);
+              minFilter = cfgStringToTextureFilter(value);
+            }
+            else if (variant->hash == keyMagFilter
+                && strncmp(STR_PARAM_MAG_FILTER, variant->key, keyLen) == 0)
+            {
+              configGetString(section, (const char*) variant, &value);
+              magFilter = cfgStringToTextureFilter(value);
+            }
+            else
+            {
+              // ignore if not a valid texture parameter
+              LogWarning("Ignoring unknown texture parameter '%s' for texture '%s'",
+                  variant->key, section->name);
+              continue;
+            }
+
+            variant = configGetNextVariant(section, variant);
+          } // whie variant...
+
+          // create the texture based on the parsed parameters
+          if(texturePath != nullptr)
+          {
+            bool isPlaceholder = false;
+            ldk::HBitmap bmpHandle = ldk::asset_loadBitmap((const char*)texturePath);
+            Texture texture = renderer::createTexture(bmpHandle, minFilter, magFilter, uWrap, vWrap);
+            asset_unload(bmpHandle);
+            renderer::material_setTexture(handle, (char*) &section->name, texture);
+          }
+          else
+          {
+            LogWarning("%s has no path and will be ignored.",
+                section->name);
+          }
+        }
 
         section = configGetNextSection(cfgRoot, section);
       } // while sections ...
 
       ldk::configDispose(cfgRoot);
-      return handle;
+
+      return typedHandle_make<HMaterial>(handle);
     }
 
-    void material_destroy(ldk::Handle materialHandle)
+    void material_destroy(ldk::HMaterial materialHandle)
     {
-        Material* material = (Material*) ldk::handle_getData(materialHandle);
-        LDK_ASSERT(material != nullptr, "Unexpected null pointer to asset");
+      Material* material = (Material*) ldkEngine::handle_getData(materialHandle.handle);
+      LDK_ASSERT(material != nullptr, "Unexpected null pointer to asset");
 
-        // unload textures from GPU
-        for(uint32 i = 0; i < material->textureCount; i++)
-        {
-          Texture& texture = material->texture[i];
-          destroyTexture(texture);
-          checkGlError();
-        }
-
-        // unload shader from GPU
-        glDeleteProgram(material->shader.program);
+      // unload textures from GPU
+      for(uint32 i = 0; i < material->textureCount; i++)
+      {
+        Texture& texture = material->texture[i];
+        destroyTexture(texture);
         checkGlError();
+      }
+
+      // unload shader from GPU
+      glDeleteProgram(material->shader.program);
+      checkGlError();
 
 
-        platform::memoryFree(material);
+      platform::memoryFree(material);
 
-        //TOD(marcio): Should we delete the actual BITMAP from RAM ? Review when asset manager is done!
+      //TOD(marcio): Should we delete the actual BITMAP from RAM ? Review when asset manager is done!
     }
 
 
-    void renderable_destroy(ldk::Handle renderableHandle)
+    void renderable_destroy(ldk::HRenderable renderableHandle)
     {
       //NOTE:this does not unload the associated mesh
-      ldk::renderer::Renderable* renderable = (ldk::renderer::Renderable*) ldk::handle_getData(renderableHandle);
+      ldk::renderer::Renderable* renderable = 
+        (ldk::renderer::Renderable*) ldkEngine::handle_getData(renderableHandle.handle);
       glDeleteBuffers((GLsizei)renderable->vboCount, &(renderable->vbos[0]));
       glDeleteBuffers((GLsizei)1, &renderable->ibo);
-      ldk::handle_remove(renderableHandle);
+      ldkEngine::handle_remove(renderableHandle.handle);
       ldkEngine::memory_free(renderable);
     }
 

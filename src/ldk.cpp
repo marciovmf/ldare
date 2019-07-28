@@ -7,9 +7,9 @@
 #endif // _LDK_ENGINE_
 
 #include <ldk/ldk.h>
-#include "ldk_handle.h"
-#include  <ldkengine/ldk_platform.h>
+#include  <ldkengine/ldk_handle.h>
 #include  <ldkengine/ldk_memory.h>
+#include  <ldkengine/ldk_platform.h>
 
 // platform specific implementation
 #ifdef _LDK_WINDOWS_
@@ -18,6 +18,7 @@
   #error "Unsupported platform"
 #endif
 
+#include "ldk_audio.cpp"
 #include "ldk_math.cpp"
 #include "ldk_keyboard.cpp"
 #include "ldk_mouse.cpp"

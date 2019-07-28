@@ -1,7 +1,3 @@
-/**
- * game.h
- * Standard header for ldk based games
- */
 #ifndef _LDK_GAME_H_
 #define _LDK_GAME_H_
 
@@ -29,51 +25,51 @@ struct LDKGameSettings
   int32 displayHeight;
 };
 
-  /// @defgroup Game Game
-  /// @details These are mandatory functions that must be implemented when creating a new game.
-  ///A game must be a shared library named *ldk_game* that exposes all of the functions documented
-  ///here. 
-  /// @{
+/// @defgroup Game Game
+/// @details These are mandatory functions that must be implemented when creating a new game.
+///A game must be a shared library named *ldk_game* that exposes all of the functions documented
+///here. 
+/// @{
 
-  ///@brief Game settings passed to the engine during initialization.
-  //The engine use this struct to initialize basic settings for the game.
+///@brief Game settings passed to the engine during initialization.
+//The engine use this struct to initialize basic settings for the game.
 
-  extern "C"
+extern "C"
+{
+  ///@brief Game initialization callback. This function is called by the engine
+  //when so the game car ask the engine to initialize certain elements like
+  //screen size and reserve a block of memory.
+  //@returns The desired initiali game settings
+  /// You can build the settings manually or load it from th game.cfg file. 
+  //@see loadGameSettings for loading this from a file
+  LDK_GAME_CALLBACK LDKGameSettings gameInit();
+
+  ///@brief Game start callback. This finction is called by the engine right
+  //after gameInit();
+  //@param memory - The preallocated memory buffer, according to
+  //GameSettings.preallocMemorySize value returned by gameInit();
+  LDK_GAME_CALLBACK void gameStart(void* memory);
+
+  ///@brief Game update callbac. Tthis function is called by the engine every
+  //frame.
+  //@param deltaTime - The time in seconds since the last frame.
+  LDK_GAME_CALLBACK void gameUpdate(float deltaTime);
+
+  ///@brief Game stop callback. This function is called by the engine before
+  //terminating the game. Use this for finalziation and releasing any allocated
+  //resources. Note that you must not manually release the preallocated memory
+  //received by gameStart();
+  LDK_GAME_CALLBACK void gameStop();
+
+  namespace ldk
   {
-    ///@brief Game initialization callback. This function is called by the engine
-    //when so the game car ask the engine to initialize certain elements like
-    //screen size and reserve a block of memory.
-    //@returns The desired initiali game settings
-    /// You can build the settings manually or load it from th game.cfg file. 
-    //@see loadGameSettings for loading this from a file
-    LDK_GAME_CALLBACK LDKGameSettings gameInit();
-
-    ///@brief Game start callback. This finction is called by the engine right
-    //after gameInit();
-    //@param memory - The preallocated memory buffer, according to
-    //GameSettings.preallocMemorySize value returned by gameInit();
-    LDK_GAME_CALLBACK void gameStart(void* memory);
-
-    ///@brief Game update callbac. Tthis function is called by the engine every
-    //frame.
-    //@param deltaTime - The time in seconds since the last frame.
-    LDK_GAME_CALLBACK void gameUpdate(float deltaTime);
-
-    ///@brief Game stop callback. This function is called by the engine before
-    //terminating the game. Use this for finalziation and releasing any allocated
-    //resources. Note that you must not manually release the preallocated memory
-    //received by gameStart();
-    LDK_GAME_CALLBACK void gameStop();
-
-    namespace ldk
-    {
-      ///@brief This utility function loads a the GameSettings from a file called
-      /// ldk_game.cfg on the same folder as the game application.
-      LDK_API LDKGameSettings loadGameSettings();
-    }
-
+    ///@brief This utility function loads a the GameSettings from a file called
+    /// ldk_game.cfg on the same folder as the game application.
+    LDK_API LDKGameSettings loadGameSettings();
   }
-  /// @}
+
+}
+/// @}
 
 
 #define LDK_GAME_FUNCTION_INIT "gameInit"

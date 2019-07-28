@@ -1,9 +1,8 @@
-#include "ldk_handle.h"
-#define ENABLE_DEBUG_HANDLE 0
 
-namespace ldk
+using namespace ldk;
+
+namespace ldkEngine
 {
-
   struct AssetHandle
   {
     uint16 slot;
@@ -86,9 +85,6 @@ namespace ldk
 
     // encode the entry as a handle
     Handle handle = handle_encode(slotIndex, handleEntry.version, handleEntry.assetType);
-#if ENABLE_DEBUG_HANDLE
-    LogInfo("[HANDLE] + %x for type %d at slot %d", (uint32) handle, handleEntry.assetType, slotIndex);
-#endif
     return handle;
   }
 
@@ -107,13 +103,8 @@ namespace ldk
     HandleTable& handleTable = handle_getGlobalHandleTable();
     AssetHandle assetHandle = handle_decode(handle);
     HandleEntry& entry = handleTable.slot[assetHandle.slot];
-
-#if ENABLE_DEBUG_HANDLE
-    LogInfo("[HANDLE] = %x for type %d", (uint32) handle, assetHandle.assetType);
-#endif
     LDK_ASSERT(entry.version == assetHandle.version, "Handle Version mismatch");
     LDK_ASSERT(entry.assetType == assetHandle.assetType, "Handle type mismatch");
-
     return entry.data;
   }
 
@@ -121,4 +112,5 @@ namespace ldk
   {
     return handle_encode(0, 255, HandleType::EMPTY);
   }
-}
+} // ldkEngine
+

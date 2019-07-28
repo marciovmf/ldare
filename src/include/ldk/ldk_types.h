@@ -17,13 +17,15 @@ typedef uint32 ldkSTATUS;
 #define LDK_SUCCESS 1
 #define LDK_FAIL 0
 
+// Program return constants
+#define LDK_EXIT_SUCCESS 0
+#define LDK_EXIT_FAIL 1
+
+
+// handle Types
 namespace ldk
 {
   typedef uint32 Handle;
 }
-
-// Program return constants
-#define LDK_EXIT_SUCCESS 0
-#define LDK_EXIT_FAIL 1
 
 #endif // _LDK_TYPES_H_

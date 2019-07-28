@@ -194,10 +194,10 @@ namespace ldk
     LDK_API bool material_setTexture(Handle materialHandle, char* name, Texture texture);
 
     ///@brief Set a Matrix4 shader parameter.
-    ///@param materialHandle - Handle to the material
+    ///@param material - Handle to the material
     ///@param name - The shader parameter to set the value
     ///@param matrix - The matrix parameter value to set
-    LDK_API void material_setMatrix4(Handle materialHandle, char* name, ldk::Mat4* matrix);
+    LDK_API void material_setMatrix4(HMaterial materialHandle, char* name, ldk::Mat4* matrix);
 
     ///@brief Set an integer shader parameter.
     ///@param materialHandle - Handle to the material
@@ -258,19 +258,19 @@ namespace ldk
     ///@param meshHandle - Handle to mesh.
     ///@param materialHandle - Handle to material.
     ///@returns a Handle to the renderable.
-    LDK_API ldk::Handle renderable_create(ldk::Handle meshHandle, ldk::Handle materialHandle);
+    LDK_API ldk::HRenderable renderable_create(ldk::HMesh meshHandle, ldk::HMaterial materialHandle);
 
     ///@brief Set the renderable model matrix
     ///@param renderable - Handle to renderable.
     ///@param modelMatrix - Model matrix for the renderable.
     ///@returns a Handle to the renderable.
-    LDK_API void renderable_setMatrix(ldk::Handle renderableHandle, const Mat4* modelMatrix);
+    LDK_API void renderable_setMatrix(ldk::HRenderable renderableHandle, const Mat4* modelMatrix);
 
     ///@brief Creates a material from a mesh.
     ///@param meshHandle - Handle to mesh.
     ///@param materialHandle - Handle to material.
     ///@returns a Handle to the renderable.
-    LDK_API ldk::Handle loadMaterial(const char* file);
+    LDK_API ldk::HMaterial loadMaterial(const char* file);
 
     ///@brief Submits a draw call for execution.
     ///@param context - The rendering context to push the draw call into
@@ -281,7 +281,7 @@ namespace ldk
     ///@param context - The rendering context to push the draw call into
     ///@param drawCall - The draw call to push.
     ///@see Handle
-    LDK_API void drawIndexed(Context* context, ldk::Handle renderable);
+    LDK_API void drawIndexed(Context* context, ldk::HRenderable renderable);
 
     ///@brief Flushes the draw call queue forcing draw calls to execute.
     ///@param context - Rendering contex to flush draw calls
@@ -294,7 +294,7 @@ namespace ldk
     ///@param uWrap - wrap mode on u axis
     ///@param vWrap - wrap mode on v axis
     ///@returns the gpu texture 
-    LDK_API Texture createTexture(ldk::Handle handle
+    LDK_API Texture createTexture(ldk::HBitmap handle
         ,TextureFilter minFilter = TextureFilter::LINEAR
         ,TextureFilter magFilter = TextureFilter::LINEAR
         ,TextureWrap uWrap = TextureWrap::CLAMPTOEDGE
@@ -306,11 +306,11 @@ namespace ldk
 
     ///@brief Destroys a Material
     ///@param materialHandle - handle to the material to destroy
-    LDK_API void material_destroy(ldk::Handle materialHandle);
+    LDK_API void material_destroy(ldk::HMaterial materialHandle);
 
     ///@brief Destroys a Renderable
     ///@param materialHandle - handle to the renderable to destroy
-    LDK_API void renderable_destroy(ldk::Handle renderableHandle);
+    LDK_API void renderable_destroy(ldk::HRenderable renderableHandle);
     
 ///@}
   } // renderer

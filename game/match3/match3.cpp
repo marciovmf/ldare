@@ -93,7 +93,7 @@ static struct GameState
 {
   uint32 initialized;
   renderer::Sprite sprite[NUM_SPRITES];
-  Handle material;
+  HMaterial material;
   renderer::Texture textureId;
   renderer::Context* context;
   renderer::SpriteBatch* spriteBatch;

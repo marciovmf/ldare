@@ -24,7 +24,7 @@ namespace ldkEngine
     };
 
     uint32 signature; // 'LDKM' 0x4C444B4D
-    Tag tag;          // An tag that identifies this allocation purpose
+    Tag tag;          // A tag that identifies this allocation purpose
     size_t size;      // size of allocation, including prefix and sufix
     Allocation* next; // next allocation in the list
     Allocation* prev; // previouse allocation in the list

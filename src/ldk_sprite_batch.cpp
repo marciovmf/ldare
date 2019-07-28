@@ -22,9 +22,9 @@ namespace ldk
       SpriteVertexData *vertices;
     };
 
-    void makeSprite(Sprite* sprite, Handle materialHandle, uint32 x, uint32 y, uint32 width, uint32 height)
+    void makeSprite(Sprite* sprite, HMaterial materialHandle, uint32 x, uint32 y, uint32 width, uint32 height)
     {
-      sprite->material = materialHandle;
+      sprite->material = materialHandle.handle;
       sprite->x = x;
       sprite->y = y;
       sprite->width = width;
@@ -40,7 +40,7 @@ namespace ldk
 
     static void _flushBatch(SpriteBatch* spriteBatch)
     {
-      if(spriteBatch->currentMaterial == ldk::handle_invalid())
+      if(spriteBatch->currentMaterial == ldkEngine::handle_invalid())
         return;
 
       // assign the material to the renderable if material changed
@@ -56,7 +56,7 @@ namespace ldk
       drawCall.vertices = spriteBatch->vertices;
       drawCall.indexStart = 0;
       drawCall.indexCount = spriteBatch->spriteCount * 6;
-      spriteBatch->currentMaterial = handle_invalid();
+      spriteBatch->currentMaterial = ldkEngine::handle_invalid();
 
       pushDrawCall(spriteBatch->context, &drawCall);
       renderer::flush(spriteBatch->context);
@@ -74,7 +74,7 @@ namespace ldk
         (SpriteBatch*) ldkEngine::memory_alloc(totalSize, ldkEngine::Allocation::Tag::SPRITE_BATCH);
 
       spriteBatch->context = context;
-      spriteBatch->currentMaterial = handle_invalid();
+      spriteBatch->currentMaterial = ldkEngine::handle_invalid();
       spriteBatch->spriteCount = 0;
       spriteBatch->maxSprites = maxSprites;
       spriteBatch->state = 0;
@@ -128,7 +128,7 @@ namespace ldk
         float rotY)
     {
       // Flush the batch if material changed or the buffer is full
-      if (spriteBatch->currentMaterial == handle_invalid())
+      if (spriteBatch->currentMaterial == ldkEngine::handle_invalid())
       {
         spriteBatch->currentMaterial = sprite->material;
       }
@@ -137,7 +137,7 @@ namespace ldk
         _flushBatch(spriteBatch);
       }
 
-      Material* material = (Material*) handle_getData(sprite->material);
+      Material* material = (Material*) ldkEngine::handle_getData(sprite->material);
 
       if (material->textureCount == 0)
       {
@@ -224,14 +224,14 @@ namespace ldk
 
     Vec2 spriteBatch_drawText(
         SpriteBatch* spriteBatch,
-        ldk::Handle material,
-        ldk::Handle font,
+        ldk::HMaterial material,
+        ldk::HFont font,
         Vec3& position,
         const char* text,
         float scale,
         Vec4& color)
     {
-      ldk::Font* fontAsset = (Font*) ldk::handle_getData(font);
+      ldk::Font* fontAsset = (Font*) ldkEngine::handle_getData(font.handle);
 
       if (fontAsset == nullptr)
       {

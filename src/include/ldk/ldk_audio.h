@@ -11,7 +11,7 @@ namespace ldk
   ///@param audioHandle - A handle to an audio asset
   ///@returns void
   ///@see Handle
-	LDK_API void playAudio(ldk::Handle audioHandle);
+	LDK_API void playAudio(ldk::HAudio audioHandle);
   ///@}
 }
 

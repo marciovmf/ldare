@@ -6,13 +6,13 @@ struct GameState
 {
   uint32 initialized;
   renderer::Sprite sprite;
-  Handle material;
-  Handle mesh;
-  Handle audio;
-  Handle renderable;
-  Handle renderable2;
-  Handle font;
-  Handle fontMaterial;
+  HMaterial material;
+  HMaterial fontMaterial;
+  HMesh mesh;
+  HAudio audio;
+  HRenderable renderable;
+  HRenderable renderable2;
+  HFont font;
   renderer::Context* context;
   renderer::SpriteBatch* spriteBatch;
   Mat4 modelMatrix;

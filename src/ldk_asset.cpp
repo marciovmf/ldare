@@ -30,9 +30,10 @@ namespace ldk
     return &_placeholderBmp;
   }
 
-  Handle asset_loadBitmap(const char* file)
+  HBitmap asset_loadBitmap(const char* file)
   {
     LogInfo("Loading Bitmap:\t'%s'", file);
+
     size_t bufferSize = 0;
     const size_t bitmapStructSize = sizeof(ldk::Bitmap);
     const int8* buffer = (int8*) ldk::platform::loadFileToBufferOffset(
@@ -41,7 +42,10 @@ namespace ldk
         ,bitmapStructSize + 1
         ,bitmapStructSize);
 
-    if (!buffer || bufferSize == 0) { return false; }
+    if (!buffer || bufferSize == 0) 
+    { 
+      return typedHandle_invalid<HBitmap>();
+    }
 
     ldkEngine::memory_tag((void*)buffer, ldkEngine::Allocation::Tag::BITMAP);
 
@@ -60,7 +64,7 @@ namespace ldk
       ldk::platform::memoryFree((void*)buffer);
       LogError("Unsupported bitmap type.");
 
-      return handle_invalid();
+      return typedHandle_invalid<HBitmap>();
     }
 
     ldk::Bitmap* bitmap = (ldk::Bitmap*)buffer;
@@ -112,11 +116,11 @@ namespace ldk
     }
 
     // get a handle for this data
-    Handle bmpHandle = handle_store(HandleType::BITMAP, bitmap);
-    return bmpHandle;
+    Handle handle = ldkEngine::handle_store(ldkEngine::HandleType::BITMAP, bitmap);
+    return typedHandle_make<HBitmap>(handle);
   }
 
-  ldk::Handle asset_loadFont(const char* file)
+  ldk::HFont asset_loadFont(const char* file)
   {
     size_t fileSize=0;
     size_t additionalSize = sizeof(ldk::Font);
@@ -125,7 +129,7 @@ namespace ldk
         additionalSize,
         additionalSize);
 
-    if (!mem || fileSize < sizeof(ldk::FontData)) return ldk::handle_invalid();
+    if (!mem || fileSize < sizeof(ldk::FontData)) return typedHandle_invalid<HFont>();
 
     ldk::Font* font = (ldk::Font*) mem;
     ldk::FontData* fontData = (ldk::FontData*) mem + 1;
@@ -135,21 +139,47 @@ namespace ldk
     font->gliphs = gliphs;
 
     ldkEngine::memory_tag((void*)font, ldkEngine::Allocation::Tag::FONT);
-    ldk::Handle fontHandle = ldk::handle_store(HandleType::FONT, font);
-    return fontHandle;
+    ldk::Handle fontHandle = ldkEngine::handle_store(ldkEngine::HandleType::FONT, font);
+    return typedHandle_make<HFont>(fontHandle);
   }
 
-  void asset_unload(Handle handle)
+  static inline void asset_unloadHandle(Handle handle)
   {
-    void* dataPtr = handle_getData(handle);
+    void* dataPtr = ldkEngine::handle_getData(handle);
     ldk::platform::memoryFree(dataPtr);
-    handle_remove(handle);
+    ldkEngine::handle_remove(handle);
   }
+
+	void asset_unload(ldk::HBitmap bitmap)
+  {
+    asset_unloadHandle(bitmap.handle);
+  }
+
+	void asset_unload(ldk::HAudio audio)
+  {
+    asset_unloadHandle(audio.handle);
+  }
+
+	void asset_unload(ldk::HFont font)
+  {
+    asset_unloadHandle(font.handle);
+  }
+
+	void asset_unload(ldk::HMesh mesh)
+  {
+    asset_unloadHandle(mesh.handle);
+  }
+
+	void asset_unload(ldk::HMaterial material)
+  {
+    asset_unloadHandle(material.handle);
+  }
+
 
   //---------------------------------------------------------------------------
   // Mesh functions
   //---------------------------------------------------------------------------
-  ldk::Handle asset_loadMesh(const char* file)
+  ldk::HMesh asset_loadMesh(const char* file)
   {
     // Loads the MeshData from file but reserves space at the beggining for a Mesh
     size_t buffSize;
@@ -160,7 +190,7 @@ namespace ldk
         sizeof(ldk::Mesh));
 
     if(!mesh)
-      return handle_invalid();
+      return typedHandle_invalid<HMesh>();
 
     ldkEngine::memory_tag((void*)mesh, ldkEngine::Allocation::Tag::MESH);
 
@@ -173,8 +203,8 @@ namespace ldk
     mesh->indices = (uint32*) (meshData->indicesOffset + (char*) meshData);
     mesh->vertices = (int8*) (meshData->verticesOffset + (char*) meshData);
 
-    ldk::Handle handle = handle_store(HandleType::MESH, (void*)mesh);
-    return handle;
+    ldk::Handle meshHandle = ldkEngine::handle_store(ldkEngine::HandleType::MESH, (void*)mesh);
+    return typedHandle_make<HMesh>(meshHandle);
   }
 
   //---------------------------------------------------------------------------
@@ -199,14 +229,14 @@ namespace ldk
     return nullptr;
   }
 
-  ldk::Handle asset_loadAudio(const char* file)
+  ldk::HAudio asset_loadAudio(const char* file)
   {
     LogInfo("Loading Audio:\t\t'%s'", file);
     size_t bufferSize;
     size_t audioStructSize = sizeof(ldk::Audio);
     int8* buffer = (int8*)ldk::platform::loadFileToBufferOffset(file, &bufferSize, audioStructSize, audioStructSize);
 
-    if (!buffer || bufferSize == 0) return false; 
+    if (!buffer || bufferSize == 0) return typedHandle_invalid<HAudio>(); 
 
     ldkEngine::memory_tag((void*)buffer, ldkEngine::Allocation::Tag::AUDIO);
     ldk::Audio* audio = (ldk::Audio*)buffer;
@@ -219,7 +249,7 @@ namespace ldk
       ldk::platform::memoryFree((void*)buffer);
     }
 
-    const ldk::Handle invalidHandle = ldk::handle_invalid();
+    const ldk::HAudio invalidHandle = typedHandle_invalid<HAudio>();
 
     // find 'fmt' chunk
     uint32 fmtSize;
@@ -242,21 +272,14 @@ namespace ldk
     }
 
     audio->id = ldk::platform::createAudioBuffer(fmt, fmtSize, data, dataSize);
-    ldk::Handle audioHandle = ldk::handle_store(ldk::HandleType::AUDIO, (void*) audio);
-    return audioHandle;
+    ldk::Handle audioHandle = ldkEngine::handle_store(ldkEngine::HandleType::AUDIO, (void*) audio);
+    return typedHandle_make<HAudio>(audioHandle);
   }
 
-  LDK_API ldk::Handle loadMaterial(const char* file)
+  LDK_API ldk::HMaterial loadMaterial(const char* file)
   {
     LogInfo("Loading Material:\t'%s'", file);
     return ldk::renderer::loadMaterial(file);
-  }
-
-  //TODO: Move this to some other place
-  void playAudio(ldk::Handle audioHandle)
-  {
-    ldk::Audio* audio = (ldk::Audio*) ldk::handle_getData(audioHandle);
-    ldk::platform::playAudioBuffer(audio->id);
   }
 
 } // namespace ldk
