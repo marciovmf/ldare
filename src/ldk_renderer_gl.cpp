@@ -1,11 +1,23 @@
 
+#ifndef LDK_ASSERT_VALID_CONTEXT
+#define LDK_ASSERT_VALID_CONTEXT(context) LDK_ASSERT((context)->initialized, "Context is not initialized");
+#endif
+
 namespace ldk
 {
   namespace renderer
   {
+
+    static Context _context;
+
     //
     // Internal functions
     //
+
+    inline Context* context_get()
+    {
+      return &_context;
+    }
 
     void _setMatrix4(Material* material, char* name, ldk::Mat4* matrix, bool bindShader);
 
@@ -706,14 +718,18 @@ namespace ldk
     // Context functions
     //
 
-    Context* context_create(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits)
+    void context_setClearColor(const Vec4& color)
     {
-      Context* context = (Context*) 
-        ldkEngine::memory_alloc(sizeof(Context), ldkEngine::Allocation::Tag::RENDERER);
+      Context* context = context_get();
+      LDK_ASSERT_VALID_CONTEXT(context);
+      context->clearColor = color;
+      glClearColor(color.x, color.y, color.z, color.w);
+    }
 
-      if (!context) return nullptr;
-
-      context->clearBits = clearBits;
+    void context_initialize(uint32 maxDrawCalls, const Vec4& clearColor, uint32 settingsBits)
+    {
+      //TODO(marcio): Review if we are gonna stick to this settingsBits param. Seems useless now.
+      Context* context = context_get();
       context->settingsBits = settingsBits;
       context->maxDrawCalls = maxDrawCalls;
       context->drawCallCount = 0;
@@ -723,7 +739,7 @@ namespace ldk
       if(!context->drawCalls)
       {
         ldkEngine::memory_free(context);
-        return nullptr;
+        return;
       }
 
       GLuint vao;
@@ -732,14 +748,23 @@ namespace ldk
 
       glEnable(GL_BLEND);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      context->initialized = true;
 
-      return context;
+      context_setClearColor(clearColor);
     }
 
-    void context_destroy(Context* context)
+
+    void renderer::clearBuffers(uint32 clearBits)
     {
+      glClear(clearBits);
+      checkGlError();
+    }
+
+    void context_finalize()
+    {
+      Context* context = context_get();
+      LDK_ASSERT_VALID_CONTEXT(context);
       ldkEngine::memory_free(context->drawCalls);
-      ldkEngine::memory_free(context);
     }
 
     //
@@ -864,15 +889,20 @@ namespace ldk
     //
     // Render functions
     //
-    void pushDrawCall(Context* context, DrawCall* drawCall)
+    void pushDrawCall(DrawCall* drawCall)
     {
+      Context* context = context_get();
+      LDK_ASSERT_VALID_CONTEXT(context);
       LDK_ASSERT(context->drawCallCount < context->maxDrawCalls, "Exceeded maximum draw calls per frame at current context");
       context->drawCalls[context->drawCallCount++] = *drawCall;
     }
 
 
-    LDK_API void drawIndexed(Context* context, ldk::HRenderable renderableHandle)
+    LDK_API void drawIndexed(ldk::HRenderable renderableHandle)
     {
+      Context* context = context_get();
+      LDK_ASSERT_VALID_CONTEXT(context);
+
       ldk::renderer::Renderable* renderable = 
         (ldk::renderer::Renderable*) ldkEngine::handle_getData(renderableHandle.handle);
       ldk::Mesh* mesh = (ldk::Mesh*) ldkEngine::handle_getData(renderable->meshHandle.handle);
@@ -885,11 +915,14 @@ namespace ldk
       drawCall.vertices = (void*)mesh->vertices;
       drawCall.indexStart = 0;
       drawCall.indexCount = meshInfo->indexCount;
-      pushDrawCall(context, &drawCall);
+      pushDrawCall(&drawCall);
     }
 
-    void flush(Context* context)
+    void flush()
     {
+      Context* context = context_get();
+      LDK_ASSERT_VALID_CONTEXT(context);
+
       uint32 drawCallCount = context->drawCallCount;
       _sortDrawCalls(context->drawCalls, drawCallCount);
 
@@ -897,7 +930,6 @@ namespace ldk
       glEnable(GL_CULL_FACE);
       glDepthFunc(GL_LESS);
 
-      glClear(context->clearBits);
 
       // execute draw calls
       for (int i = 0; i < drawCallCount; i++) 
@@ -1328,7 +1360,6 @@ namespace ldk
       //TOD(marcio): Should we delete the actual BITMAP from RAM ? Review when asset manager is done!
     }
 
-
     void renderable_destroy(ldk::HRenderable renderableHandle)
     {
       //NOTE:this does not unload the associated mesh
@@ -1342,3 +1373,7 @@ namespace ldk
 
   } // renderer
 } // ldk
+
+#ifdef LDK_ASSERT_VALID_CONTEXT
+#undef LDK_ASSERT_VALID_CONTEXT
+#endif

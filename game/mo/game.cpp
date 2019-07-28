@@ -13,7 +13,6 @@ struct GameState
   HRenderable renderable;
   HRenderable renderable2;
   HFont font;
-  renderer::Context* context;
   renderer::SpriteBatch* spriteBatch;
   Mat4 modelMatrix;
   Mat4 modelMatrix2;
@@ -38,9 +37,11 @@ void gameStart(void* memory)
   if (_gameState->initialized)
     return;
 
-  _gameState->context =
-  renderer::context_create(255, renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER, 0);
-  _gameState->spriteBatch = ldk::renderer::spriteBatch_create(_gameState->context, 1024);
+  Vec4 clearColor = Vec4{0.0f, 1.0f, 1.0f, 0.0f};
+
+  renderer::context_initialize(255, clearColor, 0);
+  renderer::context_setClearColor(clearColor);
+  _gameState->spriteBatch = ldk::renderer::spriteBatch_create(1024);
 
   // load materials, font and audio
   _gameState->mesh = ldk::asset_loadMesh("assets/monkey.mesh");
@@ -76,9 +77,15 @@ void gameStart(void* memory)
 
 void gameUpdate(float deltaTime) 
 {
-  renderer::drawIndexed(_gameState->context, _gameState->renderable);
-  renderer::drawIndexed(_gameState->context, _gameState->renderable2);
-  renderer::flush(_gameState->context);
+  if (input::isKeyDown(input::LDK_KEY_SPACE))
+  {
+    playAudio(_gameState->audio);
+  }
+
+  renderer::clearBuffers(renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER);
+  renderer::drawIndexed(_gameState->renderable);
+  renderer::drawIndexed(_gameState->renderable2);
+  renderer::flush();
 }
 
 void gameStop()
@@ -90,6 +97,6 @@ void gameStop()
   ldk::renderer::material_destroy(_gameState->fontMaterial);
   ldk::renderer::renderable_destroy(_gameState->renderable);
   ldk::renderer::renderable_destroy(_gameState->renderable2);
-  ldk::renderer::context_destroy(_gameState->context);
+  ldk::renderer::context_finalize();
 }
 

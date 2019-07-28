@@ -95,7 +95,6 @@ static struct GameState
   renderer::Sprite sprite[NUM_SPRITES];
   HMaterial material;
   renderer::Texture textureId;
-  renderer::Context* context;
   renderer::SpriteBatch* spriteBatch;
   Mat4 modelMatrix;
   Mat4 projMatrix;
@@ -411,6 +410,9 @@ void updateGameTimer(float deltaTime)
 //******************************************************************************
 inline void drawGameplay()
 {
+
+  renderer::clearBuffers(renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER);
+
   Vec2 cursor = ldk::input::getMouseCursor();
   Piece* pieceUnderCursor = getPieceUnderCursor((int)cursor.x, (int)cursor.y);
 
@@ -556,8 +558,8 @@ void gameStart(void* memory)
 
   _gameState->initialized = true;
 
-  _gameState->context = renderer::context_create(255, renderer::Context::COLOR_BUFFER 
-        | renderer::Context::DEPTH_BUFFER, 0);
+  Vec4 clearColor = Vec4{0.0f, 0.0f, 0.0f, 0.0f};
+  renderer::context_initialize(255, clearColor, 0);
 
   _gameState->material = loadMaterial("./assets/jewel.mat");
 
@@ -571,7 +573,7 @@ void gameStart(void* memory)
   renderer::material_setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
 
   // Initialize the sprite batch
-  _gameState->spriteBatch = renderer::spriteBatch_create(_gameState->context, MAX_SPRITES);
+  _gameState->spriteBatch = renderer::spriteBatch_create(MAX_SPRITES);
 
   // initialize sprites
   for (uint32 i =0; i < NUM_SPRITES; i++)
@@ -643,5 +645,5 @@ void gameStop()
 {
   ldk::renderer::material_destroy(_gameState->material);
   ldk::renderer::spriteBatch_destroy(_gameState->spriteBatch);
-  ldk::renderer::context_destroy(_gameState->context);
+  ldk::renderer::context_finalize();
 }

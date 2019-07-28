@@ -18,7 +18,6 @@
   #error "Unsupported platform"
 #endif
 
-#include "ldk_audio.cpp"
 #include "ldk_math.cpp"
 #include "ldk_keyboard.cpp"
 #include "ldk_mouse.cpp"
@@ -31,3 +30,4 @@
 #include "ldk_game.cpp"
 #include "ldk_heap.cpp"
 #include "ldk_memory.cpp"
+#include "ldk_audio.cpp"

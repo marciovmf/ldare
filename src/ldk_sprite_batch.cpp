@@ -11,7 +11,6 @@ namespace ldk
 
     struct SpriteBatch
     {
-      Context* context;
       HMaterial currentMaterial;
       Renderable renderable;
       VertexBuffer buffer;
@@ -31,7 +30,7 @@ namespace ldk
       sprite->height = height;
     }
 
-    static void _initBatch(SpriteBatch* spriteBatch, Context* context, HMaterial materialHandle)
+    static void _initBatch(SpriteBatch* spriteBatch, HMaterial materialHandle)
     {
       spriteBatch->currentMaterial = materialHandle;
       spriteBatch->spriteCount = 0;
@@ -58,11 +57,11 @@ namespace ldk
       drawCall.indexCount = spriteBatch->spriteCount * 6;
       spriteBatch->currentMaterial = typedHandle_invalid<HMaterial>();
 
-      pushDrawCall(spriteBatch->context, &drawCall);
-      renderer::flush(spriteBatch->context);
+      pushDrawCall(&drawCall);
+      renderer::flush();
     }
 
-    SpriteBatch* spriteBatch_create(Context* context, uint32 maxSprites)
+    SpriteBatch* spriteBatch_create(uint32 maxSprites)
     {
       const uint32 numIndices = 6 * maxSprites;
       const uint32 indexBufferSize = numIndices * sizeof(uint32);
@@ -73,7 +72,6 @@ namespace ldk
       SpriteBatch* spriteBatch =
         (SpriteBatch*) ldkEngine::memory_alloc(totalSize, ldkEngine::Allocation::Tag::SPRITE_BATCH);
 
-      spriteBatch->context = context;
       spriteBatch->currentMaterial = typedHandle_invalid<HMaterial>();
       spriteBatch->spriteCount = 0;
       spriteBatch->maxSprites = maxSprites;

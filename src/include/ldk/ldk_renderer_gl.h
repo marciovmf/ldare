@@ -120,12 +120,14 @@ namespace ldk
       static const uint32 DEPTH_BUFFER = GL_DEPTH_BUFFER_BIT;
       static const uint32 STENCIL_BUFFER = GL_STENCIL_BUFFER_BIT;
 
+      Vec4 clearColor;
       uint32 clearBits;
       uint32 settingsBits;
       uint32 maxDrawCalls;
       uint32 drawCallCount;
       DrawCall* drawCalls;
       uint32 loadedTextures;
+      bool initialized;
     };
 
     struct Renderable
@@ -162,11 +164,21 @@ namespace ldk
       } type;
     };
 
-    ///@brief Creates arendering context
+    ///@brief Returns the rendering context
+    ///@returns A pointer to the context
+    LDK_API Context* context_get();
+
+    ///@brief Initializes the rendering context
     ///@param maxDrawCalls - Maximum number of draw calls per frame
     ///@param clearBits - What buffers to clear every frame. @see Context
     ///@returns A pointer to the context
-    LDK_API Context* context_create(uint32 maxDrawCalls, uint32 clearBits, uint32 settingsBits);
+    LDK_API void context_initialize(uint32 maxDrawCalls,
+        const Vec4& clearColor,
+        uint32 settingsBits);
+
+    LDK_API void context_setClearColor(const Vec4& color);
+
+    LDK_API void clearBuffers(uint32 clearBits);
 
     ///@brief Destroys a rendering context
     ///@param Context - The context to destroy
@@ -179,7 +191,6 @@ namespace ldk
     ///@param fragmentSource - fragment shader source;
     ///@returns true if shaders compile successfuly
     LDK_API bool  makeMaterial(Material* material, char* vertexSource, char* fragmentSource, uint32 renderQueue = RENDER_QUEUE_OPAQUE);
-
 
     ///@brief Assigns a material to a renderable
     ///@param renderable - The Renderable to assing a shader to
@@ -275,17 +286,17 @@ namespace ldk
     ///@brief Submits a draw call for execution.
     ///@param context - The rendering context to push the draw call into
     ///@param drawCall - The draw call to push.
-    LDK_API void pushDrawCall(Context* context, DrawCall* drawCall);
+    LDK_API void pushDrawCall(DrawCall* drawCall);
 
     ///@brief Composes and submits a drawcall for a drawing a given renderable
     ///@param context - The rendering context to push the draw call into
     ///@param drawCall - The draw call to push.
     ///@see Handle
-    LDK_API void drawIndexed(Context* context, ldk::HRenderable renderable);
+    LDK_API void drawIndexed(ldk::HRenderable renderable);
 
-    ///@brief Flushes the draw call queue forcing draw calls to execute.
+    ///@brief Draws all queued drawcalls forcing draw calls to execute.
     ///@param context - Rendering contex to flush draw calls
-    LDK_API void flush(Context* context);
+    LDK_API void flush();
 
     ///@brief Crates a gpu texture from a bitmap
     ///@param bitmap - The bitmap to create the texture from
@@ -309,9 +320,12 @@ namespace ldk
     LDK_API void material_destroy(ldk::HMaterial materialHandle);
 
     ///@brief Destroys a Renderable
-    ///@param materialHandle - handle to the renderable to destroy
+    ///@param renderableHandle - handle to the renderable to destroy
     LDK_API void renderable_destroy(ldk::HRenderable renderableHandle);
-    
+
+    ///@brief Finalizes the rendering context
+    LDK_API void context_finalize();
+
 ///@}
   } // renderer
 } // ldk

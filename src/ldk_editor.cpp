@@ -190,13 +190,14 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 	game.stop();
 
+	// release game state memory
+  ldk::platform::memoryFree(gameStateMemory);
+
 #ifdef _LDK_DEBUG_
   LogInfo("Game stopped.");
   ldkEngine::memory_printReport();
 #endif
 
-	// release game state memory
-  ldk::platform::memoryFree(gameStateMemory);
 
 	if (gameSharedLib)
 		ldk::platform::unloadSharedLib(gameSharedLib);
