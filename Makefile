@@ -24,6 +24,9 @@ RELEASE_LINK_OPTIONS=/link /subsystem:windows $(LIBS)
 CFLAGS=$(DEBUG_COMPILE_OPTIONS)
 LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
+VERSION=0.1
+PACKAGE_NAME=$(OUTDIR)\ldk_$(VERSION)
+
 .PHONY: clean all tools package
 
 all: ldk game
@@ -56,15 +59,16 @@ $(LDK_GAME): game/mo/*.cpp
 	@xcopy game\mo\assets $(OUTDIR)\assets /Y /I /E /F > nul
 
 package:
-	@IF NOT EXIST "$(OUTDIR)\ldk" mkdir "$(OUTDIR)\ldk"
-	@IF NOT EXIST "$(OUTDIR)\ldk\lib" mkdir "$(OUTDIR)\ldk\lib"
-	@IF NOT EXIST "$(OUTDIR)\ldk\include" mkdir "$(OUTDIR)\ldk\include"
-	@xcopy assets $(OUTDIR)\ldk\assets /Y /I /E /F
-	xcopy "$(LDKSDK)" "$(OUTDIR)\ldk\include" /E /F /Y /I 
-	copy /Y "ldk_game.cfg" "$(OUTDIR)\ldk\ldk_game.cfg"
-	copy /Y "$(OUTDIR)\ldk_editor.exe" "$(OUTDIR)\ldk\ldk_editor.exe"
-	copy /Y "$(OUTDIR)\ldk.dll" "$(OUTDIR)\ldk\ldk.dll"
-	copy /Y "$(OUTDIR)\ldk.lib" "$(OUTDIR)\ldk\lib\ldk.lib"
+	@IF NOT EXIST "$(PACKAGE_NAME)" mkdir "$(PACKAGE_NAME)"
+	@IF NOT EXIST "$(PACKAGE_NAME)\build" mkdir "$(PACKAGE_NAME)\build"
+	@IF NOT EXIST "$(PACKAGE_NAME)\ldk\lib" mkdir "$(PACKAGE_NAME)\ldk\lib"
+	@IF NOT EXIST "$(PACKAGE_NAME)\ldk\include" mkdir "$(PACKAGE_NAME)\ldk\include"
+	@xcopy assets $(PACKAGE_NAME)\assets /Y /I /E /F
+	xcopy "$(LDKSDK)" "$(PACKAGE_NAME)\ldk\include" /E /F /Y /I 
+	copy /Y "ldk_game.cfg" "$(PACKAGE_NAME)\build\ldk_game.cfg"
+	copy /Y "$(OUTDIR)\ldk_editor.exe" "$(PACKAGE_NAME)\build\ldk_editor.exe"
+	copy /Y "$(OUTDIR)\ldk.dll" "$(PACKAGE_NAME)\build\ldk.dll"
+	copy /Y "$(OUTDIR)\ldk.lib" "$(PACKAGE_NAME)\ldk\lib\ldk.lib"
 
 clean:
 	@IF EXIST "$(OUTDIR)" rd /S /Q $(OUTDIR) 2> NUL
