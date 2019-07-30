@@ -10,9 +10,6 @@
 #include <tchar.h>
 #include <objbase.h>
 
-#include "../GL/glcorearb.h"
-#include "../GL/wglext.h"
-
 #include "ldk_xinput_win32.h"
 #include "ldk_xaudio2_win32.h"
 
@@ -27,6 +24,9 @@
 
 #define LDK_MAX_AUDIO_BUFFER 16
 #define LDK_WINDOW_CLASS "LDK_WINDOW_CLASS"
+
+#include <ldk/gl/glcorearb.h>
+#include <ldk/gl/wglext.h>
 
 PFNGLGETSTRINGPROC glGetString;
 PFNGLENABLEPROC glEnable;

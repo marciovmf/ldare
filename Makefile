@@ -24,7 +24,7 @@ RELEASE_LINK_OPTIONS=/link /subsystem:windows $(LIBS)
 CFLAGS=$(DEBUG_COMPILE_OPTIONS)
 LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 
-.PHONY: clean all tools
+.PHONY: clean all tools package
 
 all: ldk game
 
@@ -62,9 +62,9 @@ package:
 	@xcopy assets $(OUTDIR)\ldk\assets /Y /I /E /F
 	xcopy "$(LDKSDK)" "$(OUTDIR)\ldk\include" /E /F /Y /I 
 	copy /Y "ldk_game.cfg" "$(OUTDIR)\ldk\ldk_game.cfg"
-	copy /Y "$(OUTDIR)\*.exe" "$(OUTDIR)\ldk\"
-	copy /Y "$(OUTDIR)\*.dll" "$(OUTDIR)\ldk\"
-	copy /Y "$(OUTDIR)\*.lib" "$(OUTDIR)\ldk\lib\"
+	copy /Y "$(OUTDIR)\ldk_editor.exe" "$(OUTDIR)\ldk\ldk_editor.exe"
+	copy /Y "$(OUTDIR)\ldk.dll" "$(OUTDIR)\ldk\ldk.dll"
+	copy /Y "$(OUTDIR)\ldk.lib" "$(OUTDIR)\ldk\lib\ldk.lib"
 
 clean:
 	@IF EXIST "$(OUTDIR)" rd /S /Q $(OUTDIR) 2> NUL

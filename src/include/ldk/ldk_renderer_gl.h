@@ -7,7 +7,7 @@
 #define LDK_GL_MAX_TEXTURES           8
 #define LDK_GL_NUM_VBOS               3
 
-#include "../GL/glcorearb.h"
+#include "gl/glcorearb.h"
 
 namespace ldk
 {
