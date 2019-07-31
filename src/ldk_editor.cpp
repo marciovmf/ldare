@@ -1,4 +1,3 @@
-
 #include <ldk/ldk.h>
 #include <ldkengine/ldk_platform.h>
 #include  <ldkengine/ldk_memory.h>
@@ -13,6 +12,7 @@ struct FrameTime
 };
 
 static int64 lastGameDllTime = 0;
+static ldk::Game _game = {};
 
 void windowCloseCallback(ldk::platform::LDKWindow* window)
 {
@@ -21,8 +21,10 @@ void windowCloseCallback(ldk::platform::LDKWindow* window)
 
 void windowResizeCallback(ldk::platform::LDKWindow* window, int32 width, int32 height)
 {
-	// Recalculate projection matrix here.
-	//ldk::render::setViewportAspectRatio(width, height, defaultConfig.width, defaultConfig.height);
+  if (_game.onViewResized != nullptr)
+  {
+    _game.onViewResized(width, height);
+  }
 	return;
 }
 
@@ -48,21 +50,23 @@ static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window)
 
 bool loadGameModule(char* gameModuleName, ldk::Game* game, ldk::platform::SharedLib** sharedLib)
 {
-	*sharedLib = ldk::platform::loadSharedLib(gameModuleName);
+  *sharedLib = ldk::platform::loadSharedLib(gameModuleName);
 
-	if (!*sharedLib)
-		return false;
+  if (!*sharedLib)
+    return false;
 
-	game->init = (ldk::LDK_PFN_GAME_INIT)
-		ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_INIT);
-	game->start = (ldk::LDK_PFN_GAME_START)
-		ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_START);
-	game->update = (ldk::LDK_PFN_GAME_UPDATE)
-		ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_UPDATE);
-	game->stop = (ldk::LDK_PFN_GAME_STOP)
-		ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_STOP);
+  game->onInit = (ldk::LDK_PFN_GAME_INIT)
+    ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_INIT);
+  game->onStart = (ldk::LDK_PFN_GAME_START)
+    ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_START);
+  game->onUpdate = (ldk::LDK_PFN_GAME_UPDATE)
+    ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_UPDATE);
+  game->onStop = (ldk::LDK_PFN_GAME_STOP)
+    ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_STOP);
+  game->onViewResized = (ldk::LDK_PFN_GAME_VIEW_RESIZED)
+    ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_VIEW_RESIZED);
 
-	return game->init && game->start && game->update && game->stop;
+  return game->onInit && game->onStart && game->onUpdate && game->onStop;
 }
 
 bool reloadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
@@ -84,7 +88,7 @@ bool reloadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
 
 		lastGameDllTime = gameModuleTime;
 		ldk::platform::copyFile(LDK_GAME_MODULE_NAME, gameModuleCopyName);
-		return loadGameModule(gameModuleCopyName, game, sharedLib);
+		return loadGameModule(gameModuleCopyName, &_game, sharedLib);
 	}
 
 	return false;
@@ -92,7 +96,6 @@ bool reloadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
 
 uint32 ldkMain(uint32 argc, char** argv)
 {
-	ldk::Game game = {};
 	ldk::platform::SharedLib* gameSharedLib;
 
   if (! ldk::platform::initialize())
@@ -101,14 +104,14 @@ uint32 ldkMain(uint32 argc, char** argv)
 		return LDK_EXIT_FAIL;
 	}
 
-	if (!reloadGameModule(&game, &gameSharedLib))
+	if (!reloadGameModule(&_game, &gameSharedLib))
 	{
 		LogError("Error loading game module");
 		return LDK_EXIT_FAIL;
 	}
 
 	// preallocate memory for game state
-  LDKGameSettings gameSettings = game.init();
+  LDKGameSettings gameSettings = _game.onInit();
 
 	uint32 windowHints[] = { 
 		(uint32)ldk::platform::WindowHint::WIDTH,
@@ -132,13 +135,12 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 	//ldk::render::setViewportAspectRatio(gameSetting.width, gameSetting.height, gameSetting.width, gameSetting.height);
 
-
 	void* gameStateMemory = nullptr;
   size_t gameMemorySize = gameSettings.preallocMemorySize;
   gameStateMemory = ldk::platform::memoryAlloc(gameMemorySize);
   memset(gameStateMemory, 0, (size_t)gameMemorySize);
 
-	game.start(gameStateMemory);
+	_game.onStart(gameStateMemory);
 	float deltaTime;
 	int64 startTime = 0;
 	int64 endTime = 0;
@@ -149,7 +151,6 @@ uint32 ldkMain(uint32 argc, char** argv)
 	while (!ldk::platform::windowShouldClose(window))
 	{
 		deltaTime = ldk::platform::getTimeBetweenTicks(startTime, endTime);
-
 
 		startTime = ldk::platform::getTicks();
 		ldk::platform::pollEvents();
@@ -171,10 +172,9 @@ uint32 ldkMain(uint32 argc, char** argv)
       //LogInfo("Max Avg = %fms, Avg %fms", frameTime.maxAvgTime, avgTime);
       
       frameTime.time = frameTime.frameCount = 0;
-
     }
 
-		game.update(deltaTime);
+		_game.onUpdate(deltaTime);
 		ldk::platform::swapWindowBuffer(window);
 		endTime = ldk::platform::getTicks();
 
@@ -183,12 +183,12 @@ uint32 ldkMain(uint32 argc, char** argv)
 		if (gameReloadCheckTimeout >= 5.0f)
 		{
 			gameReloadCheckTimeout = 0;
-			if (reloadGameModule(&game, &gameSharedLib))
-					game.start(gameStateMemory);
+			if (reloadGameModule(&_game, &gameSharedLib))
+					_game.onStart(gameStateMemory);
 		}
 	}
 
-	game.stop();
+	_game.onStop();
 
 	// release game state memory
   ldk::platform::memoryFree(gameStateMemory);
@@ -198,9 +198,8 @@ uint32 ldkMain(uint32 argc, char** argv)
   ldkEngine::memory_printReport();
 #endif
 
-
-	if (gameSharedLib)
-		ldk::platform::unloadSharedLib(gameSharedLib);
+  if (gameSharedLib)
+    ldk::platform::unloadSharedLib(gameSharedLib);
 
 	ldk::platform::terminate();
 

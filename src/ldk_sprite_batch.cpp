@@ -58,7 +58,6 @@ namespace ldk
       spriteBatch->currentMaterial = typedHandle_invalid<HMaterial>();
 
       pushDrawCall(&drawCall);
-      renderer::flush();
     }
 
     SpriteBatch* spriteBatch_create(uint32 maxSprites)

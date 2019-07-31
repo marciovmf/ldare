@@ -410,8 +410,9 @@ void updateGameTimer(float deltaTime)
 //******************************************************************************
 inline void drawGameplay()
 {
-
   renderer::clearBuffers(renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER);
+
+  renderer::beginFrame(_gameState->projMatrix);
 
   Vec2 cursor = ldk::input::getMouseCursor();
   Piece* pieceUnderCursor = getPieceUnderCursor((int)cursor.x, (int)cursor.y);
@@ -441,6 +442,7 @@ inline void drawGameplay()
           ,0);
   	}
   
+    renderer::endFrame();
   }
 
 //    ldk::renderer::spriteBatchDraw(_gameState->spriteBatch,

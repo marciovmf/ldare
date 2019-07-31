@@ -7,7 +7,6 @@ namespace ldk
 {
   namespace renderer
   {
-
     static Context _context;
 
     //
@@ -335,7 +334,7 @@ namespace ldk
       _unmapBuffer();
     }
 
-    static void _executeDrawCall(DrawCall* drawCall) 
+    static void _executeDrawCall(Mat4& projectionMatrix, DrawCall* drawCall) 
     {
       // if there is no pointer to a renderable, try fetching from a handle
       Renderable* renderable = drawCall->renderable; 
@@ -358,6 +357,8 @@ namespace ldk
       glUseProgram(material->shader.program);
       checkGlError();
 
+      // send projection matrix
+      _setMatrix4(material, "mprojection", &projectionMatrix, false);
       // send model matrix
       _setMatrix4(material, "mmodel", &renderable->modelMatrix, false);
       checkGlError();
@@ -453,7 +454,6 @@ namespace ldk
       return nullptr;
     }
 
-
     //
     // Shader functions
     //
@@ -523,7 +523,7 @@ namespace ldk
 
         if(bindShader) 
           glUseProgram(shader->program);
-        
+
         glUniformMatrix4fv(uniform->id, 1, 0, matrix->element);
 
         if(bindShader)
@@ -753,7 +753,6 @@ namespace ldk
       context_setClearColor(clearColor);
     }
 
-
     void renderer::clearBuffers(uint32 clearBits)
     {
       glClear(clearBits);
@@ -878,7 +877,6 @@ namespace ldk
       return typedHandle_make<HRenderable>(renderableHandle);
     }
 
-
     void renderable_setMatrix(ldk::HRenderable renderableHandle, const Mat4* modelMatrix)
     {
       renderer::Renderable* renderable =
@@ -889,6 +887,18 @@ namespace ldk
     //
     // Render functions
     //
+
+    void beginFrame(Mat4& projection)
+    {
+      Context* context = context_get();
+      context->projectionMatrix = projection;
+    }
+
+    void setViewPort(Rect& viewPort)
+    {
+      glViewport(viewPort.x, viewPort.y, viewPort.w, viewPort.h);
+    }
+
     void pushDrawCall(DrawCall* drawCall)
     {
       Context* context = context_get();
@@ -897,8 +907,7 @@ namespace ldk
       context->drawCalls[context->drawCallCount++] = *drawCall;
     }
 
-
-    LDK_API void drawIndexed(ldk::HRenderable renderableHandle)
+    void drawIndexed(ldk::HRenderable renderableHandle)
     {
       Context* context = context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
@@ -918,7 +927,7 @@ namespace ldk
       pushDrawCall(&drawCall);
     }
 
-    void flush()
+    void endFrame()
     {
       Context* context = context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
@@ -930,12 +939,11 @@ namespace ldk
       glEnable(GL_CULL_FACE);
       glDepthFunc(GL_LESS);
 
-
       // execute draw calls
       for (int i = 0; i < drawCallCount; i++) 
       {
         DrawCall* drawCall = context->drawCalls + i;
-        _executeDrawCall(drawCall);
+        _executeDrawCall(context->projectionMatrix, drawCall);
       }
 
       // reset draw call count for this frame
@@ -1245,7 +1253,7 @@ namespace ldk
         ldk::platform::memoryFree(material);
         return typedHandle_invalid<HMaterial>();
       }
-     HMaterial materialHandle = typedHandle_make<HMaterial>(handle);
+      HMaterial materialHandle = typedHandle_make<HMaterial>(handle);
 
       makeMaterial(material, vs, fs, renderQueue);
       ldk::platform::memoryFree(fs);
@@ -1354,7 +1362,6 @@ namespace ldk
       glDeleteProgram(material->shader.program);
       checkGlError();
 
-
       platform::memoryFree(material);
 
       //TOD(marcio): Should we delete the actual BITMAP from RAM ? Review when asset manager is done!
@@ -1370,7 +1377,6 @@ namespace ldk
       ldkEngine::handle_remove(renderableHandle.handle);
       ldkEngine::memory_free(renderable);
     }
-
   } // renderer
 } // ldk
 

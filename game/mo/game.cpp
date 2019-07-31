@@ -58,7 +58,6 @@ void gameStart(void* memory)
   // Calculate matrices and send them to shader uniforms  
   // projection matrix
   _gameState->projMatrix.perspective(RADIAN(40), 16/9, 50.0f, -50.0f);
-  renderer::material_setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
   
   // model matrices
   // mesh 1
@@ -83,9 +82,17 @@ void gameUpdate(float deltaTime)
   }
 
   renderer::clearBuffers(renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER);
+
+  renderer::beginFrame(_gameState->projMatrix);
   renderer::drawIndexed(_gameState->renderable);
   renderer::drawIndexed(_gameState->renderable2);
-  renderer::flush();
+  renderer::endFrame();
+}
+
+void gameViewResized(uint32 width, uint32 height)
+{
+  Rect r = Rect{0.0f, 0.0f, (float) width, (float) height};
+  renderer::setViewPort(r);
 }
 
 void gameStop()

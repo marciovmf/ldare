@@ -37,29 +37,34 @@ struct LDKGameSettings
 extern "C"
 {
   ///@brief Game initialization callback. This function is called by the engine
-  //when so the game car ask the engine to initialize certain elements like
-  //screen size and reserve a block of memory.
-  //@returns The desired initiali game settings
+  ///when so the game car ask the engine to initialize certain elements like
+  ///screen size and reserve a block of memory.
+  ///@returns The desired initiali game settings
   /// You can build the settings manually or load it from th game.cfg file. 
-  //@see loadGameSettings for loading this from a file
+  ///@see loadGameSettings for loading this from a file
   LDK_GAME_CALLBACK LDKGameSettings gameInit();
 
   ///@brief Game start callback. This finction is called by the engine right
-  //after gameInit();
-  //@param memory - The preallocated memory buffer, according to
-  //GameSettings.preallocMemorySize value returned by gameInit();
+  ///after gameInit();
+  ///@param memory - The preallocated memory buffer, according to
+  ///GameSettings.preallocMemorySize value returned by gameInit();
   LDK_GAME_CALLBACK void gameStart(void* memory);
 
   ///@brief Game update callbac. Tthis function is called by the engine every
-  //frame.
-  //@param deltaTime - The time in seconds since the last frame.
+  ///frame.
+  ///@param deltaTime - The time in seconds since the last frame.
   LDK_GAME_CALLBACK void gameUpdate(float deltaTime);
 
   ///@brief Game stop callback. This function is called by the engine before
-  //terminating the game. Use this for finalziation and releasing any allocated
-  //resources. Note that you must not manually release the preallocated memory
-  //received by gameStart();
+  ///terminating the game. Use this for finalziation and releasing any allocated
+  ///resources. Note that you must not manually release the preallocated memory
+  ///received by gameStart();
   LDK_GAME_CALLBACK void gameStop();
+
+  ///@brief Game stop callback. This function is called by the engine when the
+  //game display is resized.
+  //
+  LDK_GAME_CALLBACK void gameViewResized(uint32 width, uint32 height);
 
   namespace ldk
   {
@@ -71,11 +76,11 @@ extern "C"
 }
 /// @}
 
-
 #define LDK_GAME_FUNCTION_INIT "gameInit"
 #define LDK_GAME_FUNCTION_START "gameStart"
 #define LDK_GAME_FUNCTION_UPDATE "gameUpdate"
 #define LDK_GAME_FUNCTION_STOP "gameStop"
+#define LDK_GAME_FUNCTION_VIEW_RESIZED "gameViewResized"
 
 // API exposed to the game
 namespace ldk
@@ -84,13 +89,15 @@ namespace ldk
   typedef void (*LDK_PFN_GAME_START)(void* memory);
   typedef void (*LDK_PFN_GAME_UPDATE)(float deltaTime);
   typedef void (*LDK_PFN_GAME_STOP)();
+  typedef void (*LDK_PFN_GAME_VIEW_RESIZED)(uint32 width, uint32 height);
 
   struct Game
   {
-    LDK_PFN_GAME_INIT init;
-    LDK_PFN_GAME_START start;
-    LDK_PFN_GAME_UPDATE update;
-    LDK_PFN_GAME_STOP stop;
+    LDK_PFN_GAME_INIT onInit;
+    LDK_PFN_GAME_START onStart;
+    LDK_PFN_GAME_UPDATE onUpdate;
+    LDK_PFN_GAME_STOP onStop;
+    LDK_PFN_GAME_VIEW_RESIZED onViewResized;
   };
 }
 

@@ -127,6 +127,7 @@ namespace ldk
       uint32 drawCallCount;
       DrawCall* drawCalls;
       uint32 loadedTextures;
+      Mat4 projectionMatrix;
       bool initialized;
     };
 
@@ -179,6 +180,10 @@ namespace ldk
     LDK_API void context_setClearColor(const Vec4& color);
 
     LDK_API void clearBuffers(uint32 clearBits);
+
+    LDK_API void beginFrame(Mat4& projection);
+
+    LDK_API void setViewPort(Rect& viewport);
 
     ///@brief Destroys a rendering context
     ///@param Context - The context to destroy
@@ -296,7 +301,7 @@ namespace ldk
 
     ///@brief Draws all queued drawcalls forcing draw calls to execute.
     ///@param context - Rendering contex to flush draw calls
-    LDK_API void flush();
+    LDK_API void endFrame();
 
     ///@brief Crates a gpu texture from a bitmap
     ///@param bitmap - The bitmap to create the texture from
