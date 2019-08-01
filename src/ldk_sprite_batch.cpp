@@ -63,9 +63,9 @@ namespace ldk
     SpriteBatch* spriteBatch_create(uint32 maxSprites)
     {
       const uint32 numIndices = 6 * maxSprites;
-      const uint32 indexBufferSize = numIndices * sizeof(uint32);
       const uint32 numVertices = maxSprites * 4;
-      const uint32 vertexBufferSize = numVertices * sizeof(SpriteVertexData);
+      const size_t indexBufferSize = numIndices * sizeof(uint32);
+      const size_t vertexBufferSize = numVertices * sizeof(SpriteVertexData);
 
       size_t totalSize = (sizeof(SpriteBatch) + indexBufferSize + vertexBufferSize);
       SpriteBatch* spriteBatch =
@@ -75,8 +75,8 @@ namespace ldk
       spriteBatch->spriteCount = 0;
       spriteBatch->maxSprites = maxSprites;
       spriteBatch->state = 0;
-      spriteBatch->indices = (uint32*) (((char*)spriteBatch) + sizeof(SpriteBatch));
-      spriteBatch->vertices = (SpriteVertexData*)(((char*)spriteBatch) + indexBufferSize);
+      spriteBatch->indices = (uint32*) (spriteBatch+1);
+      spriteBatch->vertices = (SpriteVertexData*)(((char*)spriteBatch->indices) + indexBufferSize);
 
       renderer::makeVertexBuffer(&spriteBatch->buffer, maxSprites * 4);
       renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_pos", 3, renderer::VertexAttributeType::FLOAT, 0);
