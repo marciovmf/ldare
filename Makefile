@@ -69,6 +69,7 @@ package:
 	copy /Y "$(OUTDIR)\ldk_editor.exe" "$(PACKAGE_NAME)\build\ldk_editor.exe"
 	copy /Y "$(OUTDIR)\ldk.dll" "$(PACKAGE_NAME)\build\ldk.dll"
 	copy /Y "$(OUTDIR)\ldk.lib" "$(PACKAGE_NAME)\ldk\lib\ldk.lib"
+	copy /Y "$(OUTDIR)\ldk.pdb" "$(PACKAGE_NAME)\ldk\lib\pdb.lib"
 
 clean:
 	@IF EXIST "$(OUTDIR)" rd /S /Q $(OUTDIR) 2> NUL

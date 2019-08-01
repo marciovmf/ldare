@@ -16,8 +16,8 @@ namespace ldk
       VertexBuffer buffer;
       uint32 maxSprites;
       uint32 spriteCount;
-      uint32 state;
       uint32 *indices;
+      bool started;
       SpriteVertexData *vertices;
     };
 
@@ -74,8 +74,8 @@ namespace ldk
       spriteBatch->currentMaterial = typedHandle_invalid<HMaterial>();
       spriteBatch->spriteCount = 0;
       spriteBatch->maxSprites = maxSprites;
-      spriteBatch->state = 0;
       spriteBatch->indices = (uint32*) (spriteBatch+1);
+      spriteBatch->started = false;
       spriteBatch->vertices = (SpriteVertexData*)(((char*)spriteBatch->indices) + indexBufferSize);
 
       renderer::makeVertexBuffer(&spriteBatch->buffer, maxSprites * 4);
@@ -102,13 +102,13 @@ namespace ldk
 
     void spriteBatch_begin(SpriteBatch* spriteBatch)
     {
-      if(spriteBatch->state)
+      if(spriteBatch->started)
       {
-        LogWarning("Multiple calls to spriteBatchBegin(). Call spriteBatchEnd() before starting a new batch.");
+        LogError("Ignoring call to spriteBatch_begin. Call spriteBatchEnd() before starting a new batch.");
         return;
       }
 
-      spriteBatch->state = 0;
+      spriteBatch->started = true;
       spriteBatch->spriteCount = 0;
     }
 
@@ -124,6 +124,13 @@ namespace ldk
         float rotX,
         float rotY)
     {
+
+      if (!spriteBatch->started)
+      {
+        LogError("Ignoring call to spriteBatch_draw before spriteBatch_begin.");
+        return;
+      }
+
       // Flush the batch if material changed or the buffer is full
       if (spriteBatch->currentMaterial.handle == ldkEngine::handle_invalid())
       {
@@ -296,7 +303,13 @@ namespace ldk
 
     void spriteBatch_end(SpriteBatch* spriteBatch)
     {
-      spriteBatch->state = 0;
+      if(!spriteBatch->started)
+      {
+        LogError("Ignoring call to spriteBatch_end before spriteBatch_begin.");
+        return;
+      }
+
+      spriteBatch->started = false;
       _flushBatch(spriteBatch);
     }
 
