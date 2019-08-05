@@ -11,7 +11,6 @@ static struct GameState
   // rendering stuff
   uint32 initialized;
   HMaterial material;
-  renderer::SpriteBatch* spriteBatch;
   Mat4 projMatrix;
   renderer::Sprite sprite;
   Rect viewPort;
@@ -42,6 +41,7 @@ LDKGameSettings gameInit()
   settings.displayWidth = DEFAULT_WINDOW_WIDTH;
   settings.displayHeight = DEFAULT_WINDOW_HEIGHT;
   settings.aspect = 1.0f;
+  settings.showCursor = false;
   settings.fullScreen = false;
   settings.name = "LDK pong";
   settings.preallocMemorySize = sizeof(GameState);
@@ -59,19 +59,17 @@ void gameStart(void* memory)
 
   Vec4 clearColor = Vec4{0.0f, 0.0f, 0.0f, 0.0f};
 
-  //TODO(marcio): Call this from engine side after GameStart();
   //TODO(marcio): Size in windowed mode is wrong. It is not subtracting window title bar height!
   renderer::context_initialize(255, clearColor, 0); 
 
   _gameState->material = loadMaterial("./assets/pong.mat");
-  gameViewResized(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
   _gameState->projMatrix.orthographic(0, DEFAULT_WINDOW_WIDTH, 0, DEFAULT_WINDOW_HEIGHT, -10, 10);
 
   // Initialize the sprite batch
-  _gameState->spriteBatch = renderer::spriteBatch_create(5);
+  renderer::spriteBatch_initialize(5);
 
   // initialize sprites
   renderer::makeSprite(&_gameState->sprite, _gameState->material,0,0,1,1);
@@ -116,31 +114,31 @@ void draw(float deltaTime)
 {
   renderer::clearBuffers(renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER);
   renderer::beginFrame(_gameState->projMatrix);
-  renderer::spriteBatch_begin(_gameState->spriteBatch);
+  renderer::spriteBatch_begin();
 
   const Rect& paddleLeft = _gameState->paddleLeft;
   const Rect& paddleRight = _gameState->paddleRight;
   const Rect& ball = _gameState->ball;
 
-  renderer::spriteBatch_draw(_gameState->spriteBatch, &_gameState->sprite,
+  renderer::spriteBatch_draw(&_gameState->sprite,
       paddleLeft.x,
       paddleLeft.y,
       paddleLeft.w,
       paddleLeft.h);
 
-  renderer::spriteBatch_draw(_gameState->spriteBatch, &_gameState->sprite,
+  renderer::spriteBatch_draw(&_gameState->sprite,
       paddleRight.x,
       paddleRight.y,
       paddleRight.w,
       paddleRight.h);
 
-  renderer::spriteBatch_draw(_gameState->spriteBatch, &_gameState->sprite,
+  renderer::spriteBatch_draw(&_gameState->sprite,
       ball.x,
       ball.y,
       ball.w,
       ball.h);
 
-  renderer::spriteBatch_end(_gameState->spriteBatch);
+  renderer::spriteBatch_end();
   renderer::endFrame();
 }
 
@@ -232,7 +230,7 @@ void gameUpdate(float deltaTime)
 void gameStop()
 {
   ldk::renderer::material_destroy(_gameState->material);
-  ldk::renderer::spriteBatch_destroy(_gameState->spriteBatch);
+  ldk::renderer::spriteBatch_finalize();
   ldk::renderer::context_finalize();
 }
 

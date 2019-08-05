@@ -17,12 +17,15 @@ struct LDKGameSettings
   size_t preallocMemorySize;
   /// Should the game be initialized in fullscreen
   bool fullScreen;
+  /// Should the system cursor be displayed
+  bool showCursor;
   /// Game aspect ratio
   float aspect;
   /// Screen Resolution width
   int32 displayWidth;
   /// Screen Resolution height
   int32 displayHeight;
+
 };
 
 /// @defgroup Game Game

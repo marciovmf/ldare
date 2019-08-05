@@ -13,7 +13,6 @@ struct GameState
   HRenderable renderable;
   HRenderable renderable2;
   HFont font;
-  renderer::SpriteBatch* spriteBatch;
   Mat4 modelMatrix;
   Mat4 modelMatrix2;
   Mat4 modelMatrixText;
@@ -41,7 +40,7 @@ void gameStart(void* memory)
 
   renderer::context_initialize(255, clearColor, 0);
   renderer::context_setClearColor(clearColor);
-  _gameState->spriteBatch = ldk::renderer::spriteBatch_create(1024);
+  ldk::renderer::spriteBatch_initialize(1024);
 
   // load materials, font and audio
   _gameState->mesh = ldk::asset_loadMesh("assets/monkey.mesh");
@@ -104,6 +103,7 @@ void gameStop()
   ldk::renderer::material_destroy(_gameState->fontMaterial);
   ldk::renderer::renderable_destroy(_gameState->renderable);
   ldk::renderer::renderable_destroy(_gameState->renderable2);
+  ldk::renderer::spriteBatch_finalize();
   ldk::renderer::context_finalize();
 }
 

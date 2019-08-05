@@ -95,7 +95,6 @@ static struct GameState
   renderer::Sprite sprite[NUM_SPRITES];
   HMaterial material;
   renderer::Texture textureId;
-  renderer::SpriteBatch* spriteBatch;
   Mat4 modelMatrix;
   Mat4 projMatrix;
   // gameplay state
@@ -417,7 +416,7 @@ inline void drawGameplay()
   Vec2 cursor = ldk::input::getMouseCursor();
   Piece* pieceUnderCursor = getPieceUnderCursor((int)cursor.x, (int)cursor.y);
 
-  ldk::renderer::spriteBatch_begin(_gameState->spriteBatch);
+  ldk::renderer::spriteBatch_begin();
 
   for (int column = 0; column < GAME_GRID_SIZE; column++)
   {
@@ -433,8 +432,8 @@ inline void drawGameplay()
       Vec2 piecePos;
       pieceToScreenPosition(piece.row, piece.column, &piecePos);
 
-      ldk::renderer::spriteBatch_draw(_gameState->spriteBatch
-          ,&sprite
+      ldk::renderer::spriteBatch_draw(
+          &sprite
           ,piecePos.x + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
           ,piecePos.y + highlight + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
           ,GAME_GRID_PIECE_SIZE * piece.scale
@@ -459,7 +458,7 @@ inline void drawGameplay()
 
   //std::string scoreText = std::to_string(_gameState->score);
   //mEngine.Write(scoreText.c_str(), 100, 200);
-  ldk::renderer::spriteBatch_end(_gameState->spriteBatch);
+  ldk::renderer::spriteBatch_end();
 }
 
 inline void drawGameOver()
@@ -543,6 +542,7 @@ LDKGameSettings gameInit()
   settings.displayWidth = 800;
   settings.displayHeight = 800;
   settings.aspect = 1.0f;
+  settings.showCursor = true;
   settings.fullScreen = false;
   settings.name = "LDK jeweld";
   settings.preallocMemorySize = sizeof(GameState);
@@ -575,7 +575,7 @@ void gameStart(void* memory)
   renderer::material_setMatrix4(_gameState->material, "mmodel", &_gameState->modelMatrix);
 
   // Initialize the sprite batch
-  _gameState->spriteBatch = renderer::spriteBatch_create(MAX_SPRITES);
+  renderer::spriteBatch_initialize(MAX_SPRITES);
 
   // initialize sprites
   for (uint32 i =0; i < NUM_SPRITES; i++)
@@ -646,6 +646,6 @@ void gameUpdate(float deltaTime)
 void gameStop()
 {
   ldk::renderer::material_destroy(_gameState->material);
-  ldk::renderer::spriteBatch_destroy(_gameState->spriteBatch);
+  ldk::renderer::spriteBatch_finalize();
   ldk::renderer::context_finalize();
 }

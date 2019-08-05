@@ -123,6 +123,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 	ldk::platform::LDKWindow* window =
 		ldk::platform::createWindow(windowHints, gameSettings.name, nullptr);
 
+  ldk::platform::showCursor(window, gameSettings.showCursor);
+
 	if (!window)
 	{
 		LogError("Error creating main window");
@@ -141,6 +143,10 @@ uint32 ldkMain(uint32 argc, char** argv)
   memset(gameStateMemory, 0, (size_t)gameMemorySize);
 
 	_game.onStart(gameStateMemory);
+ 
+  if (_game.onViewResized)
+    _game.onViewResized(gameSettings.displayWidth, gameSettings.displayHeight);
+
 	float deltaTime;
 	int64 startTime = 0;
 	int64 endTime = 0;

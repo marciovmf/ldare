@@ -9,7 +9,7 @@ namespace ldk
       Vec2 uv;
     };
 
-    struct SpriteBatch
+    static struct SpriteBatch
     {
       HMaterial currentMaterial;
       Renderable renderable;
@@ -19,7 +19,7 @@ namespace ldk
       uint32 *indices;
       bool started;
       SpriteVertexData *vertices;
-    };
+    }* _spriteBatch;
 
     void makeSprite(Sprite* sprite, HMaterial materialHandle, uint32 x, uint32 y, uint32 width, uint32 height)
     {
@@ -35,6 +35,18 @@ namespace ldk
       spriteBatch->currentMaterial = materialHandle;
       spriteBatch->spriteCount = 0;
       renderable_setMaterial(&spriteBatch->renderable, materialHandle);
+    }
+
+    // gets the global implicit sprite batch context
+    static inline SpriteBatch* _getSpriteBatch()
+    {
+      return _spriteBatch;
+    }
+
+    // sets the global implicit sprite batch context
+    static inline void _setSpriteBatch(SpriteBatch* spriteBatch)
+    {
+      _spriteBatch = spriteBatch;
     }
 
     static void _flushBatch(SpriteBatch* spriteBatch)
@@ -60,7 +72,7 @@ namespace ldk
       pushDrawCall(&drawCall);
     }
 
-    SpriteBatch* spriteBatch_create(uint32 maxSprites)
+    void spriteBatch_initialize(uint32 maxSprites)
     {
       const uint32 numIndices = 6 * maxSprites;
       const uint32 numVertices = maxSprites * 4;
@@ -97,11 +109,12 @@ namespace ldk
 			}
 
       makeRenderable(&spriteBatch->renderable, &spriteBatch->buffer, spriteBatch->indices, numIndices, false);
-      return spriteBatch;
+      _setSpriteBatch(spriteBatch);
     }
 
-    void spriteBatch_begin(SpriteBatch* spriteBatch)
+    void spriteBatch_begin()
     {
+      SpriteBatch* spriteBatch = _getSpriteBatch();
       if(spriteBatch->started)
       {
         LogError("Ignoring call to spriteBatch_begin. Call spriteBatchEnd() before starting a new batch.");
@@ -113,7 +126,6 @@ namespace ldk
     }
 
     void spriteBatch_draw(
-        SpriteBatch* spriteBatch,
         const Sprite* sprite,
         // Bottom left corner of sprite
         float posX,
@@ -124,7 +136,7 @@ namespace ldk
         float rotX,
         float rotY)
     {
-
+      SpriteBatch* spriteBatch = _getSpriteBatch();
       if (!spriteBatch->started)
       {
         LogError("Ignoring call to spriteBatch_draw before spriteBatch_begin.");
@@ -228,7 +240,6 @@ namespace ldk
     }
 
     Vec2 spriteBatch_drawText(
-        SpriteBatch* spriteBatch,
         ldk::HMaterial material,
         ldk::HFont font,
         Vec3& position,
@@ -236,6 +247,7 @@ namespace ldk
         float scale,
         Vec4& color)
     {
+      SpriteBatch* spriteBatch = _getSpriteBatch();
       ldk::Font* fontAsset = (Font*) ldkEngine::handle_getData(font.handle);
 
       if (fontAsset == nullptr)
@@ -283,7 +295,7 @@ namespace ldk
         Sprite sprite;
         makeSprite(&sprite, material, gliph->x, gliph->y, gliph->w, gliph->h);
         
-        spriteBatch_draw(spriteBatch,
+        spriteBatch_draw(
             &sprite,
             position.x + advance,
             position.y,
@@ -301,8 +313,9 @@ namespace ldk
       return textSize;
     }
 
-    void spriteBatch_end(SpriteBatch* spriteBatch)
+    void spriteBatch_end()
     {
+      SpriteBatch* spriteBatch = _getSpriteBatch();
       if(!spriteBatch->started)
       {
         LogError("Ignoring call to spriteBatch_end before spriteBatch_begin.");
@@ -313,8 +326,9 @@ namespace ldk
       _flushBatch(spriteBatch);
     }
 
-    void spriteBatch_destroy(SpriteBatch* spriteBatch)
+    void spriteBatch_finalize()
     {
+      SpriteBatch* spriteBatch = _getSpriteBatch();
       ldkEngine::memory_free(spriteBatch);
     }
   }
