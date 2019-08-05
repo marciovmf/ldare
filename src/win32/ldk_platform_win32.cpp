@@ -24,6 +24,7 @@
 
 #define LDK_MAX_AUDIO_BUFFER 16
 #define LDK_WINDOW_CLASS "LDK_WINDOW_CLASS"
+#define LDK_WINDOW_STYLE WS_OVERLAPPEDWINDOW
 
 #include <ldk/gl/glcorearb.h>
 #include <ldk/gl/wglext.h>
@@ -243,13 +244,18 @@ namespace ldk
     }
 
     static bool ldk_win32_createWindow(
-        ldk::platform::LDKWindow* window, uint32 width, uint32 height, HINSTANCE hInstance, TCHAR* title)
+        ldk::platform::LDKWindow* window,
+        DWORD style,
+        uint32 width,
+        uint32 height,
+        HINSTANCE hInstance,
+        TCHAR* title)
     {
 
       window->hwnd = CreateWindowEx(NULL, 
           TEXT(LDK_WINDOW_CLASS),
           title,
-          WS_OVERLAPPEDWINDOW,
+          style,
           CW_USEDEFAULT,
           CW_USEDEFAULT,
           width,
@@ -263,6 +269,8 @@ namespace ldk
         return false;
 
       window->dc = GetDC(window->hwnd);
+
+      ldk_win32_calculateClientRect(window);
 
       return window->dc != NULL;
     }
@@ -290,7 +298,7 @@ namespace ldk
     static bool ldk_win32_initOpenGL(ldk::platform::LDKWindow& gameWindow, HINSTANCE hInstance, int major, int minor, uint32 colorBits = 32, uint32 depthBits = 24)
     {
       ldk::platform::LDKWindow dummyWindow = {};
-      if (! ldk_win32_createWindow(&dummyWindow,0,0,hInstance,TEXT("")) )
+      if (! ldk_win32_createWindow(&dummyWindow, LDK_WINDOW_STYLE, 0,0,hInstance,TEXT("")) )
       {
         LogError("Could not create a dummy window for openGl initialization");
         return false;
@@ -743,10 +751,9 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
   ldk::platform::LDKWindow* window = (platform::LDKWindow*) ldkEngine::memory_alloc(sizeof(LDKWindow));
   *window = {};
 
-
   // Calculate total window size
   RECT clientArea = {(LONG)0,(LONG)0, (LONG)width, (LONG)height};
-  if (!AdjustWindowRect(&clientArea, WS_OVERLAPPED, FALSE))
+  if (!AdjustWindowRect(&clientArea, WS_OVERLAPPEDWINDOW, FALSE))
   {
     LogError("Could not calculate window size");
   }
@@ -754,7 +761,7 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
   uint32 windowWidth = clientArea.right - clientArea.left;
   uint32 windowHeight = clientArea.bottom - clientArea.top;
 
-  if (!ldk_win32_createWindow(window, windowWidth, windowHeight, _appInstance, (TCHAR*) title))
+  if (!ldk_win32_createWindow(window, LDK_WINDOW_STYLE, windowWidth, windowHeight, _appInstance, (TCHAR*) title))
   {
 
     LogError("Could not create window");
@@ -883,6 +890,11 @@ void swapWindowBuffer(LDKWindow* window)
 void showWindow(LDKWindow* window)
 {
   ShowWindow(window->hwnd, SW_SHOW);
+}
+
+void showCursor(LDKWindow* window, bool show)
+{
+  ShowCursor(show);
 }
 
 // Get the state of mouse

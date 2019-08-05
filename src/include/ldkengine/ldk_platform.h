@@ -99,6 +99,9 @@ namespace ldk
 		// Displays a window created with LDKWwindowHint::VISIBLE = 0
 		LDK_API void showWindow(LDKWindow* window);
 
+		// Sets the system cursor visibility
+		LDK_API void showCursor(LDKWindow* window, bool show);
+
 		// Update the window framebuffer
 		LDK_API void swapWindowBuffer(LDKWindow* window);
 
