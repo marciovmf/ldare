@@ -90,6 +90,13 @@ namespace ldk
     this->y /= other.y;
     return *this;
   }
+  
+  Vec2& Vec2::operator-()
+  {
+    this->x *= -1;
+    this->y *= -1;
+    return *this;
+  }
 
   float Vec2::magnitude()
   {
@@ -225,6 +232,14 @@ namespace ldk
     return *this;
   }
 
+  Vec3& Vec3::operator-()
+  {
+    this->x *= -1;
+    this->y *= -1;
+    this->z *= -1;
+    return *this;
+  }
+
   float Vec3::magnitude()
   {
     return sqrt(x * x + y * y + z * z);
@@ -350,6 +365,15 @@ namespace ldk
     this->y /= other.y;
     this->z /= other.z;
     this->w /= other.w;
+    return *this;
+  }
+
+  Vec4& Vec4::operator-()
+  {
+    this->x *= -1;
+    this->y *= -1;
+    this->z *= -1;
+    this->w *= -1;
     return *this;
   }
 

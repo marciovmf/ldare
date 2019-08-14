@@ -46,6 +46,8 @@ namespace ldk
 		Vec2& operator*=(const Vec2& other);
 
 		Vec2& operator/=(const Vec2& other);
+		
+    Vec2& operator-();
 
 		float magnitude();
 		
@@ -88,6 +90,8 @@ namespace ldk
 		Vec3& operator*=(float scalar);
 
 		Vec3& operator/=(const Vec3& other);
+    
+    Vec3& operator-();
 
 		float magnitude();
 		
@@ -127,6 +131,8 @@ namespace ldk
 		Vec4& operator*=(const Vec4& other);
 
 		Vec4& operator/=(const Vec4& other);
+    
+    Vec4& operator-();
 
 		float magnitude();
 		
