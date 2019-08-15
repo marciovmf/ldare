@@ -132,8 +132,8 @@ namespace ldk
     if (!mem || fileSize < sizeof(ldk::FontData)) return typedHandle_invalid<HFont>();
 
     ldk::Font* font = (ldk::Font*) mem;
-    ldk::FontData* fontData = (ldk::FontData*) mem + 1;
-    ldk::Rect* gliphs = (ldk::Rect*) fontData + 1;
+    ldk::FontData* fontData = (ldk::FontData*) (font + 1);
+    ldk::Rect* gliphs = (ldk::Rect*) (fontData + 1);
 
     font->fontData = fontData;
     font->gliphs = gliphs;
