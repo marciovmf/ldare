@@ -15,6 +15,10 @@ static struct GameState
   renderer::Sprite sprite;
   Rect viewPort;
 
+  // text rendering
+  HFont font;
+  HMaterial fontMaterial;
+
   // paddle dimentions
   Rect paddleLeft;
   Rect paddleRight;
@@ -60,16 +64,19 @@ void gameStart(void* memory)
   Vec4 clearColor = Vec4{0.0f, 0.0f, 0.0f, 0.0f};
 
   //TODO(marcio): Size in windowed mode is wrong. It is not subtracting window title bar height!
-  renderer::context_initialize(255, clearColor, 0); 
+  renderer::context_initialize(2, clearColor, 0); 
 
   _gameState->material = loadMaterial("./assets/pong.mat");
+
+  _gameState->fontMaterial = ldk::loadMaterial("./assets/standard/Inconsolata_18.mat"); 
+  _gameState->font = ldk::asset_loadFont("./assets/standard/Inconsolata_18.font"); 
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
   _gameState->projMatrix.orthographic(0, DEFAULT_WINDOW_WIDTH, 0, DEFAULT_WINDOW_HEIGHT, -10, 10);
 
   // Initialize the sprite batch
-  renderer::spriteBatch_initialize(5);
+  renderer::spriteBatch_initialize(30);
 
   // initialize sprites
   renderer::makeSprite(&_gameState->sprite, _gameState->material,0,0,1,1);
@@ -120,6 +127,10 @@ void draw(float deltaTime)
   const Rect& paddleRight = _gameState->paddleRight;
   const Rect& ball = _gameState->ball;
 
+  Vec3 textPosition = Vec3{10.0f, 10.0f, 0.0f};
+  Vec4 textColor = Vec4{10.0f, 10.0f, 1.0f, 1.0f};
+  renderer::spriteBatch_drawText(_gameState->fontMaterial, _gameState->font, textPosition, "Hello Sailor!", 1.0f, textColor);
+
   renderer::spriteBatch_draw(&_gameState->sprite,
       paddleLeft.x,
       paddleLeft.y,
@@ -137,6 +148,7 @@ void draw(float deltaTime)
       ball.y,
       ball.w,
       ball.h);
+
 
   renderer::spriteBatch_end();
   renderer::endFrame();
@@ -229,6 +241,8 @@ void gameUpdate(float deltaTime)
 
 void gameStop()
 {
+  ldk::asset_unload(_gameState->font);
+  ldk::renderer::material_destroy(_gameState->fontMaterial);
   ldk::renderer::material_destroy(_gameState->material);
   ldk::renderer::spriteBatch_finalize();
   ldk::renderer::context_finalize();

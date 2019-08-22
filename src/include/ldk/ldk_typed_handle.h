@@ -44,7 +44,7 @@ namespace ldk
 
   // Creates an invalid typed handle
   template <typename T>
-    T typedHandle_invalid()
+    constexpr T typedHandle_invalid()
     {
       T assetHandle;
       assetHandle.handle = ldkEngine::handle_invalid();

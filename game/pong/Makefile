@@ -29,7 +29,8 @@ LINKFLAGS=$(DEBUG_LINK_OPTIONS)
 pong: pong.cpp
 	IF NOT EXIST "$(GAME_OUTDIR)" @mkdir "$(GAME_OUTDIR)"
 	cl pong.cpp /Fo$(GAME_OUTDIR) /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /PDB:$(OUTDIR)\$(GAME_NAME)%random%.pdb $(OUTDIR)/ldk.lib
-	xcopy assets $(GAME_OUTDIR)\assets /Y /I /E /F > nul
+	xcopy assets $(GAME_OUTDIR)\assets /S /Y /I /E /F > nul
+	xcopy ..\..\assets $(GAME_OUTDIR)\assets /S /Y /I /E /F > nul
 	copy /Y $(OUTDIR)\ldk_editor.exe $(GAME_OUTDIR)\$(GAME_NAME).exe
 	copy /Y $(OUTDIR)\ldk.dll $(GAME_OUTDIR)
 

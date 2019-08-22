@@ -2,8 +2,8 @@
 # possible values are opaque | translucent | overlay
 queue = "opaque"
 queue-offset = 10
-vert-shader = "assets/standard/default.vert"
-frag-shader = "assets/standard/default.frag"
+vert-shader = "assets/standard/text.vert"
+frag-shader = "assets/standard/text.frag"
 
 # Specify the first texture for the material
 [texture0]

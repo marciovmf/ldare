@@ -68,6 +68,7 @@ namespace ldk
       drawCall.indexStart = 0;
       drawCall.indexCount = spriteBatch->spriteCount * 6;
       spriteBatch->currentMaterial = typedHandle_invalid<HMaterial>();
+      spriteBatch->spriteCount = 0;
 
       pushDrawCall(&drawCall);
     }
@@ -92,7 +93,7 @@ namespace ldk
 
       renderer::makeVertexBuffer(&spriteBatch->buffer, maxSprites * 4);
       renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_pos", 3, renderer::VertexAttributeType::FLOAT, 0);
-      renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_uuv", 2, renderer::VertexAttributeType::FLOAT,  3 * sizeof(float));
+      renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_uv", 2, renderer::VertexAttributeType::FLOAT,  3 * sizeof(float));
 
 			// Precompute indices for every sprite
 			int32 offset = 0;
@@ -271,6 +272,7 @@ namespace ldk
       if (scale <= 0) scale = 1.0f;
 
       Vec2 textSize = {};
+      uint32 advance = 0;
       //submit each character as an individual sprite
       while ((c = *ptrChar) != 0)
       {
