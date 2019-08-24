@@ -291,7 +291,6 @@ namespace ldk
         }
 
         //calculate advance
-        uint32 advance = 0;
         advance += gliph->w * scale;
 
         Sprite sprite;
