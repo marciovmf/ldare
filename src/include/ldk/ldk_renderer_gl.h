@@ -25,6 +25,10 @@ namespace ldk
     const uint32 RENDER_QUEUE_TRANSLUCENT = 100;
     const uint32 RENDER_QUEUE_OVERLAY = 200;
 
+    static const uint32 COLOR_BUFFER = GL_COLOR_BUFFER_BIT;
+    static const uint32 DEPTH_BUFFER = GL_DEPTH_BUFFER_BIT;
+    static const uint32 STENCIL_BUFFER = GL_STENCIL_BUFFER_BIT;
+
     enum VertexAttributeType
     {
       FLOAT = 1,
@@ -114,28 +118,11 @@ namespace ldk
       VertexAttribute attributes[LDK_GL_MAX_VERTEX_ATTRIBUTES];
     };
 
-    struct Context
-    {
-      static const uint32 COLOR_BUFFER = GL_COLOR_BUFFER_BIT;
-      static const uint32 DEPTH_BUFFER = GL_DEPTH_BUFFER_BIT;
-      static const uint32 STENCIL_BUFFER = GL_STENCIL_BUFFER_BIT;
-
-      Vec4 clearColor;
-      uint32 clearBits;
-      uint32 settingsBits;
-      uint32 maxDrawCalls;
-      uint32 drawCallCount;
-      DrawCall* drawCalls;
-      uint32 loadedTextures;
-      Mat4 projectionMatrix;
-      bool initialized;
-    };
-
     struct Renderable
     {
       VertexBuffer buffer;
-      ldk::HMaterial materialHandle;
       ldk::HMesh meshHandle;       // **If** this renderable was build from a mesh, this is a reference to it.
+      HMaterial materialHandle;
       GLuint ibo;
       GLuint iboSize;
       GLuint attributeCount;
@@ -154,6 +141,7 @@ namespace ldk
     {
       void* vertices;
       Renderable* renderable;
+      HMaterial material;
       GLuint indexStart;
       GLuint vertexCount;
       GLuint indexCount;

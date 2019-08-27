@@ -80,7 +80,7 @@ void gameUpdate(float deltaTime)
     playAudio(_gameState->audio);
   }
 
-  renderer::clearBuffers(renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER);
+  renderer::clearBuffers(renderer::COLOR_BUFFER | renderer::DEPTH_BUFFER);
 
   renderer::beginFrame(_gameState->projMatrix);
   renderer::drawIndexed(_gameState->renderable);

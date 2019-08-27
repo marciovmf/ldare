@@ -7,6 +7,19 @@ namespace ldk
 {
   namespace renderer
   {
+    struct Context
+    {
+      Vec4 clearColor;
+      uint32 clearBits;
+      uint32 settingsBits;
+      uint32 maxDrawCalls;
+      uint32 drawCallCount;
+      DrawCall* drawCalls;
+      uint32 loadedTextures;
+      Mat4 projectionMatrix;
+      bool initialized;
+    };
+
     static Context _context;
 
     //
@@ -270,6 +283,7 @@ namespace ldk
 
     static void* _mapBuffer(Renderable* renderable, uint32 count)
     {
+      //NOTE(marcio): This funciton expects the VBO to be already bound
       VertexBuffer* buffer = &renderable->buffer;
       LDK_ASSERT(buffer->capacity >= count, "Buffer too small. Make buffer larger or draw less data.");
 
@@ -302,15 +316,12 @@ namespace ldk
         renderable->needNewSync = 1;
       }
 
-      // map the buffer with no driver syncrhonization
-      uint32 vbo = renderable->vbos[renderable->currentVboIndex];
-      glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-      //TODO: marcio, map/unmap a buffer only ONCE per flush.
+      // map the buffer with no driver syncrhonization to the currently bound VBO
+      //TODO(marcio): map/unmap a buffer only ONCE per flush.
       uint32 chunkStart = renderable->index0 * buffer->stride;
       uint32 chunkSize = (renderable->index1 - renderable->index0) * buffer->stride;
       void* memory = glMapBufferRange(GL_ARRAY_BUFFER, chunkStart, chunkSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-
+      checkGlError();
       LDK_ASSERT(memory, "glMapBufferRange returned null");
       return memory;
     }
@@ -338,7 +349,14 @@ namespace ldk
     {
       // if there is no pointer to a renderable, try fetching from a handle
       Renderable* renderable = drawCall->renderable; 
+
+      // apply the material to the renderable
+      renderable_setMaterial(drawCall->renderable, drawCall->material);
       Material* material = (Material*) ldkEngine::handle_getData(drawCall->renderable->materialHandle.handle);
+
+      uint32 currentVboIndex = renderable->currentVboIndex;
+      uint32 vbo = renderable->vbos[currentVboIndex];
+      glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
       if(renderable->usage == GL_STATIC_DRAW)
       {
@@ -363,11 +381,6 @@ namespace ldk
       _setMatrix4(material, "mmodel", &renderable->modelMatrix, false);
       checkGlError();
 
-
-      uint32 currentVboIndex = renderable->currentVboIndex;
-      uint32 vbo = renderable->vbos[currentVboIndex];
-      glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
       // Set buffer format
       uint32 vertexStride = buffer->stride;
       uint32 attributeCount = buffer->attributeCount;
@@ -391,7 +404,6 @@ namespace ldk
         glBindTexture(GL_TEXTURE_2D, textureId);
         checkGlError();
       }
-
 
       //TODO(marcio): implement instanced rendering
       switch (drawCall->type) 
@@ -700,18 +712,6 @@ namespace ldk
         attribute->location = glGetAttribLocation(shader->program, attribName);
         checkGlError();
       }
-
-      VertexBuffer* buffer = &renderable->buffer;
-      for (int i = 0; i < renderable->vboCount; i++) 
-      {
-        GLuint* vbo = renderable->vbos + i;
-        glGenBuffers(1, vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, *vbo);
-        glBufferData(GL_ARRAY_BUFFER, buffer->capacity * buffer->stride, NULL, renderable->usage);
-        renderable->fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-      }
-
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
     //
@@ -813,6 +813,18 @@ namespace ldk
         renderable->usage = GL_DYNAMIC_DRAW;
         renderable->vboCount = LDK_GL_NUM_VBOS;
       }
+
+      VertexBuffer* buffer = &renderable->buffer;
+      for (int i = 0; i < renderable->vboCount; i++) 
+      {
+        GLuint* vbo = renderable->vbos + i;
+        glGenBuffers(1, vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+        glBufferData(GL_ARRAY_BUFFER, buffer->capacity * buffer->stride, NULL, renderable->usage);
+        renderable->fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+      }
+
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
     void makeRenderable(Renderable* renderable, VertexBuffer* vertexBuffer, uint32* indices, uint32 maxIndexCount, bool isStatic)
@@ -903,7 +915,8 @@ namespace ldk
     {
       Context* context = context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
-      LDK_ASSERT(context->drawCallCount < context->maxDrawCalls, "Exceeded maximum draw calls per frame at current context");
+      LDK_ASSERT(context->drawCallCount < context->maxDrawCalls,
+          "Exceeded maximum draw calls per frame at current context");
       context->drawCalls[context->drawCallCount++] = *drawCall;
     }
 
@@ -944,6 +957,15 @@ namespace ldk
       {
         DrawCall* drawCall = context->drawCalls + i;
         _executeDrawCall(context->projectionMatrix, drawCall);
+      }
+
+      // reset renderable indices
+      for (int i = 0; i < drawCallCount; i++) 
+      {
+        DrawCall* drawCall = context->drawCalls + i;
+        Renderable* renderable = drawCall->renderable;
+        renderable->index0 = 0;
+        renderable->index1 = 0;
       }
 
       // reset draw call count for this frame

@@ -64,7 +64,7 @@ void gameStart(void* memory)
   Vec4 clearColor = Vec4{0.0f, 0.0f, 0.0f, 0.0f};
 
   //TODO(marcio): Size in windowed mode is wrong. It is not subtracting window title bar height!
-  renderer::context_initialize(2, clearColor, 0); 
+  renderer::context_initialize(5, clearColor, 0); 
 
   _gameState->material = loadMaterial("./assets/pong.mat");
 
@@ -76,10 +76,10 @@ void gameStart(void* memory)
   _gameState->projMatrix.orthographic(0, DEFAULT_WINDOW_WIDTH, 0, DEFAULT_WINDOW_HEIGHT, -10, 10);
 
   // Initialize the sprite batch
-  renderer::spriteBatch_initialize(30);
+  renderer::spriteBatch_initialize(255);
 
   // initialize sprites
-  renderer::makeSprite(&_gameState->sprite, _gameState->material,0,0,1,1);
+  renderer::makeSprite(&_gameState->sprite, _gameState->material, 0, 0, 1, 1);
 
   _gameState->ballDirection.x = 0.6f;
   _gameState->ballDirection.y = 0.6f;
@@ -119,7 +119,7 @@ void gameViewResized(uint32 width, uint32 height)
 
 void draw(float deltaTime)
 {
-  renderer::clearBuffers(renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER);
+  renderer::clearBuffers(renderer::COLOR_BUFFER | renderer::DEPTH_BUFFER);
   renderer::beginFrame(_gameState->projMatrix);
   renderer::spriteBatch_begin();
 
@@ -129,7 +129,7 @@ void draw(float deltaTime)
 
   Vec3 textPosition = Vec3{10.0f, 10.0f, 0.0f};
   Vec4 textColor = Vec4{10.0f, 10.0f, 1.0f, 1.0f};
-  renderer::spriteBatch_drawText(_gameState->fontMaterial, _gameState->font, textPosition, "Hello Sailor!", 1.0f, textColor);
+  
 
   renderer::spriteBatch_draw(&_gameState->sprite,
       paddleLeft.x,
@@ -149,6 +149,8 @@ void draw(float deltaTime)
       ball.w,
       ball.h);
 
+  renderer::spriteBatch_drawText(_gameState->fontMaterial, _gameState->font,
+      textPosition, "testeXXX", 1.0f, textColor);
 
   renderer::spriteBatch_end();
   renderer::endFrame();

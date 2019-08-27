@@ -16,6 +16,7 @@ namespace ldk
       VertexBuffer buffer;
       uint32 maxSprites;
       uint32 spriteCount;
+      uint32 batchedSpriteCount;
       uint32 *indices;
       bool started;
       SpriteVertexData *vertices;
@@ -28,13 +29,6 @@ namespace ldk
       sprite->y = y;
       sprite->width = width;
       sprite->height = height;
-    }
-
-    static void _initBatch(SpriteBatch* spriteBatch, HMaterial materialHandle)
-    {
-      spriteBatch->currentMaterial = materialHandle;
-      spriteBatch->spriteCount = 0;
-      renderable_setMaterial(&spriteBatch->renderable, materialHandle);
     }
 
     // gets the global implicit sprite batch context
@@ -54,23 +48,25 @@ namespace ldk
       if(spriteBatch->currentMaterial.handle == ldkEngine::handle_invalid())
         return;
 
-      // assign the material to the renderable if material changed
-      if(spriteBatch->renderable.materialHandle.handle != spriteBatch->currentMaterial.handle)
-      {
-        renderable_setMaterial(&spriteBatch->renderable, spriteBatch->currentMaterial);
-      }
+      uint32 totalSpriteCount = spriteBatch->spriteCount;
+      uint32 totalVertexCount = totalSpriteCount * 4;
+
+      uint32 spriteCount = spriteBatch->batchedSpriteCount;
+      uint32 vertexCount = spriteCount * 4;
+      uint32 indexCount = spriteCount * 6;
       
       DrawCall drawCall;
       drawCall.renderable = &spriteBatch->renderable;
       drawCall.type = renderer::DrawCall::DRAW_INDEXED;
-      drawCall.vertexCount = spriteBatch->spriteCount * 4;
-      drawCall.vertices = spriteBatch->vertices;
+      drawCall.vertices = spriteBatch->vertices + totalVertexCount - vertexCount;
       drawCall.indexStart = 0;
-      drawCall.indexCount = spriteBatch->spriteCount * 6;
-      spriteBatch->currentMaterial = typedHandle_invalid<HMaterial>();
-      spriteBatch->spriteCount = 0;
-
+      drawCall.indexCount = indexCount;
+      drawCall.vertexCount = vertexCount;
+      drawCall.material = spriteBatch->currentMaterial;
+      
       pushDrawCall(&drawCall);
+      spriteBatch->currentMaterial = typedHandle_invalid<HMaterial>();
+      spriteBatch->batchedSpriteCount = 0;
     }
 
     void spriteBatch_initialize(uint32 maxSprites)
@@ -92,8 +88,10 @@ namespace ldk
       spriteBatch->vertices = (SpriteVertexData*)(((char*)spriteBatch->indices) + indexBufferSize);
 
       renderer::makeVertexBuffer(&spriteBatch->buffer, maxSprites * 4);
-      renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_pos", 3, renderer::VertexAttributeType::FLOAT, 0);
-      renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_uv", 2, renderer::VertexAttributeType::FLOAT,  3 * sizeof(float));
+      renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_pos",
+          3, renderer::VertexAttributeType::FLOAT, 0);
+      renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_uv", 
+          2, renderer::VertexAttributeType::FLOAT, 3 * sizeof(float));
 
 			// Precompute indices for every sprite
 			int32 offset = 0;
@@ -124,6 +122,7 @@ namespace ldk
 
       spriteBatch->started = true;
       spriteBatch->spriteCount = 0;
+      spriteBatch->batchedSpriteCount = 0;
     }
 
     void spriteBatch_draw(
@@ -172,10 +171,8 @@ namespace ldk
 			uvRect.y = 1 - (sprite->y /(float) texture.height); 
 			uvRect.h = sprite->height / (float) texture.height;
 
-			float s = sin(angle);
-			float c = cos(angle);
 			float z = 0.0f;
-      
+     
 			SpriteVertexData* vertexData = spriteBatch->vertices + spriteBatch->spriteCount * 4;
 
       if (angle == 0.0f)
@@ -202,10 +199,12 @@ namespace ldk
         vertexData->uv = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};
         vertexData->position = 	
           Vec3{posX + width, posY, z};
-
       }
       else
       {	
+        float s = sin(angle);
+        float c = cos(angle);
+
         // bottom left
         vertexData->uv = { uvRect.x, uvRect.y};
         float x1 = posX - rotX;
@@ -237,7 +236,9 @@ namespace ldk
         vertexData->position = 	
           Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
       }
+
       spriteBatch->spriteCount++;
+      spriteBatch->batchedSpriteCount++;
     }
 
     Vec2 spriteBatch_drawText(
@@ -323,8 +324,8 @@ namespace ldk
         return;
       }
 
-      spriteBatch->started = false;
       _flushBatch(spriteBatch);
+      spriteBatch->started = false;
     }
 
     void spriteBatch_finalize()
