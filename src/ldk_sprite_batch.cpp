@@ -50,6 +50,7 @@ namespace ldk
 
       uint32 totalSpriteCount = spriteBatch->spriteCount;
       uint32 totalVertexCount = totalSpriteCount * 4;
+      uint32 totalIndexCount = totalSpriteCount * 6;
 
       uint32 spriteCount = spriteBatch->batchedSpriteCount;
       uint32 vertexCount = spriteCount * 4;
@@ -59,7 +60,7 @@ namespace ldk
       drawCall.renderable = &spriteBatch->renderable;
       drawCall.type = renderer::DrawCall::DRAW_INDEXED;
       drawCall.vertices = spriteBatch->vertices + totalVertexCount - vertexCount;
-      drawCall.indexStart = 0;
+      drawCall.indexStart = totalIndexCount - indexCount;
       drawCall.indexCount = indexCount;
       drawCall.vertexCount = vertexCount;
       drawCall.material = spriteBatch->currentMaterial;
@@ -97,7 +98,6 @@ namespace ldk
 			int32 offset = 0;
 			for(int32 i=0; i < indexBufferSize; i+=6)
 			{
-
 				spriteBatch->indices[i+0] = offset + 0;
 				spriteBatch->indices[i+1] = offset + 1;
 				spriteBatch->indices[i+2] = offset + 2;

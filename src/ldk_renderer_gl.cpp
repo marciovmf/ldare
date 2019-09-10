@@ -421,7 +421,7 @@ namespace ldk
             glDrawElements(buffer->primitive,
                 drawCall->indexCount, 
                 GL_UNSIGNED_INT,
-                (const char*)nullptr + drawCall->indexStart);
+                (const char*)(drawCall->indexStart * sizeof(uint32)));
           }
           break;
         default:
