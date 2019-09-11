@@ -937,6 +937,7 @@ namespace ldk
       drawCall.vertices = (void*)mesh->vertices;
       drawCall.indexStart = 0;
       drawCall.indexCount = meshInfo->indexCount;
+      drawCall.material = renderable->materialHandle;
       pushDrawCall(&drawCall);
     }
 
