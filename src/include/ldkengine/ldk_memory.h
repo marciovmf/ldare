@@ -35,6 +35,6 @@ namespace ldkEngine
   void memory_free(void* mem);
   void memory_tag(void* mem, Allocation::Tag tag);
   LDK_API size_t memory_getTotalUsed();
-  LDK_API void memory_printReport();
+  LDK_API const char* memory_getReport();
 }
 #endif		// _LDK_MEMORY_H_

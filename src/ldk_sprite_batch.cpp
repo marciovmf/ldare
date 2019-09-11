@@ -274,6 +274,10 @@ namespace ldk
 
       Vec2 textSize = {};
       uint32 advance = 0;
+      uint32 vAdvance = 0;
+
+      Rect* defaultGliph = &(gliphList[defaultCodePoint]);
+
       //submit each character as an individual sprite
       while ((c = *ptrChar) != 0)
       {
@@ -291,26 +295,42 @@ namespace ldk
           gliph = &(gliphList[c]);
         }
 
-        //calculate advance
-        advance += gliph->w * scale;
+        if (c == '\r')
+        {
+          continue;
+        }
 
-        Sprite sprite;
-        makeSprite(&sprite, material, gliph->x, gliph->y, gliph->w, gliph->h);
-        
-        spriteBatch_draw(
-            &sprite,
-            position.x + advance,
-            position.y,
-            gliph->w * scale,
-            gliph->h * scale,
-            0.0f,
-            0.0f,
-            0.0f);
+        if (c == '\n')
+        {
+          float yOffset = defaultGliph->h * scale;
+          vAdvance += yOffset;
+          textSize.y += yOffset;
+          advance = 0;
+        }
+        else if (c == '\t')
+        {
+          advance += defaultGliph->w * scale * 4; // tab is 4 characters wide
+          textSize.x += advance * scale;
+        }
 
-        //TODO: account for multi line text
-        textSize.x += sprite.width;
-        textSize.y = MAX(textSize.y, sprite.height); 	
-        
+        else 
+        {
+          advance += gliph->w * scale;
+          Sprite sprite;
+          makeSprite(&sprite, material, gliph->x, gliph->y, gliph->w, gliph->h);
+
+          spriteBatch_draw(
+              &sprite,
+              position.x + advance,
+              position.y - vAdvance,
+              gliph->w * scale,
+              gliph->h * scale,
+              0.0f,
+              0.0f,
+              0.0f);
+
+          textSize.x += advance;
+        }
       }
       return textSize;
     }

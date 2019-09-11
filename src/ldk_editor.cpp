@@ -35,16 +35,11 @@ static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window)
     ldk::platform::setWindowCloseFlag(window, true);
   }
 
-  if (ldk::input::isKeyDown(ldk::input::LDK_KEY_F12))
-  {
-    ldk::platform::toggleFullScreen(window, !ldk::platform::isFullScreen(window));
-  }
-
 #ifdef _LDK_DEBUG_
-  if (ldk::input::isKeyDown(ldk::input::LDK_KEY_F2))
-  {
-    ldkEngine::memory_printReport();
-  }
+  //if (ldk::input::isKeyDown(ldk::input::LDK_KEY_F2))
+  //{
+  //  ldkEngine::memory_printReport();
+  //}
 #endif
 }
 
@@ -201,7 +196,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 
 #ifdef _LDK_DEBUG_
   LogInfo("Game stopped.");
-  ldkEngine::memory_printReport();
+  LogInfo(ldkEngine::memory_getReport());
 #endif
 
   if (gameSharedLib)

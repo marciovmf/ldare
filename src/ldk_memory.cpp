@@ -123,7 +123,10 @@ namespace	ldkEngine
     return _totalMemoryUsed;
   }
 
-  void memory_printReport()
+#ifdef _LDK_DEBUG_
+  const size_t _memoryReportBuffSize = 2084;
+  static char _strMemoryReport[_memoryReportBuffSize];
+  const char* memory_getReport()
   {
     size_t tagMemory[Allocation::Tag::NUM_TAGS] = {};
 
@@ -134,7 +137,7 @@ namespace	ldkEngine
       allocation = allocation->next;
     }
 
-    LogInfo("[MEMORY] Peak memory usage: %zuk.\tCurrent memory usage: %zuk.\n\tGENERAL %zuk.\n\tMATERIAL %zuk.\n\tRENDERER %zuk.\n\tSPRITE_BATCH %zuk.\n\tBITMAP %zuk.\n\tAUDIO %zuk.\n\tFONT %zuk.\n\tMESH %zuk.",
+    snprintf(_strMemoryReport, _memoryReportBuffSize, "[MEMORY] Peak memory usage: %zuk.\tCurrent memory usage: %zuk.\n\tGENERAL %zuk.\n\tMATERIAL %zuk.\n\tRENDERER %zuk.\n\tSPRITE_BATCH %zuk.\n\tBITMAP %zuk.\n\tAUDIO %zuk.\n\tFONT %zuk.\n\tMESH %zuk.",
         _peakMemoryUsed / 1024,
         _totalMemoryUsed / 1024,
         tagMemory[(uint32)Allocation::GENERAL]/1024,
@@ -145,5 +148,8 @@ namespace	ldkEngine
         tagMemory[(uint32)Allocation::AUDIO]/1024,
         tagMemory[(uint32)Allocation::FONT]/1024,
         tagMemory[(uint32)Allocation::MESH]/1024);
+
+    return _strMemoryReport;
   }
+#endif // _LDK_DEBUG_
 }

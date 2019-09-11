@@ -1,5 +1,6 @@
 
 #include <ldk/ldk.h>
+#include <ldkEngine/ldk_memory.h>
 using namespace ldk;
 
 const int DEFAULT_WINDOW_WIDTH = 800;
@@ -76,7 +77,7 @@ void gameStart(void* memory)
   _gameState->projMatrix.orthographic(0, DEFAULT_WINDOW_WIDTH, 0, DEFAULT_WINDOW_HEIGHT, -10, 10);
 
   // Initialize the sprite batch
-  renderer::spriteBatch_initialize(255);
+  renderer::spriteBatch_initialize(1024);
 
   // initialize sprites
   renderer::makeSprite(&_gameState->sprite, _gameState->material, 0, 0, 1, 1);
@@ -117,6 +118,9 @@ void gameViewResized(uint32 width, uint32 height)
   _gameState->maxPaddleY = _gameState->viewPort.h - paddleHeight;
 }
 
+float memReportRefresh = 0.0f;
+char* memReport;
+
 void draw(float deltaTime)
 {
   renderer::clearBuffers(renderer::COLOR_BUFFER | renderer::DEPTH_BUFFER);
@@ -127,10 +131,9 @@ void draw(float deltaTime)
   const Rect& paddleRight = _gameState->paddleRight;
   const Rect& ball = _gameState->ball;
 
-  Vec3 textPosition = Vec3{10.0f, 10.0f, 0.0f};
+  Vec3 textPosition = Vec3{ball.x, ball.y, 1.0f};
   Vec4 textColor = Vec4{10.0f, 10.0f, 1.0f, 1.0f};
   
-
   renderer::spriteBatch_draw(&_gameState->sprite,
       paddleLeft.x,
       paddleLeft.y,
@@ -149,12 +152,23 @@ void draw(float deltaTime)
       ball.w,
       ball.h);
 
-  renderer::spriteBatch_drawText(_gameState->fontMaterial, _gameState->font,
-      textPosition, "testeXXX", 1.0f, textColor);
+  if (memReportRefresh <= 0.0f)
+  {
+    memReportRefresh = 1.0f;
+    memReport = (char*) ldkEngine::memory_getReport();
+  }
+  else
+  {
+    memReportRefresh -= deltaTime;
+  }
+
+  textPosition = Vec3{5.0f, _gameState->viewPort.h - 30.0f, 1.0f};
+  renderer::spriteBatch_drawText(_gameState->fontMaterial, _gameState->font, textPosition, memReport, 1.0f, textColor);
 
   renderer::spriteBatch_end();
   renderer::endFrame();
 }
+
 
 void gameUpdate(float deltaTime)
 {
