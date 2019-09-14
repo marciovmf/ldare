@@ -1,6 +1,8 @@
 
-#ifndef LDK_ASSERT_VALID_CONTEXT
+#ifdef _LDK_DEBUG_
 #define LDK_ASSERT_VALID_CONTEXT(context) LDK_ASSERT((context)->initialized, "Context is not initialized");
+#else
+#define LDK_ASSERT_VALID_CONTEXT(context)
 #endif
 
 namespace ldk
@@ -22,16 +24,76 @@ namespace ldk
 
     static Context _context;
 
+    //valid texture wrap options strings 
+    static constexpr char* STR_REPEAT = "repeat";
+    static constexpr char* STR_CLAMP_TO_EDGE =  "clamp-to-edge";
+    static constexpr char* STR_MIRRORED_REPEAT = "mirrored-repeat";
+
+    //valid texture filter options strings
+    static constexpr char* STR_LINEAR = "linear";
+    static constexpr char* STR_NEAREST = "nearest";
+    static constexpr char* STR_MIP_LINEAR_LINEAR = "mipmap-linear-linear";
+    static constexpr char* STR_MIP_LINEAR_NEAREST =  "mipmap-linear-nearest";
+    static constexpr char* STR_MIP_NEAREST_LINEAR = "mipmap-nearest-linear";
+    static constexpr char* STR_MIP_NEAREST_NEAREST = "mipmap-nearest-nearest";
+
+    // render queue parameters
+    static constexpr char* STR_OPAQUE = "opaque";
+    static constexpr char* STR_TRANSLUCENT = "translucent";
+    static constexpr char* STR_OVERLAY = "overlay";
+
+    // texture parameter keys
+    static constexpr char* STR_PARAM_QUEUE = "queue";
+    static constexpr char* STR_PARAM_QUEUE_OFFSET = "queue-offset";
+    static constexpr char* STR_PARAM_PATH = "path";
+    static constexpr char* STR_PARAM_U_WRAP = "u-wrap";
+    static constexpr char* STR_PARAM_V_WRAP = "v-wrap";
+    static constexpr char* STR_PARAM_MIN_FILTER = "min-filter";
+    static constexpr char* STR_PARAM_MAG_FILTER = "mag-filter";
+
+    // texture section names
+    static constexpr uint32 texture0 = stringToHash("texture0");
+    static constexpr uint32 texture1 = stringToHash("texture1");
+    static constexpr uint32 texture2 = stringToHash("texture2");
+    static constexpr uint32 texture3 = stringToHash("texture3");
+    static constexpr uint32 texture4 = stringToHash("texture4");
+    static constexpr uint32 texture5 = stringToHash("texture5");
+    static constexpr uint32 texture6 = stringToHash("texture6");
+    static constexpr uint32 texture7 = stringToHash("texture7");
+
+    //valid texture wrap options hashes
+    static constexpr uint32 wrapRepeat = stringToHash(STR_REPEAT);
+    static constexpr uint32 wrapClampToEdge = stringToHash(STR_CLAMP_TO_EDGE);
+    static constexpr uint32 wrapMirroredRepeat = stringToHash(STR_MIRRORED_REPEAT);
+
+    //valid texture filter options hashes
+    static constexpr uint32 filterLinear = stringToHash(STR_LINEAR);
+    static constexpr uint32 filterNearest = stringToHash(STR_NEAREST);
+    static constexpr uint32 filterMipmapLinearLinear = stringToHash(STR_MIP_LINEAR_LINEAR);
+    static constexpr uint32 filterMipmapLinearNearest = stringToHash(STR_MIP_LINEAR_NEAREST);
+    static constexpr uint32 filterMipmapNearestLinear = stringToHash(STR_MIP_NEAREST_LINEAR );
+    static constexpr uint32 filterMipmapNearestNearest = stringToHash(STR_MIP_NEAREST_NEAREST);
+
+    //valid texture section param hashes
+    static constexpr uint32 keyPath = stringToHash(STR_PARAM_PATH);
+    static constexpr uint32 keyUWrap = stringToHash(STR_PARAM_U_WRAP);
+    static constexpr uint32 keyVWrap = stringToHash(STR_PARAM_V_WRAP);
+    static constexpr uint32 keyMinFilter = stringToHash(STR_PARAM_MIN_FILTER);
+    static constexpr uint32 keyMagFilter = stringToHash(STR_PARAM_MAG_FILTER);
+
+    // valid render queue options hashes
+    static const uint32 renderQueueOpaque = stringToHash(STR_OPAQUE);
+    static const uint32 renderQueueTranslucent = stringToHash(STR_TRANSLUCENT);
+    static const uint32 renderQueueOverlay = stringToHash(STR_OVERLAY);
+
     //
     // Internal functions
     //
 
-    inline Context* context_get()
+    inline Context* _context_get()
     {
       return &_context;
     }
-
-    void _setMatrix4(Material* material, char* name, ldk::Mat4* matrix, bool bindShader);
 
 #ifdef _LDK_DEBUG_
 #define checkGlError() _checkNoGlError(__FILE__, __LINE__)
@@ -73,6 +135,78 @@ namespace ldk
 #else
 #define checkGlError() 
 #endif
+
+    static TextureWrap _cfgStringToTextureWrap(const char* cfgString)
+    {
+      uint32 paramHash = stringToHash(cfgString);
+      uint32 cfgStringLen = strlen(cfgString);
+      TextureWrap result = TextureWrap::REPEAT;
+
+      if (paramHash == wrapRepeat 
+          && strncmp(STR_REPEAT, cfgString, cfgStringLen) == 0)
+        result = TextureWrap::REPEAT;
+      else if (paramHash == wrapClampToEdge 
+          && strncmp(STR_CLAMP_TO_EDGE, cfgString, cfgStringLen) == 0)
+        result = TextureWrap::CLAMPTOEDGE;
+      else if (paramHash == wrapMirroredRepeat 
+          && strncmp(STR_MIRRORED_REPEAT, cfgString, cfgStringLen) == 0) 
+        result = TextureWrap::MIRROREDREPEAT;
+      else
+        LogWarning("Invalid texture wrap mode '%s'. Defaulting to REPEAT", cfgString);
+
+      return result;
+    }
+
+    static TextureFilter _cfgStringToTextureFilter(const char* cfgString)
+    {
+      uint32 paramHash = stringToHash(cfgString);
+      uint32 cfgStringLen = strlen(cfgString);
+      TextureFilter result = renderer::TextureFilter::LINEAR;
+
+      if (paramHash == filterLinear 
+          && strncmp(STR_LINEAR, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::LINEAR;
+      else if (paramHash == filterNearest 
+          && strncmp(STR_NEAREST, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::NEAREST;
+      else if (paramHash == filterMipmapLinearLinear 
+          && strncmp(STR_MIP_LINEAR_LINEAR, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::MIPMAPLINEARLINEAR;
+      else if (paramHash == filterMipmapLinearNearest
+          && strncmp(STR_MIP_LINEAR_NEAREST, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::MIPMAPLINEARNEAREST;
+      else if (paramHash == filterMipmapNearestLinear
+          && strncmp(STR_MIP_NEAREST_LINEAR, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::MIPMAPNEARESTLINEAR;
+      else if (paramHash == filterMipmapNearestNearest
+          && strncmp(STR_MIP_NEAREST_NEAREST, cfgString, cfgStringLen) == 0)
+        result = TextureFilter::MIPMAPNEARESTNEAREST;
+      else
+        LogWarning("Invalid texture filter mode '%s'. Defaulting to LINEAR", cfgString);
+
+      return result;
+    }
+
+    static uint32 _cfgStringToRenderQueue(const char* cfgString)
+    {
+      uint32 paramHash = stringToHash(cfgString);
+      uint32 cfgStringLen = strlen(cfgString);
+      uint32 result = RENDER_QUEUE_OPAQUE;
+
+      if (paramHash == renderQueueOpaque 
+          && strncmp(STR_OPAQUE, cfgString, cfgStringLen) == 0)
+        result = RENDER_QUEUE_OPAQUE;
+      else if (paramHash == renderQueueTranslucent 
+          && strncmp(STR_TRANSLUCENT, cfgString, cfgStringLen) == 0)
+        result = RENDER_QUEUE_TRANSLUCENT;
+      else if (paramHash == renderQueueOverlay 
+          && strncmp(STR_OVERLAY, cfgString, cfgStringLen) == 0)
+        result = RENDER_QUEUE_OVERLAY;
+      else
+        LogWarning("Invalid render queue '%s'. Defaulting to OPAQUE", cfgString);
+
+      return result;
+    }
 
     static GLboolean _checkShaderProgramLink(GLuint program)
     {
@@ -210,6 +344,64 @@ namespace ldk
       }
     }
 
+    static GLenum _internalToGlMinFilter(TextureFilter filter)
+    {
+      switch(filter)
+      {
+        case LINEAR:
+          return GL_LINEAR;
+        case NEAREST:
+          return GL_NEAREST;
+        case MIPMAPLINEARLINEAR:
+          return GL_LINEAR_MIPMAP_LINEAR;
+        case MIPMAPLINEARNEAREST:
+          return GL_LINEAR_MIPMAP_NEAREST;
+        case MIPMAPNEARESTLINEAR:
+          return GL_NEAREST_MIPMAP_LINEAR;
+        case MIPMAPNEARESTNEAREST:
+          return GL_NEAREST_MIPMAP_NEAREST;
+        default:
+          LogError("Unknown TextureFilter");
+          return GL_INVALID_ENUM;
+      }
+    }
+
+    static GLenum _internalToGlMagFilter(TextureFilter filter)
+    {
+      switch(filter)
+      {
+        case LINEAR:
+          return GL_LINEAR;
+        case NEAREST:
+          return GL_NEAREST;
+        case MIPMAPLINEARLINEAR:
+        case MIPMAPLINEARNEAREST:
+        case MIPMAPNEARESTLINEAR:
+        case MIPMAPNEARESTNEAREST:
+          LogWarning("Invald TextureFilter for magFilter. Use LINEAR or NEAREST");
+          return GL_NEAREST;
+        default:
+          LogError("Unknown TextureFilter");
+          return GL_INVALID_ENUM;
+      }
+    }
+
+    static GLenum _internalToGlWrap(TextureWrap wrap)
+    {
+      switch(wrap)
+      {
+        case CLAMPTOEDGE:
+          return GL_CLAMP_TO_EDGE;
+        case MIRROREDREPEAT:
+          return GL_MIRRORED_REPEAT;
+        case REPEAT:
+          return GL_REPEAT;
+        default:
+          LogError("Unknown TextureWrap");
+          return GL_INVALID_ENUM;
+      }
+    }
+
     static VertexAttributeType _glTypeToInternal(uint32 glType)
     {
       switch (glType)
@@ -278,12 +470,48 @@ namespace ldk
 
     }
 
+    static const Uniform* _findUniform(Shader* shader, char* name)
+    {
+      uint32 uniformCount = shader->uniformCount;
+      int32 hash = stringToHash(name);
+
+      for(int i=0; i < uniformCount; i++)
+      {
+        Uniform* uniform = &shader->uniforms[i];
+        if (uniform->hash == hash)
+          return uniform;
+      }
+
+      LogWarning("Could not find uniform '%s' on shader", name);
+      return nullptr;
+    }
+
+    static void _setMatrix4(Material* material, char* name, ldk::Mat4* matrix, bool bindShader)
+    {
+      Shader* shader = &material->shader;
+      const Uniform* uniform = _findUniform(shader, name);
+
+      if(uniform)
+      {
+        LDK_ASSERT((uniform->type == ldk::renderer::VertexAttributeType::FLOAT
+              && uniform->size == 1), "Mismatching uniform types");
+
+        if(bindShader) 
+          glUseProgram(shader->program);
+
+        glUniformMatrix4fv(uniform->id, 1, 0, matrix->element);
+
+        if(bindShader)
+          glUseProgram(0);
+      }
+    }
+
     //TODO(marcio): Implement sorting here...
     static void _sortDrawCalls(DrawCall* calls, uint32 count) { }
 
     static void* _mapBuffer(Renderable* renderable, uint32 count)
     {
-      //NOTE(marcio): This funciton expects the VBO to be already bound
+      //NOTE(marcio): This funciton exits with the current VBO bound
       VertexBuffer* buffer = &renderable->buffer;
       LDK_ASSERT(buffer->capacity >= count, "Buffer too small. Make buffer larger or draw less data.");
 
@@ -316,8 +544,10 @@ namespace ldk
         renderable->needNewSync = 1;
       }
 
-      // map the buffer with no driver syncrhonization to the currently bound VBO
-      //TODO(marcio): map/unmap a buffer only ONCE per flush.
+      // map the buffer with no driver syncrhonization
+      uint32 vbo = renderable->vbos[renderable->currentVboIndex];
+      glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
       uint32 chunkStart = renderable->index0 * buffer->stride;
       uint32 chunkSize = (renderable->index1 - renderable->index0) * buffer->stride;
       void* memory = glMapBufferRange(GL_ARRAY_BUFFER, chunkStart, chunkSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
@@ -332,7 +562,6 @@ namespace ldk
     }
 
     // Send vertex data to the GPU
-    // gl_do_map_internal
     static void _uploadVertexData(DrawCall* drawCall)
     {
       uint32 vertexCount = drawCall->vertexCount;
@@ -356,7 +585,6 @@ namespace ldk
 
       uint32 currentVboIndex = renderable->currentVboIndex;
       uint32 vbo = renderable->vbos[currentVboIndex];
-      glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
       if(renderable->usage == GL_STATIC_DRAW)
       {
@@ -382,13 +610,13 @@ namespace ldk
       checkGlError();
 
       // Set buffer format
+      glBindBuffer(GL_ARRAY_BUFFER, vbo); // if we didn't sync, the vbo might not be bound yet
       uint32 vertexStride = buffer->stride;
       uint32 attributeCount = buffer->attributeCount;
       for (int i = 0; i < attributeCount; ++i) 
       {
         VertexAttribute* attribute = buffer->attributes + i;    
         glEnableVertexAttribArray(attribute->location);
-
         GLuint glType = _internalToGlType(attribute->type);
         glVertexAttribPointer(attribute->location, attribute->size, glType, GL_FALSE, vertexStride,
             (void*)((size_t) attribute->offset));
@@ -429,7 +657,6 @@ namespace ldk
           break;
       }
 
-
       // create new fence if necessary
       if (renderable->needNewSync)
       {
@@ -448,22 +675,6 @@ namespace ldk
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
       glBindBuffer(GL_ARRAY_BUFFER, 0);
       glUseProgram(0);
-    }
-
-    static const Uniform* _findUniform(Shader* shader, char* name)
-    {
-      uint32 uniformCount = shader->uniformCount;
-      int32 hash = stringToHash(name);
-
-      for(int i=0; i < uniformCount; i++)
-      {
-        Uniform* uniform = &shader->uniforms[i];
-        if (uniform->hash == hash)
-          return uniform;
-      }
-
-      LogWarning("Could not find uniform '%s' on shader", name);
-      return nullptr;
     }
 
     //
@@ -521,26 +732,6 @@ namespace ldk
       material->textureCount = 0;
       material->renderQueue = renderQueue;
       return loadShader(&material->shader, vertexSource, fragmentSource);
-    }
-
-    static void _setMatrix4(Material* material, char* name, ldk::Mat4* matrix, bool bindShader)
-    {
-      Shader* shader = &material->shader;
-      const Uniform* uniform = _findUniform(shader, name);
-
-      if(uniform)
-      {
-        LDK_ASSERT((uniform->type == ldk::renderer::VertexAttributeType::FLOAT
-              && uniform->size == 1), "Mismatching uniform types");
-
-        if(bindShader) 
-          glUseProgram(shader->program);
-
-        glUniformMatrix4fv(uniform->id, 1, 0, matrix->element);
-
-        if(bindShader)
-          glUseProgram(0);
-      }
     }
 
     void material_setMatrix4(HMaterial materialHandle, char* name, ldk::Mat4* matrix)
@@ -720,7 +911,7 @@ namespace ldk
 
     void context_setClearColor(const Vec4& color)
     {
-      Context* context = context_get();
+      Context* context = _context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
       context->clearColor = color;
       glClearColor(color.x, color.y, color.z, color.w);
@@ -729,7 +920,7 @@ namespace ldk
     void context_initialize(uint32 maxDrawCalls, const Vec4& clearColor, uint32 settingsBits)
     {
       //TODO(marcio): Review if we are gonna stick to this settingsBits param. Seems useless now.
-      Context* context = context_get();
+      Context* context = _context_get();
       context->settingsBits = settingsBits;
       context->maxDrawCalls = maxDrawCalls;
       context->drawCallCount = 0;
@@ -761,7 +952,7 @@ namespace ldk
 
     void context_finalize()
     {
-      Context* context = context_get();
+      Context* context = _context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
       ldkEngine::memory_free(context->drawCalls);
     }
@@ -902,7 +1093,7 @@ namespace ldk
 
     void beginFrame(Mat4& projection)
     {
-      Context* context = context_get();
+      Context* context = _context_get();
       context->projectionMatrix = projection;
     }
 
@@ -913,7 +1104,7 @@ namespace ldk
 
     void pushDrawCall(DrawCall* drawCall)
     {
-      Context* context = context_get();
+      Context* context = _context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
       LDK_ASSERT(context->drawCallCount < context->maxDrawCalls,
           "Exceeded maximum draw calls per frame at current context");
@@ -922,7 +1113,7 @@ namespace ldk
 
     void drawIndexed(ldk::HRenderable renderableHandle)
     {
-      Context* context = context_get();
+      Context* context = _context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
 
       ldk::renderer::Renderable* renderable = 
@@ -943,7 +1134,7 @@ namespace ldk
 
     void endFrame()
     {
-      Context* context = context_get();
+      Context* context = _context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
 
       uint32 drawCallCount = context->drawCallCount;
@@ -972,64 +1163,6 @@ namespace ldk
       // reset draw call count for this frame
       context->drawCallCount = 0;
       checkGlError();
-    }
-
-    static GLenum _internalToGlMinFilter(TextureFilter filter)
-    {
-      switch(filter)
-      {
-        case LINEAR:
-          return GL_LINEAR;
-        case NEAREST:
-          return GL_NEAREST;
-        case MIPMAPLINEARLINEAR:
-          return GL_LINEAR_MIPMAP_LINEAR;
-        case MIPMAPLINEARNEAREST:
-          return GL_LINEAR_MIPMAP_NEAREST;
-        case MIPMAPNEARESTLINEAR:
-          return GL_NEAREST_MIPMAP_LINEAR;
-        case MIPMAPNEARESTNEAREST:
-          return GL_NEAREST_MIPMAP_NEAREST;
-        default:
-          LogError("Unknown TextureFilter");
-          return GL_INVALID_ENUM;
-      }
-    }
-
-    static GLenum _internalToGlMagFilter(TextureFilter filter)
-    {
-      switch(filter)
-      {
-        case LINEAR:
-          return GL_LINEAR;
-        case NEAREST:
-          return GL_NEAREST;
-        case MIPMAPLINEARLINEAR:
-        case MIPMAPLINEARNEAREST:
-        case MIPMAPNEARESTLINEAR:
-        case MIPMAPNEARESTNEAREST:
-          LogWarning("Invald TextureFilter for magFilter. Use LINEAR or NEAREST");
-          return GL_NEAREST;
-        default:
-          LogError("Unknown TextureFilter");
-          return GL_INVALID_ENUM;
-      }
-    }
-
-    static GLenum _internalToGlWrap(TextureWrap wrap)
-    {
-      switch(wrap)
-      {
-        case CLAMPTOEDGE:
-          return GL_CLAMP_TO_EDGE;
-        case MIRROREDREPEAT:
-          return GL_MIRRORED_REPEAT;
-        case REPEAT:
-          return GL_REPEAT;
-        default:
-          LogError("Unknown TextureWrap");
-          return GL_INVALID_ENUM;
-      }
     }
 
     Texture createTexture(ldk::HBitmap bmpHandle
@@ -1088,139 +1221,6 @@ namespace ldk
       checkGlError();
     }
 
-    //valid texture wrap options strings 
-    static constexpr char* STR_REPEAT = "repeat";
-    static constexpr char* STR_CLAMP_TO_EDGE =  "clamp-to-edge";
-    static constexpr char* STR_MIRRORED_REPEAT = "mirrored-repeat";
-
-    //valid texture filter options strings
-    static constexpr char* STR_LINEAR = "linear";
-    static constexpr char* STR_NEAREST = "nearest";
-    static constexpr char* STR_MIP_LINEAR_LINEAR = "mipmap-linear-linear";
-    static constexpr char* STR_MIP_LINEAR_NEAREST =  "mipmap-linear-nearest";
-    static constexpr char* STR_MIP_NEAREST_LINEAR = "mipmap-nearest-linear";
-    static constexpr char* STR_MIP_NEAREST_NEAREST = "mipmap-nearest-nearest";
-    // render queue parameters
-    static constexpr char* STR_OPAQUE = "opaque";
-    static constexpr char* STR_TRANSLUCENT = "translucent";
-    static constexpr char* STR_OVERLAY = "overlay";
-
-    // texture parameter keys
-    static constexpr char* STR_PARAM_QUEUE = "queue";
-    static constexpr char* STR_PARAM_QUEUE_OFFSET = "queue-offset";
-    static constexpr char* STR_PARAM_PATH = "path";
-    static constexpr char* STR_PARAM_U_WRAP = "u-wrap";
-    static constexpr char* STR_PARAM_V_WRAP = "v-wrap";
-    static constexpr char* STR_PARAM_MIN_FILTER = "min-filter";
-    static constexpr char* STR_PARAM_MAG_FILTER = "mag-filter";
-
-    // texture section names
-    static constexpr uint32 texture0 = stringToHash("texture0");
-    static constexpr uint32 texture1 = stringToHash("texture1");
-    static constexpr uint32 texture2 = stringToHash("texture2");
-    static constexpr uint32 texture3 = stringToHash("texture3");
-    static constexpr uint32 texture4 = stringToHash("texture4");
-    static constexpr uint32 texture5 = stringToHash("texture5");
-    static constexpr uint32 texture6 = stringToHash("texture6");
-    static constexpr uint32 texture7 = stringToHash("texture7");
-
-    //valid texture wrap options hashes
-    static constexpr uint32 wrapRepeat = stringToHash(STR_REPEAT);
-    static constexpr uint32 wrapClampToEdge = stringToHash(STR_CLAMP_TO_EDGE);
-    static constexpr uint32 wrapMirroredRepeat = stringToHash(STR_MIRRORED_REPEAT);
-
-    //valid texture filter options hashes
-    static constexpr uint32 filterLinear = stringToHash(STR_LINEAR);
-    static constexpr uint32 filterNearest = stringToHash(STR_NEAREST);
-    static constexpr uint32 filterMipmapLinearLinear = stringToHash(STR_MIP_LINEAR_LINEAR);
-    static constexpr uint32 filterMipmapLinearNearest = stringToHash(STR_MIP_LINEAR_NEAREST);
-    static constexpr uint32 filterMipmapNearestLinear = stringToHash(STR_MIP_NEAREST_LINEAR );
-    static constexpr uint32 filterMipmapNearestNearest = stringToHash(STR_MIP_NEAREST_NEAREST);
-
-    //valid texture section param hashes
-    static constexpr uint32 keyPath = stringToHash(STR_PARAM_PATH);
-    static constexpr uint32 keyUWrap = stringToHash(STR_PARAM_U_WRAP);
-    static constexpr uint32 keyVWrap = stringToHash(STR_PARAM_V_WRAP);
-    static constexpr uint32 keyMinFilter = stringToHash(STR_PARAM_MIN_FILTER);
-    static constexpr uint32 keyMagFilter = stringToHash(STR_PARAM_MAG_FILTER);
-
-    // valid render queue options hashes
-    static const uint32 renderQueueOpaque = stringToHash(STR_OPAQUE);
-    static const uint32 renderQueueTranslucent = stringToHash(STR_TRANSLUCENT);
-    static const uint32 renderQueueOverlay = stringToHash(STR_OVERLAY);
-
-    static TextureWrap cfgStringToTextureWrap(const char* cfgString)
-    {
-      uint32 paramHash = stringToHash(cfgString);
-      uint32 cfgStringLen = strlen(cfgString);
-      TextureWrap result = TextureWrap::REPEAT;
-
-      if (paramHash == wrapRepeat 
-          && strncmp(STR_REPEAT, cfgString, cfgStringLen) == 0)
-        result = TextureWrap::REPEAT;
-      else if (paramHash == wrapClampToEdge 
-          && strncmp(STR_CLAMP_TO_EDGE, cfgString, cfgStringLen) == 0)
-        result = TextureWrap::CLAMPTOEDGE;
-      else if (paramHash == wrapMirroredRepeat 
-          && strncmp(STR_MIRRORED_REPEAT, cfgString, cfgStringLen) == 0) 
-        result = TextureWrap::MIRROREDREPEAT;
-      else
-        LogWarning("Invalid texture wrap mode '%s'. Defaulting to REPEAT", cfgString);
-
-      return result;
-    }
-
-    static TextureFilter cfgStringToTextureFilter(const char* cfgString)
-    {
-      uint32 paramHash = stringToHash(cfgString);
-      uint32 cfgStringLen = strlen(cfgString);
-      TextureFilter result = renderer::TextureFilter::LINEAR;
-
-      if (paramHash == filterLinear 
-          && strncmp(STR_LINEAR, cfgString, cfgStringLen) == 0)
-        result = TextureFilter::LINEAR;
-      else if (paramHash == filterNearest 
-          && strncmp(STR_NEAREST, cfgString, cfgStringLen) == 0)
-        result = TextureFilter::NEAREST;
-      else if (paramHash == filterMipmapLinearLinear 
-          && strncmp(STR_MIP_LINEAR_LINEAR, cfgString, cfgStringLen) == 0)
-        result = TextureFilter::MIPMAPLINEARLINEAR;
-      else if (paramHash == filterMipmapLinearNearest
-          && strncmp(STR_MIP_LINEAR_NEAREST, cfgString, cfgStringLen) == 0)
-        result = TextureFilter::MIPMAPLINEARNEAREST;
-      else if (paramHash == filterMipmapNearestLinear
-          && strncmp(STR_MIP_NEAREST_LINEAR, cfgString, cfgStringLen) == 0)
-        result = TextureFilter::MIPMAPNEARESTLINEAR;
-      else if (paramHash == filterMipmapNearestNearest
-          && strncmp(STR_MIP_NEAREST_NEAREST, cfgString, cfgStringLen) == 0)
-        result = TextureFilter::MIPMAPNEARESTNEAREST;
-      else
-        LogWarning("Invalid texture filter mode '%s'. Defaulting to LINEAR", cfgString);
-
-      return result;
-    }
-
-    static uint32 cfgStringToRenderQueue(const char* cfgString)
-    {
-      uint32 paramHash = stringToHash(cfgString);
-      uint32 cfgStringLen = strlen(cfgString);
-      uint32 result = RENDER_QUEUE_OPAQUE;
-
-      if (paramHash == renderQueueOpaque 
-          && strncmp(STR_OPAQUE, cfgString, cfgStringLen) == 0)
-        result = RENDER_QUEUE_OPAQUE;
-      else if (paramHash == renderQueueTranslucent 
-          && strncmp(STR_TRANSLUCENT, cfgString, cfgStringLen) == 0)
-        result = RENDER_QUEUE_TRANSLUCENT;
-      else if (paramHash == renderQueueOverlay 
-          && strncmp(STR_OVERLAY, cfgString, cfgStringLen) == 0)
-        result = RENDER_QUEUE_OVERLAY;
-      else
-        LogWarning("Invalid render queue '%s'. Defaulting to OPAQUE", cfgString);
-
-      return result;
-    }
-
     ldk::HMaterial loadMaterial(const char* file)
     {
       auto cfgRoot = ldk::configParseFile(file);
@@ -1258,7 +1258,7 @@ namespace ldk
       char* temp;
       if(ldk::configGetString(materialSection, (const char*) "render-queue", &temp))
       {
-        renderQueue = (uint32) cfgStringToRenderQueue(temp);
+        renderQueue = (uint32) _cfgStringToRenderQueue(temp);
         int32 queueOffset = 0;
         configGetInt(materialSection, "render-queue-offset", &queueOffset);
         renderQueue += queueOffset;
@@ -1308,13 +1308,13 @@ namespace ldk
                 && strncmp(STR_PARAM_U_WRAP, variant->key, keyLen) == 0)
             {
               configGetString(section, (const char*) variant, &value);
-              uWrap = cfgStringToTextureWrap(value);
+              uWrap = _cfgStringToTextureWrap(value);
             }
             else if (variant->hash == keyVWrap
                 && strncmp(STR_PARAM_V_WRAP, variant->key, keyLen) == 0)
             {
               configGetString(section, (const char*) variant, &value);
-              vWrap = cfgStringToTextureWrap(value);
+              vWrap = _cfgStringToTextureWrap(value);
             }
             else if(variant->hash == keyPath
                 && strncmp(STR_PARAM_PATH, variant->key, keyLen) == 0)
@@ -1325,13 +1325,13 @@ namespace ldk
                 && strncmp(STR_PARAM_MIN_FILTER, variant->key, keyLen) == 0)
             {
               configGetString(section, (const char*) variant, &value);
-              minFilter = cfgStringToTextureFilter(value);
+              minFilter = _cfgStringToTextureFilter(value);
             }
             else if (variant->hash == keyMagFilter
                 && strncmp(STR_PARAM_MAG_FILTER, variant->key, keyLen) == 0)
             {
               configGetString(section, (const char*) variant, &value);
-              magFilter = cfgStringToTextureFilter(value);
+              magFilter = _cfgStringToTextureFilter(value);
             }
             else
             {
@@ -1386,7 +1386,6 @@ namespace ldk
       checkGlError();
 
       platform::memoryFree(material);
-
       //TOD(marcio): Should we delete the actual BITMAP from RAM ? Review when asset manager is done!
     }
 
