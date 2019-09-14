@@ -155,6 +155,7 @@ namespace ldk
       }
 
       Material* material = (Material*) ldkEngine::handle_getData(sprite->material.handle);
+      spriteBatch->currentMaterial = sprite->material;
 
       if (material->textureCount == 0)
       {
