@@ -102,11 +102,14 @@ namespace ldk
 
     struct Material
     {
-      uint16 id;      // Unique per loaded material
       Shader shader; 
       GLuint textureCount;
+      GLenum depthTest;
       Texture texture[LDK_GL_MAX_TEXTURES];
+      uint16 id;      // Unique per loaded material
       uint8 renderQueue; 
+      bool enableDepthTest;
+      bool zwrite;
     };
 
     struct VertexBuffer

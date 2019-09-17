@@ -25,6 +25,16 @@ namespace ldk
 
     static Context _context;
 
+    // texture section names
+    static constexpr uint32 materialSectionTexture0 = stringToHash("texture0");
+    static constexpr uint32 materialSectionTexture1 = stringToHash("texture1");
+    static constexpr uint32 materialSectionTexture2 = stringToHash("texture2");
+    static constexpr uint32 materialSectionTexture3 = stringToHash("texture3");
+    static constexpr uint32 materialSectionTexture4 = stringToHash("texture4");
+    static constexpr uint32 materialSectionTexture5 = stringToHash("texture5");
+    static constexpr uint32 materialSectionTexture6 = stringToHash("texture6");
+    static constexpr uint32 materialSectionTexture7 = stringToHash("texture7");
+
     //valid texture wrap options strings 
     static constexpr char* STR_REPEAT = "repeat";
     static constexpr char* STR_CLAMP_TO_EDGE =  "clamp-to-edge";
@@ -38,29 +48,39 @@ namespace ldk
     static constexpr char* STR_MIP_NEAREST_LINEAR = "mipmap-nearest-linear";
     static constexpr char* STR_MIP_NEAREST_NEAREST = "mipmap-nearest-nearest";
 
+    // valid depth-test option strings
+    static constexpr char* STR_DEPTH_TEST_DISABLED = "disabled";
+    static constexpr char* STR_DEPTH_TEST_NEVER = "never";
+    static constexpr char* STR_DEPTH_TEST_ALWAYS = "always";
+    static constexpr char* STR_DEPTH_TEST_EQUAL = "equal";
+    static constexpr char* STR_DEPTH_TEST_NOT_EQUAL = "not-equal";
+    static constexpr char* STR_DEPTH_TEST_LESS = "less";
+    static constexpr char* STR_DEPTH_TEST_GREATER = "greater";
+    static constexpr char* STR_DEPTH_TEST_GREATER_EQUAL = "greater-equal";
+    static constexpr char* STR_DEPTH_TEST_LESS_EQUAL = "less-equal";
+
+    //valid depth-test options hashes
+    static constexpr uint32 DEPTH_TEST_DISABLED = stringToHash(STR_DEPTH_TEST_DISABLED);
+    static constexpr uint32 DEPTH_TEST_NEVER = stringToHash(STR_DEPTH_TEST_NEVER);
+    static constexpr uint32 DEPTH_TEST_ALWAYS = stringToHash(STR_DEPTH_TEST_ALWAYS);
+    static constexpr uint32 DEPTH_TEST_EQUAL = stringToHash(STR_DEPTH_TEST_EQUAL);
+    static constexpr uint32 DEPTH_TEST_NOT_EQUAL = stringToHash(STR_DEPTH_TEST_NOT_EQUAL);
+    static constexpr uint32 DEPTH_TEST_LESS = stringToHash(STR_DEPTH_TEST_LESS);
+    static constexpr uint32 DEPTH_TEST_GREATER = stringToHash(STR_DEPTH_TEST_GREATER);
+    static constexpr uint32 DEPTH_TEST_GREATER_EQUAL = stringToHash(STR_DEPTH_TEST_GREATER_EQUAL);
+    static constexpr uint32 DEPTH_TEST_LESS_EQUAL = stringToHash(STR_DEPTH_TEST_LESS_EQUAL);
+
     // render queue parameters
     static constexpr char* STR_OPAQUE = "opaque";
     static constexpr char* STR_TRANSLUCENT = "translucent";
     static constexpr char* STR_OVERLAY = "overlay";
 
     // texture parameter keys
-    static constexpr char* STR_PARAM_QUEUE = "queue";
-    static constexpr char* STR_PARAM_QUEUE_OFFSET = "queue-offset";
     static constexpr char* STR_PARAM_PATH = "path";
     static constexpr char* STR_PARAM_U_WRAP = "u-wrap";
     static constexpr char* STR_PARAM_V_WRAP = "v-wrap";
     static constexpr char* STR_PARAM_MIN_FILTER = "min-filter";
     static constexpr char* STR_PARAM_MAG_FILTER = "mag-filter";
-
-    // texture section names
-    static constexpr uint32 texture0 = stringToHash("texture0");
-    static constexpr uint32 texture1 = stringToHash("texture1");
-    static constexpr uint32 texture2 = stringToHash("texture2");
-    static constexpr uint32 texture3 = stringToHash("texture3");
-    static constexpr uint32 texture4 = stringToHash("texture4");
-    static constexpr uint32 texture5 = stringToHash("texture5");
-    static constexpr uint32 texture6 = stringToHash("texture6");
-    static constexpr uint32 texture7 = stringToHash("texture7");
 
     //valid texture wrap options hashes
     static constexpr uint32 wrapRepeat = stringToHash(STR_REPEAT);
@@ -136,6 +156,62 @@ namespace ldk
 #else
 #define checkGlError() 
 #endif
+
+    static GLenum _cfgStringToGLDepthTest(const char* cfgString)
+    {
+      uint32 paramHash = stringToHash(cfgString);
+      uint32 cfgStringLen = strlen(cfgString);
+      GLenum depthTest = GL_INVALID_ENUM;
+
+      if (paramHash == DEPTH_TEST_DISABLED
+          && strncmp(STR_DEPTH_TEST_DISABLED, cfgString, cfgStringLen) == 0)
+      {
+        return GL_INVALID_ENUM;
+      }
+      else if (paramHash == DEPTH_TEST_NEVER
+          && strncmp(STR_DEPTH_TEST_NEVER, cfgString, cfgStringLen) == 0)
+      {
+        return GL_NEVER;
+      }
+      else if (paramHash == DEPTH_TEST_ALWAYS
+          && strncmp(STR_DEPTH_TEST_ALWAYS, cfgString, cfgStringLen) == 0)
+      {
+        return GL_ALWAYS;
+      }
+      else if (paramHash == DEPTH_TEST_EQUAL
+          && strncmp(STR_DEPTH_TEST_EQUAL, cfgString, cfgStringLen) == 0)
+      {
+        return GL_EQUAL;
+      }
+      else if (paramHash == DEPTH_TEST_NOT_EQUAL
+          && strncmp(STR_DEPTH_TEST_NOT_EQUAL, cfgString, cfgStringLen) == 0)
+      {
+        return GL_NOTEQUAL;
+      }
+      else if (paramHash == DEPTH_TEST_LESS
+          && strncmp(STR_DEPTH_TEST_LESS, cfgString, cfgStringLen) == 0)
+      {
+        return GL_LESS;
+      }
+      else if (paramHash == DEPTH_TEST_GREATER
+          && strncmp(STR_DEPTH_TEST_GREATER, cfgString, cfgStringLen) == 0)
+      {
+        return GL_GREATER;
+      }
+      else if (paramHash == DEPTH_TEST_GREATER_EQUAL
+          && strncmp(STR_DEPTH_TEST_GREATER_EQUAL, cfgString, cfgStringLen) == 0)
+      {
+        return GL_GEQUAL;
+      }
+      else if (paramHash == DEPTH_TEST_LESS_EQUAL
+          && strncmp(STR_DEPTH_TEST_LESS_EQUAL, cfgString, cfgStringLen) == 0)
+      {
+        return GL_LEQUAL;
+      }
+     
+      LogError("Invalid z-test mode '%s'. Defaulting to LESS.", cfgString);
+      return GL_LESS;
+    }
 
     static TextureWrap _cfgStringToTextureWrap(const char* cfgString)
     {
@@ -627,10 +703,19 @@ namespace ldk
       renderable_setMaterial(drawCall->renderable, drawCall->material);
       Material* material = (Material*) ldkEngine::handle_getData(drawCall->renderable->materialHandle.handle);
 
-      //TODO(@marcio): these states should be defined by the material
-      glEnable(GL_DEPTH_TEST);
+      glDepthMask(material->zwrite);
       glEnable(GL_CULL_FACE);
-      glDepthFunc(GL_LESS);
+
+      // depth test
+      if (material->enableDepthTest)
+      {
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(material->depthTest);
+      }
+      else
+      {
+        glDisable(GL_DEPTH_TEST);
+      }
 
       uint32 currentVboIndex = renderable->currentVboIndex;
       uint32 vbo = renderable->vbos[currentVboIndex];
@@ -760,14 +845,6 @@ namespace ldk
       shader->program = program;
       shader->uniformCount = uniformCount;
       return program > 0;
-    }
-
-    bool makeMaterial(Material* material, char* vertexSource, char* fragmentSource, uint32 renderQueue)
-    {
-      material->textureCount = 0;
-      material->renderQueue = renderQueue;
-      bool shaderLoadedSuccess = loadShader(&material->shader, vertexSource, fragmentSource); 
-      return shaderLoadedSuccess;
     }
 
     void material_setMatrix4(HMaterial materialHandle, char* name, ldk::Mat4* matrix)
@@ -1332,25 +1409,37 @@ namespace ldk
       eoBuffer = vs + shaderFileSize;
       *eoBuffer = 0;
 
+      // render queue
       uint32 renderQueue = (uint16) RENDER_QUEUE_OPAQUE;
       char* temp;
       if(ldk::configGetString(materialSection, (const char*) "queue", &temp))
       {
         renderQueue = (uint16) _cfgStringToRenderQueue(temp);
         int32 queueOffset = 0;
-        configGetInt(materialSection, "queue-offset", &queueOffset);
+        configGetInt(materialSection, (const char*) "queue-offset", &queueOffset);
         renderQueue += queueOffset;
       }
 
+      // zwrite
+      bool zwrite = true;
+      ldk::configGetBool(materialSection, (const char*) "z-write", &zwrite);
+
+      // depth test
+      GLenum depthTest = GL_LESS; 
+      if(ldk::configGetString(materialSection, (const char*) "z-test", &temp))
+      {
+        depthTest = _cfgStringToGLDepthTest(temp);
+      }
+
       // allocate a material
-      ldk::renderer::Material* material = 
-        (ldk::renderer::Material*) ldkEngine::memory_alloc(sizeof(ldk::renderer::Material), ldkEngine::Allocation::MATERIAL);
+      ldk::renderer::Material* material = (ldk::renderer::Material*)
+        ldkEngine::memory_alloc(sizeof(ldk::renderer::Material), ldkEngine::Allocation::MATERIAL);
       ldk::Handle handle = ldkEngine::handle_store(ldkEngine::HandleType::MATERIAL, material);
 
       //TODO(marcio): Find a better way compute a 16bit uid for a material. 
-      //This is both smart and stupid.
-      //It works because i KNOW the high 16bit part of a handle is a the unique slot.
-      //If the handle system changes, this will break!
+      // I use the high 16bit of the handle as the unique material ID,
+      // coz I know it is unique per handle/type.
+      // This is both smart and stupid, coz it gonna break if I change the handle encoding.
       material->id = (handle >> 16);
 
       // Store it in the handle table
@@ -1360,9 +1449,17 @@ namespace ldk
         ldk::platform::memoryFree(material);
         return typedHandle_invalid<HMaterial>();
       }
+
       HMaterial materialHandle = typedHandle_make<HMaterial>(handle);
 
-      makeMaterial(material, vs, fs, renderQueue);
+      // make the material
+      material->textureCount = 0;
+      material->renderQueue = renderQueue;
+      material->zwrite = zwrite;
+      material->depthTest = depthTest;
+      material->enableDepthTest = depthTest != GL_INVALID_ENUM;
+      loadShader(&material->shader, vs, fs);
+
       ldk::platform::memoryFree(fs);
       ldk::platform::memoryFree(vs);
 
@@ -1372,14 +1469,14 @@ namespace ldk
       TextureFilter magFilter;
       char* texturePath = nullptr;
 
-      // Parse texture sections
       auto section = ldk::configGetFirstSection(cfgRoot);
       while (section != nullptr)
       {
-        if (section->hash == texture0 ||section->hash == texture1 
-            ||section->hash == texture2 ||section->hash == texture3
-            ||section->hash == texture4 ||section->hash == texture5 
-            ||section->hash == texture6 ||section->hash == texture7)
+        // Parse texture sections
+        if (section->hash == materialSectionTexture0 ||section->hash == materialSectionTexture1 
+            ||section->hash == materialSectionTexture2 ||section->hash == materialSectionTexture3
+            ||section->hash == materialSectionTexture4 ||section->hash == materialSectionTexture5 
+            ||section->hash == materialSectionTexture6 ||section->hash == materialSectionTexture7)
         {
           auto variant = ldk::configGetFirstVariant(section);
           while  (variant != nullptr)
