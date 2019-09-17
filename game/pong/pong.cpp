@@ -141,6 +141,9 @@ void draw(float deltaTime)
   Vec4 textColor = Vec4{10.0f, 10.0f, 1.0f, 1.0f};
   Vec3 textPosition = Vec3{5.0f, _gameState->viewPort.h - 30.0f, 0.0f};
   
+  renderer::spriteBatch_drawText(_gameState->fontMaterial, 
+      _gameState->font, textPosition, memReport, 1.0f, textColor);
+
   renderer::spriteBatch_draw(&_gameState->sprite,
       paddleLeft.x, paddleLeft.y, paddleLeft.w, paddleLeft.h);
 
@@ -149,8 +152,6 @@ void draw(float deltaTime)
 
   renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h);
 
-  renderer::spriteBatch_drawText(_gameState->fontMaterial, 
-      _gameState->font, textPosition, memReport, 1.0f, textColor);
 
   renderer::spriteBatch_end();
   renderer::endFrame();
