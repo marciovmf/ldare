@@ -46,7 +46,10 @@ namespace ldk
     static void _flushBatch(SpriteBatch* spriteBatch)
     {
       if(spriteBatch->currentMaterial.handle == ldkEngine::handle_invalid())
+      {
+        LogError("Flushing batch without a material");
         return;
+      }
 
       uint32 totalSpriteCount = spriteBatch->spriteCount;
       uint32 totalVertexCount = totalSpriteCount * 4;
@@ -344,7 +347,6 @@ namespace ldk
         LogError("Ignoring call to spriteBatch_end before spriteBatch_begin.");
         return;
       }
-
       _flushBatch(spriteBatch);
       spriteBatch->started = false;
     }

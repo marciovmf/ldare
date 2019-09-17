@@ -1,11 +1,10 @@
 [material]
-# possible values are opaque | translucent | overlay
-queue = "opaque"
-queue-offset = 10
+queue = "overlay"
+queue-offset = 0
 vert-shader = "assets/standard/text.vert"
 frag-shader = "assets/standard/text.frag"
+z-test = "disabled"
 
-# Specify the first texture for the material
 [texture0]
 path="assets/standard/inconsolata_18.bmp"
 u-wrap = "repeat" 

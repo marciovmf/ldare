@@ -17,12 +17,23 @@ namespace ldk
       uint32 maxDrawCalls;
       uint32 drawCallCount;
       DrawCall* drawCalls;
-      uint32 loadedTextures;
+      uint64* renderKeys;
+      uint64* renderKeysSorted;
       Mat4 projectionMatrix;
       bool initialized;
     };
 
     static Context _context;
+
+    // texture section names
+    static constexpr uint32 materialSectionTexture0 = stringToHash("texture0");
+    static constexpr uint32 materialSectionTexture1 = stringToHash("texture1");
+    static constexpr uint32 materialSectionTexture2 = stringToHash("texture2");
+    static constexpr uint32 materialSectionTexture3 = stringToHash("texture3");
+    static constexpr uint32 materialSectionTexture4 = stringToHash("texture4");
+    static constexpr uint32 materialSectionTexture5 = stringToHash("texture5");
+    static constexpr uint32 materialSectionTexture6 = stringToHash("texture6");
+    static constexpr uint32 materialSectionTexture7 = stringToHash("texture7");
 
     //valid texture wrap options strings 
     static constexpr char* STR_REPEAT = "repeat";
@@ -37,29 +48,39 @@ namespace ldk
     static constexpr char* STR_MIP_NEAREST_LINEAR = "mipmap-nearest-linear";
     static constexpr char* STR_MIP_NEAREST_NEAREST = "mipmap-nearest-nearest";
 
+    // valid depth-test option strings
+    static constexpr char* STR_DEPTH_TEST_DISABLED = "disabled";
+    static constexpr char* STR_DEPTH_TEST_NEVER = "never";
+    static constexpr char* STR_DEPTH_TEST_ALWAYS = "always";
+    static constexpr char* STR_DEPTH_TEST_EQUAL = "equal";
+    static constexpr char* STR_DEPTH_TEST_NOT_EQUAL = "not-equal";
+    static constexpr char* STR_DEPTH_TEST_LESS = "less";
+    static constexpr char* STR_DEPTH_TEST_GREATER = "greater";
+    static constexpr char* STR_DEPTH_TEST_GREATER_EQUAL = "greater-equal";
+    static constexpr char* STR_DEPTH_TEST_LESS_EQUAL = "less-equal";
+
+    //valid depth-test options hashes
+    static constexpr uint32 DEPTH_TEST_DISABLED = stringToHash(STR_DEPTH_TEST_DISABLED);
+    static constexpr uint32 DEPTH_TEST_NEVER = stringToHash(STR_DEPTH_TEST_NEVER);
+    static constexpr uint32 DEPTH_TEST_ALWAYS = stringToHash(STR_DEPTH_TEST_ALWAYS);
+    static constexpr uint32 DEPTH_TEST_EQUAL = stringToHash(STR_DEPTH_TEST_EQUAL);
+    static constexpr uint32 DEPTH_TEST_NOT_EQUAL = stringToHash(STR_DEPTH_TEST_NOT_EQUAL);
+    static constexpr uint32 DEPTH_TEST_LESS = stringToHash(STR_DEPTH_TEST_LESS);
+    static constexpr uint32 DEPTH_TEST_GREATER = stringToHash(STR_DEPTH_TEST_GREATER);
+    static constexpr uint32 DEPTH_TEST_GREATER_EQUAL = stringToHash(STR_DEPTH_TEST_GREATER_EQUAL);
+    static constexpr uint32 DEPTH_TEST_LESS_EQUAL = stringToHash(STR_DEPTH_TEST_LESS_EQUAL);
+
     // render queue parameters
     static constexpr char* STR_OPAQUE = "opaque";
     static constexpr char* STR_TRANSLUCENT = "translucent";
     static constexpr char* STR_OVERLAY = "overlay";
 
     // texture parameter keys
-    static constexpr char* STR_PARAM_QUEUE = "queue";
-    static constexpr char* STR_PARAM_QUEUE_OFFSET = "queue-offset";
     static constexpr char* STR_PARAM_PATH = "path";
     static constexpr char* STR_PARAM_U_WRAP = "u-wrap";
     static constexpr char* STR_PARAM_V_WRAP = "v-wrap";
     static constexpr char* STR_PARAM_MIN_FILTER = "min-filter";
     static constexpr char* STR_PARAM_MAG_FILTER = "mag-filter";
-
-    // texture section names
-    static constexpr uint32 texture0 = stringToHash("texture0");
-    static constexpr uint32 texture1 = stringToHash("texture1");
-    static constexpr uint32 texture2 = stringToHash("texture2");
-    static constexpr uint32 texture3 = stringToHash("texture3");
-    static constexpr uint32 texture4 = stringToHash("texture4");
-    static constexpr uint32 texture5 = stringToHash("texture5");
-    static constexpr uint32 texture6 = stringToHash("texture6");
-    static constexpr uint32 texture7 = stringToHash("texture7");
 
     //valid texture wrap options hashes
     static constexpr uint32 wrapRepeat = stringToHash(STR_REPEAT);
@@ -136,6 +157,62 @@ namespace ldk
 #define checkGlError() 
 #endif
 
+    static GLenum _cfgStringToGLDepthTest(const char* cfgString)
+    {
+      uint32 paramHash = stringToHash(cfgString);
+      uint32 cfgStringLen = strlen(cfgString);
+      GLenum depthTest = GL_INVALID_ENUM;
+
+      if (paramHash == DEPTH_TEST_DISABLED
+          && strncmp(STR_DEPTH_TEST_DISABLED, cfgString, cfgStringLen) == 0)
+      {
+        return GL_INVALID_ENUM;
+      }
+      else if (paramHash == DEPTH_TEST_NEVER
+          && strncmp(STR_DEPTH_TEST_NEVER, cfgString, cfgStringLen) == 0)
+      {
+        return GL_NEVER;
+      }
+      else if (paramHash == DEPTH_TEST_ALWAYS
+          && strncmp(STR_DEPTH_TEST_ALWAYS, cfgString, cfgStringLen) == 0)
+      {
+        return GL_ALWAYS;
+      }
+      else if (paramHash == DEPTH_TEST_EQUAL
+          && strncmp(STR_DEPTH_TEST_EQUAL, cfgString, cfgStringLen) == 0)
+      {
+        return GL_EQUAL;
+      }
+      else if (paramHash == DEPTH_TEST_NOT_EQUAL
+          && strncmp(STR_DEPTH_TEST_NOT_EQUAL, cfgString, cfgStringLen) == 0)
+      {
+        return GL_NOTEQUAL;
+      }
+      else if (paramHash == DEPTH_TEST_LESS
+          && strncmp(STR_DEPTH_TEST_LESS, cfgString, cfgStringLen) == 0)
+      {
+        return GL_LESS;
+      }
+      else if (paramHash == DEPTH_TEST_GREATER
+          && strncmp(STR_DEPTH_TEST_GREATER, cfgString, cfgStringLen) == 0)
+      {
+        return GL_GREATER;
+      }
+      else if (paramHash == DEPTH_TEST_GREATER_EQUAL
+          && strncmp(STR_DEPTH_TEST_GREATER_EQUAL, cfgString, cfgStringLen) == 0)
+      {
+        return GL_GEQUAL;
+      }
+      else if (paramHash == DEPTH_TEST_LESS_EQUAL
+          && strncmp(STR_DEPTH_TEST_LESS_EQUAL, cfgString, cfgStringLen) == 0)
+      {
+        return GL_LEQUAL;
+      }
+     
+      LogError("Invalid z-test mode '%s'. Defaulting to LESS.", cfgString);
+      return GL_LESS;
+    }
+
     static TextureWrap _cfgStringToTextureWrap(const char* cfgString)
     {
       uint32 paramHash = stringToHash(cfgString);
@@ -187,11 +264,11 @@ namespace ldk
       return result;
     }
 
-    static uint32 _cfgStringToRenderQueue(const char* cfgString)
+    static uint16 _cfgStringToRenderQueue(const char* cfgString)
     {
       uint32 paramHash = stringToHash(cfgString);
       uint32 cfgStringLen = strlen(cfgString);
-      uint32 result = RENDER_QUEUE_OPAQUE;
+      uint16 result = RENDER_QUEUE_OPAQUE;
 
       if (paramHash == renderQueueOpaque 
           && strncmp(STR_OPAQUE, cfgString, cfgStringLen) == 0)
@@ -506,16 +583,59 @@ namespace ldk
       }
     }
 
-    //TODO(marcio): Implement sorting here...
-    static void _sortDrawCalls(DrawCall* calls, uint32 count) { }
+    // Radix sort the lower 32bit part of a 64bit draw call key.
+    // elements - pointer to 64bit array of integers to be sorted.
+    // elementCount - number of elements on elements array.
+    // dest - destination buffer where to put the sorted list. This buffer must be large enough for storing elementCount elements.
+    void _radixSortDrawCalls(uint64* elements, uint32 elementCount,  uint64* dest)
+    {
+      for(int shiftIndex = 0; shiftIndex < 32; shiftIndex+=8)
+      {
+        const uint32 bucketCount = 255;
+        uint32 buckets[bucketCount] = {};
 
-    static void* _mapBuffer(Renderable* renderable, uint32 count)
+        // count key parts
+        for(uint32 i = 0; i < elementCount; i++)
+        {
+          // note we ignore the UPPER 32bit of the key
+          uint32 element = (uint32) elements[i];
+          int32 keySlice = (element >> shiftIndex) & 0xFF; // get lower part
+          buckets[keySlice]++;
+        }
+
+        // calculate sorted positions
+        uint32 startIndex = 0;
+        for(uint32 i = 0; i < bucketCount; i++)
+        {
+          uint32 keyCount = buckets[i];
+          buckets[i] = startIndex;
+          startIndex += keyCount;
+        }
+
+        // move elements to their correct position
+        for(uint32 i = 0; i < elementCount; i++)
+        {
+          uint64 element = elements[i];
+          int32 keySlice = (element >> shiftIndex) & 0xFF; 
+          uint32 destLocation = buckets[keySlice]++;
+          // move the WHOLE 64bit key
+          dest[destLocation] = element;
+        }
+
+        // swap buffers
+        uint64* temp = elements;
+        elements = dest;
+        dest = temp;
+      }
+    }
+
+    static void* _mapBuffer(Renderable* renderable, uint32 vertexCount)
     {
       //NOTE(marcio): This funciton exits with the current VBO bound
       VertexBuffer* buffer = &renderable->buffer;
-      LDK_ASSERT(buffer->capacity >= count, "Buffer too small. Make buffer larger or draw less data.");
+      LDK_ASSERT(buffer->capacity >= vertexCount, "Buffer too small. Make buffer larger or draw less data.");
 
-      uint32 dataEndOffset = renderable->index1 + count;
+      uint32 dataEndOffset = renderable->index1 + vertexCount;
 
       if( dataEndOffset <= buffer->capacity)
       {
@@ -540,7 +660,7 @@ namespace ldk
 
         // fix buffer chunk limits
         renderable->index0 = 0;
-        renderable->index1 = count;
+        renderable->index1 = vertexCount;
         renderable->needNewSync = 1;
       }
 
@@ -583,22 +703,22 @@ namespace ldk
       renderable_setMaterial(drawCall->renderable, drawCall->material);
       Material* material = (Material*) ldkEngine::handle_getData(drawCall->renderable->materialHandle.handle);
 
-      uint32 currentVboIndex = renderable->currentVboIndex;
-      uint32 vbo = renderable->vbos[currentVboIndex];
+      glDepthMask(material->zwrite);
+      glEnable(GL_CULL_FACE);
 
-      if(renderable->usage == GL_STATIC_DRAW)
+      // depth test
+      if (material->enableDepthTest)
       {
-        if (renderable->needNewSync)
-        {
-          renderable->needNewSync = 0; 
-          _uploadVertexData(drawCall);
-        }
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(material->depthTest);
       }
       else
       {
-        _uploadVertexData(drawCall);
+        glDisable(GL_DEPTH_TEST);
       }
 
+      uint32 currentVboIndex = renderable->currentVboIndex;
+      uint32 vbo = renderable->vbos[currentVboIndex];
       VertexBuffer* buffer = &(renderable->buffer);
       glUseProgram(material->shader.program);
       checkGlError();
@@ -725,13 +845,6 @@ namespace ldk
       shader->program = program;
       shader->uniformCount = uniformCount;
       return program > 0;
-    }
-
-    bool makeMaterial(Material* material, char* vertexSource, char* fragmentSource, uint32 renderQueue)
-    {
-      material->textureCount = 0;
-      material->renderQueue = renderQueue;
-      return loadShader(&material->shader, vertexSource, fragmentSource);
     }
 
     void material_setMatrix4(HMaterial materialHandle, char* name, ldk::Mat4* matrix)
@@ -925,7 +1038,11 @@ namespace ldk
       context->maxDrawCalls = maxDrawCalls;
       context->drawCallCount = 0;
       context->drawCalls = (ldk::renderer::DrawCall*) 
-        ldkEngine::memory_alloc(sizeof(ldk::renderer::DrawCall) * maxDrawCalls, ldkEngine::Allocation::Tag::RENDERER);
+        ldkEngine::memory_alloc(sizeof(ldk::renderer::DrawCall) * maxDrawCalls,
+            ldkEngine::Allocation::Tag::RENDERER);
+
+      context->renderKeys = (uint64*) ldkEngine::memory_alloc(sizeof(uint64) * maxDrawCalls);
+      context->renderKeysSorted = (uint64*) ldkEngine::memory_alloc(sizeof(uint64) * maxDrawCalls);
 
       if(!context->drawCalls)
       {
@@ -955,6 +1072,8 @@ namespace ldk
       Context* context = _context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
       ldkEngine::memory_free(context->drawCalls);
+      ldkEngine::memory_free(context->renderKeys);
+      ldkEngine::memory_free(context->renderKeysSorted);
     }
 
     //
@@ -1108,7 +1227,24 @@ namespace ldk
       LDK_ASSERT_VALID_CONTEXT(context);
       LDK_ASSERT(context->drawCallCount < context->maxDrawCalls,
           "Exceeded maximum draw calls per frame at current context");
-      context->drawCalls[context->drawCallCount++] = *drawCall;
+
+      ldk::renderer::Material* material = 
+        (ldk::renderer::Material*) ldkEngine::handle_getData(drawCall->material.handle);
+
+      // Encode the render key for this drawcall. Key format:
+      // -------------------------------------
+      //    32 bit   |   16 bit  |  16 bit
+      //   Draw call |   Render  | Material 
+      //    index    |   queue   |    id
+      // -------------------------------------
+      
+      uint32 drawCallIndex = context->drawCallCount++;
+      uint64 renderKey = ((uint64)drawCallIndex << 32) 
+        | (material->renderQueue << 16)
+        | (material->id);
+
+      context->drawCalls[drawCallIndex] = *drawCall;
+      context->renderKeys[drawCallIndex] = renderKey;
     }
 
     void drawIndexed(ldk::HRenderable renderableHandle)
@@ -1136,18 +1272,37 @@ namespace ldk
     {
       Context* context = _context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
-
       uint32 drawCallCount = context->drawCallCount;
-      _sortDrawCalls(context->drawCalls, drawCallCount);
 
-      glEnable(GL_DEPTH_TEST);
-      glEnable(GL_CULL_FACE);
-      glDepthFunc(GL_LESS);
+      // upload vertex data
+      for (int i = 0; i < drawCallCount; i++) 
+      {
+        DrawCall* drawCall = context->drawCalls + i;
+        Renderable* renderable = drawCall->renderable; 
+        if(renderable->usage == GL_STATIC_DRAW)
+        {
+          if (renderable->needNewSync)
+          {
+            renderable->needNewSync = 0; 
+            _uploadVertexData(drawCall);
+          }
+        }
+        else
+        {
+          _uploadVertexData(drawCall);
+        }
+      }
+
+      // sort drawcalls
+      _radixSortDrawCalls(context->renderKeys, drawCallCount, context->renderKeysSorted);
 
       // execute draw calls
       for (int i = 0; i < drawCallCount; i++) 
       {
-        DrawCall* drawCall = context->drawCalls + i;
+        uint64 renderKey = context->renderKeysSorted[i];
+        // drawcall index is the hight 32 bit
+        uint32 drawCallIndex = (uint32)(renderKey >> 32);
+        DrawCall* drawCall = context->drawCalls + drawCallIndex;
         _executeDrawCall(context->projectionMatrix, drawCall);
       }
 
@@ -1254,20 +1409,38 @@ namespace ldk
       eoBuffer = vs + shaderFileSize;
       *eoBuffer = 0;
 
-      uint32 renderQueue = (uint32) RENDER_QUEUE_OPAQUE;
+      // render queue
+      uint32 renderQueue = (uint16) RENDER_QUEUE_OPAQUE;
       char* temp;
-      if(ldk::configGetString(materialSection, (const char*) "render-queue", &temp))
+      if(ldk::configGetString(materialSection, (const char*) "queue", &temp))
       {
-        renderQueue = (uint32) _cfgStringToRenderQueue(temp);
+        renderQueue = (uint16) _cfgStringToRenderQueue(temp);
         int32 queueOffset = 0;
-        configGetInt(materialSection, "render-queue-offset", &queueOffset);
+        configGetInt(materialSection, (const char*) "queue-offset", &queueOffset);
         renderQueue += queueOffset;
       }
 
+      // zwrite
+      bool zwrite = true;
+      ldk::configGetBool(materialSection, (const char*) "z-write", &zwrite);
+
+      // depth test
+      GLenum depthTest = GL_LESS; 
+      if(ldk::configGetString(materialSection, (const char*) "z-test", &temp))
+      {
+        depthTest = _cfgStringToGLDepthTest(temp);
+      }
+
       // allocate a material
-      ldk::renderer::Material* material = 
-        (ldk::renderer::Material*) ldkEngine::memory_alloc(sizeof(ldk::renderer::Material), ldkEngine::Allocation::MATERIAL);
+      ldk::renderer::Material* material = (ldk::renderer::Material*)
+        ldkEngine::memory_alloc(sizeof(ldk::renderer::Material), ldkEngine::Allocation::MATERIAL);
       ldk::Handle handle = ldkEngine::handle_store(ldkEngine::HandleType::MATERIAL, material);
+
+      //TODO(marcio): Find a better way compute a 16bit uid for a material. 
+      // I use the high 16bit of the handle as the unique material ID,
+      // coz I know it is unique per handle/type.
+      // This is both smart and stupid, coz it gonna break if I change the handle encoding.
+      material->id = (handle >> 16);
 
       // Store it in the handle table
       if (handle == ldkEngine::handle_invalid())
@@ -1276,9 +1449,17 @@ namespace ldk
         ldk::platform::memoryFree(material);
         return typedHandle_invalid<HMaterial>();
       }
+
       HMaterial materialHandle = typedHandle_make<HMaterial>(handle);
 
-      makeMaterial(material, vs, fs, renderQueue);
+      // make the material
+      material->textureCount = 0;
+      material->renderQueue = renderQueue;
+      material->zwrite = zwrite;
+      material->depthTest = depthTest;
+      material->enableDepthTest = depthTest != GL_INVALID_ENUM;
+      loadShader(&material->shader, vs, fs);
+
       ldk::platform::memoryFree(fs);
       ldk::platform::memoryFree(vs);
 
@@ -1288,19 +1469,18 @@ namespace ldk
       TextureFilter magFilter;
       char* texturePath = nullptr;
 
-      // Parse texture sections
       auto section = ldk::configGetFirstSection(cfgRoot);
       while (section != nullptr)
       {
-        if (section->hash == texture0 ||section->hash == texture1 
-            ||section->hash == texture2 ||section->hash == texture3
-            ||section->hash == texture4 ||section->hash == texture5 
-            ||section->hash == texture6 ||section->hash == texture7)
+        // Parse texture sections
+        if (section->hash == materialSectionTexture0 ||section->hash == materialSectionTexture1 
+            ||section->hash == materialSectionTexture2 ||section->hash == materialSectionTexture3
+            ||section->hash == materialSectionTexture4 ||section->hash == materialSectionTexture5 
+            ||section->hash == materialSectionTexture6 ||section->hash == materialSectionTexture7)
         {
           auto variant = ldk::configGetFirstVariant(section);
           while  (variant != nullptr)
           {
-
             const uint32 keyLen = strlen(variant->key);
             char *value;
 
