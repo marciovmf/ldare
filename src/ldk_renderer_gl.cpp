@@ -17,7 +17,8 @@ namespace ldk
       uint32 maxDrawCalls;
       uint32 drawCallCount;
       DrawCall* drawCalls;
-      uint32 loadedTextures;
+      uint64* renderKeys;
+      uint64* renderKeysSorted;
       Mat4 projectionMatrix;
       bool initialized;
     };
@@ -187,11 +188,11 @@ namespace ldk
       return result;
     }
 
-    static uint32 _cfgStringToRenderQueue(const char* cfgString)
+    static uint16 _cfgStringToRenderQueue(const char* cfgString)
     {
       uint32 paramHash = stringToHash(cfgString);
       uint32 cfgStringLen = strlen(cfgString);
-      uint32 result = RENDER_QUEUE_OPAQUE;
+      uint16 result = RENDER_QUEUE_OPAQUE;
 
       if (paramHash == renderQueueOpaque 
           && strncmp(STR_OPAQUE, cfgString, cfgStringLen) == 0)
@@ -506,16 +507,59 @@ namespace ldk
       }
     }
 
-    //TODO(marcio): Implement sorting here...
-    static void _sortDrawCalls(DrawCall* calls, uint32 count) { }
+    // Radix sort the lower 32bit part of a 64bit draw call key.
+    // elements - pointer to 64bit array of integers to be sorted.
+    // elementCount - number of elements on elements array.
+    // dest - destination buffer where to put the sorted list. This buffer must be large enough for storing elementCount elements.
+    void _radixSortDrawCalls(uint64* elements, uint32 elementCount,  uint64* dest)
+    {
+      for(int shiftIndex = 0; shiftIndex < 32; shiftIndex+=8)
+      {
+        const uint32 bucketCount = 255;
+        uint32 buckets[bucketCount] = {};
 
-    static void* _mapBuffer(Renderable* renderable, uint32 count)
+        // count key parts
+        for(uint32 i = 0; i < elementCount; i++)
+        {
+          // note we ignore the UPPER 32bit of the key
+          uint32 element = (uint32) elements[i];
+          int32 keySlice = (element >> shiftIndex) & 0xFF; // get lower part
+          buckets[keySlice]++;
+        }
+
+        // calculate sorted positions
+        uint32 startIndex = 0;
+        for(uint32 i = 0; i < bucketCount; i++)
+        {
+          uint32 keyCount = buckets[i];
+          buckets[i] = startIndex;
+          startIndex += keyCount;
+        }
+
+        // move elements to their correct position
+        for(uint32 i = 0; i < elementCount; i++)
+        {
+          uint64 element = elements[i];
+          int32 keySlice = (element >> shiftIndex) & 0xFF; 
+          uint32 destLocation = buckets[keySlice]++;
+          // move the WHOLE 64bit key
+          dest[destLocation] = element;
+        }
+
+        // swap buffers
+        uint64* temp = elements;
+        elements = dest;
+        dest = temp;
+      }
+    }
+
+    static void* _mapBuffer(Renderable* renderable, uint32 vertexCount)
     {
       //NOTE(marcio): This funciton exits with the current VBO bound
       VertexBuffer* buffer = &renderable->buffer;
-      LDK_ASSERT(buffer->capacity >= count, "Buffer too small. Make buffer larger or draw less data.");
+      LDK_ASSERT(buffer->capacity >= vertexCount, "Buffer too small. Make buffer larger or draw less data.");
 
-      uint32 dataEndOffset = renderable->index1 + count;
+      uint32 dataEndOffset = renderable->index1 + vertexCount;
 
       if( dataEndOffset <= buffer->capacity)
       {
@@ -540,7 +584,7 @@ namespace ldk
 
         // fix buffer chunk limits
         renderable->index0 = 0;
-        renderable->index1 = count;
+        renderable->index1 = vertexCount;
         renderable->needNewSync = 1;
       }
 
@@ -583,22 +627,13 @@ namespace ldk
       renderable_setMaterial(drawCall->renderable, drawCall->material);
       Material* material = (Material*) ldkEngine::handle_getData(drawCall->renderable->materialHandle.handle);
 
+      //TODO(@marcio): these states should be defined by the material
+      glEnable(GL_DEPTH_TEST);
+      glEnable(GL_CULL_FACE);
+      glDepthFunc(GL_LESS);
+
       uint32 currentVboIndex = renderable->currentVboIndex;
       uint32 vbo = renderable->vbos[currentVboIndex];
-
-      if(renderable->usage == GL_STATIC_DRAW)
-      {
-        if (renderable->needNewSync)
-        {
-          renderable->needNewSync = 0; 
-          _uploadVertexData(drawCall);
-        }
-      }
-      else
-      {
-        _uploadVertexData(drawCall);
-      }
-
       VertexBuffer* buffer = &(renderable->buffer);
       glUseProgram(material->shader.program);
       checkGlError();
@@ -731,7 +766,8 @@ namespace ldk
     {
       material->textureCount = 0;
       material->renderQueue = renderQueue;
-      return loadShader(&material->shader, vertexSource, fragmentSource);
+      bool shaderLoadedSuccess = loadShader(&material->shader, vertexSource, fragmentSource); 
+      return shaderLoadedSuccess;
     }
 
     void material_setMatrix4(HMaterial materialHandle, char* name, ldk::Mat4* matrix)
@@ -925,7 +961,11 @@ namespace ldk
       context->maxDrawCalls = maxDrawCalls;
       context->drawCallCount = 0;
       context->drawCalls = (ldk::renderer::DrawCall*) 
-        ldkEngine::memory_alloc(sizeof(ldk::renderer::DrawCall) * maxDrawCalls, ldkEngine::Allocation::Tag::RENDERER);
+        ldkEngine::memory_alloc(sizeof(ldk::renderer::DrawCall) * maxDrawCalls,
+            ldkEngine::Allocation::Tag::RENDERER);
+
+      context->renderKeys = (uint64*) ldkEngine::memory_alloc(sizeof(uint64) * maxDrawCalls);
+      context->renderKeysSorted = (uint64*) ldkEngine::memory_alloc(sizeof(uint64) * maxDrawCalls);
 
       if(!context->drawCalls)
       {
@@ -955,6 +995,8 @@ namespace ldk
       Context* context = _context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
       ldkEngine::memory_free(context->drawCalls);
+      ldkEngine::memory_free(context->renderKeys);
+      ldkEngine::memory_free(context->renderKeysSorted);
     }
 
     //
@@ -1108,7 +1150,24 @@ namespace ldk
       LDK_ASSERT_VALID_CONTEXT(context);
       LDK_ASSERT(context->drawCallCount < context->maxDrawCalls,
           "Exceeded maximum draw calls per frame at current context");
-      context->drawCalls[context->drawCallCount++] = *drawCall;
+
+      ldk::renderer::Material* material = 
+        (ldk::renderer::Material*) ldkEngine::handle_getData(drawCall->material.handle);
+
+      // Encode the render key for this drawcall. Key format:
+      // -------------------------------------
+      //    32 bit   |   16 bit  |  16 bit
+      //   Draw call |   Render  | Material 
+      //    index    |   queue   |    id
+      // -------------------------------------
+      
+      uint32 drawCallIndex = context->drawCallCount++;
+      uint64 renderKey = ((uint64)drawCallIndex << 32) 
+        | (material->renderQueue << 16)
+        | (material->id);
+
+      context->drawCalls[drawCallIndex] = *drawCall;
+      context->renderKeys[drawCallIndex] = renderKey;
     }
 
     void drawIndexed(ldk::HRenderable renderableHandle)
@@ -1136,18 +1195,37 @@ namespace ldk
     {
       Context* context = _context_get();
       LDK_ASSERT_VALID_CONTEXT(context);
-
       uint32 drawCallCount = context->drawCallCount;
-      _sortDrawCalls(context->drawCalls, drawCallCount);
 
-      glEnable(GL_DEPTH_TEST);
-      glEnable(GL_CULL_FACE);
-      glDepthFunc(GL_LESS);
+      // upload vertex data
+      for (int i = 0; i < drawCallCount; i++) 
+      {
+        DrawCall* drawCall = context->drawCalls + i;
+        Renderable* renderable = drawCall->renderable; 
+        if(renderable->usage == GL_STATIC_DRAW)
+        {
+          if (renderable->needNewSync)
+          {
+            renderable->needNewSync = 0; 
+            _uploadVertexData(drawCall);
+          }
+        }
+        else
+        {
+          _uploadVertexData(drawCall);
+        }
+      }
+
+      // sort drawcalls
+      _radixSortDrawCalls(context->renderKeys, drawCallCount, context->renderKeysSorted);
 
       // execute draw calls
       for (int i = 0; i < drawCallCount; i++) 
       {
-        DrawCall* drawCall = context->drawCalls + i;
+        uint64 renderKey = context->renderKeysSorted[i];
+        // drawcall index is the hight 32 bit
+        uint32 drawCallIndex = (uint32)(renderKey >> 32);
+        DrawCall* drawCall = context->drawCalls + drawCallIndex;
         _executeDrawCall(context->projectionMatrix, drawCall);
       }
 
@@ -1254,13 +1332,13 @@ namespace ldk
       eoBuffer = vs + shaderFileSize;
       *eoBuffer = 0;
 
-      uint32 renderQueue = (uint32) RENDER_QUEUE_OPAQUE;
+      uint32 renderQueue = (uint16) RENDER_QUEUE_OPAQUE;
       char* temp;
-      if(ldk::configGetString(materialSection, (const char*) "render-queue", &temp))
+      if(ldk::configGetString(materialSection, (const char*) "queue", &temp))
       {
-        renderQueue = (uint32) _cfgStringToRenderQueue(temp);
+        renderQueue = (uint16) _cfgStringToRenderQueue(temp);
         int32 queueOffset = 0;
-        configGetInt(materialSection, "render-queue-offset", &queueOffset);
+        configGetInt(materialSection, "queue-offset", &queueOffset);
         renderQueue += queueOffset;
       }
 
@@ -1268,6 +1346,12 @@ namespace ldk
       ldk::renderer::Material* material = 
         (ldk::renderer::Material*) ldkEngine::memory_alloc(sizeof(ldk::renderer::Material), ldkEngine::Allocation::MATERIAL);
       ldk::Handle handle = ldkEngine::handle_store(ldkEngine::HandleType::MATERIAL, material);
+
+      //TODO(marcio): Find a better way compute a 16bit uid for a material. 
+      //This is both smart and stupid.
+      //It works because i KNOW the high 16bit part of a handle is a the unique slot.
+      //If the handle system changes, this will break!
+      material->id = (handle >> 16);
 
       // Store it in the handle table
       if (handle == ldkEngine::handle_invalid())
@@ -1300,7 +1384,6 @@ namespace ldk
           auto variant = ldk::configGetFirstVariant(section);
           while  (variant != nullptr)
           {
-
             const uint32 keyLen = strlen(variant->key);
             char *value;
 

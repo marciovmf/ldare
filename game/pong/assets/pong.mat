@@ -1,14 +1,10 @@
 [material]
 # possible values are opaque | translucent | overlay
 queue = "opaque"
-queue-offset = 10
-
+queue-offset = 0
 vert-shader = "assets/difuse.vert"
 frag-shader = "assets/difuse.frag"
 
-#[textureN]
-
-# Specify the first texture for the material
 [texture0]
 path="assets/white.bmp"
 u-wrap = "repeat" 

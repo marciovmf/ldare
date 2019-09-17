@@ -21,9 +21,9 @@ namespace ldk
     struct Context;
     struct VertexBuffer;
 
-    const uint32 RENDER_QUEUE_OPAQUE = 10;
-    const uint32 RENDER_QUEUE_TRANSLUCENT = 100;
-    const uint32 RENDER_QUEUE_OVERLAY = 200;
+    const uint8 RENDER_QUEUE_OPAQUE = 10;
+    const uint8 RENDER_QUEUE_TRANSLUCENT = 100;
+    const uint8 RENDER_QUEUE_OVERLAY = 200;
 
     static const uint32 COLOR_BUFFER = GL_COLOR_BUFFER_BIT;
     static const uint32 DEPTH_BUFFER = GL_DEPTH_BUFFER_BIT;
@@ -102,11 +102,11 @@ namespace ldk
 
     struct Material
     {
+      uint16 id;      // Unique per loaded material
       Shader shader; 
-      uint32 renderQueue; 
       GLuint textureCount;
       Texture texture[LDK_GL_MAX_TEXTURES];
-      bool isBound;
+      uint8 renderQueue; 
     };
 
     struct VertexBuffer
@@ -121,7 +121,7 @@ namespace ldk
     struct Renderable
     {
       VertexBuffer buffer;
-      ldk::HMesh meshHandle;       // **If** this renderable was build from a mesh, this is a reference to it.
+      ldk::HMesh meshHandle; // **If** this renderable was built from a mesh, this is a reference to it.
       HMaterial materialHandle;
       GLuint ibo;
       GLuint iboSize;
@@ -151,6 +151,8 @@ namespace ldk
         DRAW_INDEXED
         // 
       } type;
+      bool overrideVertexBufferOffset;
+      size_t vertexBufferOffset;
     };
 
     ///@brief Returns the rendering context

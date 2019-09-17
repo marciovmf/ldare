@@ -137,7 +137,7 @@ namespace	ldkEngine
       allocation = allocation->next;
     }
 
-    snprintf(_strMemoryReport, _memoryReportBuffSize, "[MEMORY] Peak memory usage: %zuk.\tCurrent memory usage: %zuk.\n\tGENERAL %zuk.\n\tMATERIAL %zuk.\n\tRENDERER %zuk.\n\tSPRITE_BATCH %zuk.\n\tBITMAP %zuk.\n\tAUDIO %zuk.\n\tFONT %zuk.\n\tMESH %zuk.",
+    snprintf(_strMemoryReport, _memoryReportBuffSize, "[MEMORY] Peak memory usage: %zuk Current memory usage: %zuk\n GENERAL %zuk\n MATERIAL %zuk\n RENDERER %zuk\n SPRITE_BATCH %zuk\n BITMAP %zuk\n AUDIO %zuk\n FONT %zuk\n MESH %zuk",
         _peakMemoryUsed / 1024,
         _totalMemoryUsed / 1024,
         tagMemory[(uint32)Allocation::GENERAL]/1024,

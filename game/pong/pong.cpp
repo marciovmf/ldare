@@ -127,48 +127,34 @@ void draw(float deltaTime)
   renderer::beginFrame(_gameState->projMatrix);
   renderer::spriteBatch_begin();
 
+  memReportRefresh -= deltaTime;
+  if (memReportRefresh <= 0.0f)
+  {
+    memReport = (char*) ldkEngine::memory_getReport();
+    memReportRefresh = 5.0f;
+  }
+
   const Rect& paddleLeft = _gameState->paddleLeft;
   const Rect& paddleRight = _gameState->paddleRight;
   const Rect& ball = _gameState->ball;
 
-  Vec3 textPosition = Vec3{ball.x, ball.y, 1.0f};
   Vec4 textColor = Vec4{10.0f, 10.0f, 1.0f, 1.0f};
+  Vec3 textPosition = Vec3{5.0f, _gameState->viewPort.h - 30.0f, 0.0f};
   
   renderer::spriteBatch_draw(&_gameState->sprite,
-      paddleLeft.x,
-      paddleLeft.y,
-      paddleLeft.w,
-      paddleLeft.h);
+      paddleLeft.x, paddleLeft.y, paddleLeft.w, paddleLeft.h);
 
   renderer::spriteBatch_draw(&_gameState->sprite,
-      paddleRight.x,
-      paddleRight.y,
-      paddleRight.w,
-      paddleRight.h);
+      paddleRight.x, paddleRight.y, paddleRight.w, paddleRight.h);
 
-  renderer::spriteBatch_draw(&_gameState->sprite,
-      ball.x,
-      ball.y,
-      ball.w,
-      ball.h);
+  renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h);
 
-  if (memReportRefresh <= 0.0f)
-  {
-    memReportRefresh = 1.0f;
-    memReport = (char*) ldkEngine::memory_getReport();
-  }
-  else
-  {
-    memReportRefresh -= deltaTime;
-  }
-
-  textPosition = Vec3{5.0f, _gameState->viewPort.h - 30.0f, 1.0f};
-  renderer::spriteBatch_drawText(_gameState->fontMaterial, _gameState->font, textPosition, memReport, 1.0f, textColor);
+  renderer::spriteBatch_drawText(_gameState->fontMaterial, 
+      _gameState->font, textPosition, memReport, 1.0f, textColor);
 
   renderer::spriteBatch_end();
   renderer::endFrame();
 }
-
 
 void gameUpdate(float deltaTime)
 {
