@@ -75,6 +75,18 @@ namespace ldk
     static constexpr char* STR_TRANSLUCENT = "translucent";
     static constexpr char* STR_OVERLAY = "overlay";
 
+    // face cull parameters
+    static constexpr char* STR_CULL_BACK = "back";
+    static constexpr char* STR_CULL_FRONT = "front";
+    static constexpr char* STR_CULL_FRONT_AND_BACK = "front_and_back";
+    static constexpr char* STR_CULL_NONE = "none";
+    
+    // face cull parameter hash
+    static constexpr uint32 cullFaceBack = stringToHash(STR_CULL_BACK);
+    static constexpr uint32 cullFaceFront = stringToHash(STR_CULL_FRONT);
+    static constexpr uint32 cullFaceFrontAndBack = stringToHash(STR_CULL_FRONT_AND_BACK);
+    static constexpr uint32 cullFaceNone = stringToHash(STR_CULL_NONE);
+
     // texture parameter keys
     static constexpr char* STR_PARAM_PATH = "path";
     static constexpr char* STR_PARAM_U_WRAP = "u-wrap";
@@ -283,6 +295,30 @@ namespace ldk
         LogWarning("Invalid render queue '%s'. Defaulting to OPAQUE", cfgString);
 
       return result;
+    }
+
+    static GLenum _cfgStringToGLFaceCull(const char* cfgString)
+    {
+      uint32 paramHash = stringToHash(cfgString);
+      uint32 cfgStringLen = strlen(cfgString);
+      GLenum result = GL_BACK;
+      
+      if (paramHash == cullFaceBack && strncmp(STR_CULL_BACK, cfgString, cfgStringLen) == 0)
+        result = GL_BACK;
+      else if (paramHash == cullFaceFront
+          && strncmp(STR_CULL_FRONT, cfgString, cfgStringLen) == 0)
+        result = GL_FRONT;
+      else if (paramHash == cullFaceFrontAndBack
+          && strncmp(STR_CULL_FRONT_AND_BACK, cfgString, cfgStringLen) == 0)
+        result = GL_FRONT_AND_BACK;
+      else if (paramHash == cullFaceNone
+          && strncmp(STR_CULL_NONE, cfgString, cfgStringLen) == 0)
+        result = GL_INVALID_ENUM;
+      else
+        LogWarning("Invalid face-cull mode '%s'. Defaulting to BACK", cfgString);
+
+      return result;
+
     }
 
     static GLboolean _checkShaderProgramLink(GLuint program)
@@ -703,8 +739,8 @@ namespace ldk
       renderable_setMaterial(drawCall->renderable, drawCall->material);
       Material* material = (Material*) ldkEngine::handle_getData(drawCall->renderable->materialHandle.handle);
 
+      // z-write
       glDepthMask(material->zwrite);
-      glEnable(GL_CULL_FACE);
 
       // depth test
       if (material->enableDepthTest)
@@ -715,6 +751,17 @@ namespace ldk
       else
       {
         glDisable(GL_DEPTH_TEST);
+      }
+
+      // face cull
+      if (material->enableFaceCull)
+      {
+        glEnable(GL_CULL_FACE);
+        glCullFace(material->faceCullMode);
+      }
+      else
+      {
+        glDisable(GL_CULL_FACE);
       }
 
       uint32 currentVboIndex = renderable->currentVboIndex;
@@ -1424,6 +1471,15 @@ namespace ldk
       bool zwrite = true;
       ldk::configGetBool(materialSection, (const char*) "z-write", &zwrite);
 
+      GLenum faceCullMode = GL_BACK;
+      bool faceCullEnabled = true;
+      if(ldk::configGetString(materialSection, (const char*) "face-cull", &temp))
+      {
+        faceCullMode = _cfgStringToGLFaceCull(temp);
+        faceCullEnabled = (faceCullMode != GL_INVALID_ENUM);
+      }
+
+
       // depth test
       GLenum depthTest = GL_LESS; 
       if(ldk::configGetString(materialSection, (const char*) "z-test", &temp))
@@ -1458,6 +1514,8 @@ namespace ldk
       material->zwrite = zwrite;
       material->depthTest = depthTest;
       material->enableDepthTest = depthTest != GL_INVALID_ENUM;
+      material->enableFaceCull = faceCullEnabled;
+      material->faceCullMode = faceCullMode;
       loadShader(&material->shader, vs, fs);
 
       ldk::platform::memoryFree(fs);

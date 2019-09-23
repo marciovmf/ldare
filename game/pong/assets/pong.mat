@@ -4,6 +4,7 @@ queue = "opaque"
 queue-offset = 0
 vert-shader = "assets/difuse.vert"
 frag-shader = "assets/difuse.frag"
+face-cull = "back"
 
 [texture0]
 path="assets/white.bmp"

@@ -105,10 +105,12 @@ namespace ldk
       Shader shader; 
       GLuint textureCount;
       GLenum depthTest;
+      GLenum faceCullMode;
       Texture texture[LDK_GL_MAX_TEXTURES];
       uint16 id;      // Unique per loaded material
       uint8 renderQueue; 
       bool enableDepthTest;
+      bool enableFaceCull;
       bool zwrite;
     };
 
