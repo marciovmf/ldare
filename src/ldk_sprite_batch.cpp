@@ -5,6 +5,7 @@ namespace ldk
   {
     struct SpriteVertexData
     {
+      Vec4 color;
       Vec3 position;
       Vec2 uv;
     };
@@ -91,11 +92,17 @@ namespace ldk
       spriteBatch->started = false;
       spriteBatch->vertices = (SpriteVertexData*)(((char*)spriteBatch->indices) + indexBufferSize);
 
-      renderer::makeVertexBuffer(&spriteBatch->buffer, maxSprites * 4);
+      renderer::makeVertexBuffer(&spriteBatch->buffer, numVertices);
+      
+      renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_color", 
+          4, renderer::VertexAttributeType::FLOAT, 0);
+
       renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_pos",
-          3, renderer::VertexAttributeType::FLOAT, 0);
+          3, renderer::VertexAttributeType::FLOAT, 4 * sizeof(float));
+      
       renderer::addVertexBufferAttribute(&spriteBatch->buffer, "_uv", 
-          2, renderer::VertexAttributeType::FLOAT, 3 * sizeof(float));
+          2, renderer::VertexAttributeType::FLOAT, 7 * sizeof(float));
+      
 
 			// Precompute indices for every sprite
 			int32 offset = 0;
@@ -135,6 +142,7 @@ namespace ldk
         float posY,
         float width,
         float height,
+        const Vec4& color,
         float angle,
         float rotX,
         float rotY)
@@ -182,24 +190,28 @@ namespace ldk
       if (angle == 0.0f)
       {
         // bottom left
+        vertexData->color = color;
         vertexData->uv = { uvRect.x, uvRect.y - uvRect.h};
         vertexData->position = 
           Vec3{posX, posY, z};
         vertexData++;
 
         // top right
+        vertexData->color = color;
         vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
         vertexData->position = 
           Vec3{posX + width , posY + height, z};
         vertexData++;
 
         // top left
+        vertexData->color = color;
         vertexData->uv = { uvRect.x, uvRect.y};
         vertexData->position = 
           Vec3{posX, posY + height, z};
         vertexData++;
 
         // bottom right
+        vertexData->color = color;
         vertexData->uv = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};
         vertexData->position = 	
           Vec3{posX + width, posY, z};
@@ -210,6 +222,7 @@ namespace ldk
         float c = cos(angle);
 
         // bottom left
+        vertexData->color = color;
         vertexData->uv = { uvRect.x, uvRect.y};
         float x1 = posX - rotX;
         float y1 = posY - rotY;
@@ -218,6 +231,7 @@ namespace ldk
         vertexData++;
 
         // top right
+        vertexData->color = color;
         vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
         x1 = (width) + posX - rotX;
         y1 = (height) + posY - rotY;
@@ -226,6 +240,7 @@ namespace ldk
         vertexData++;
 
         // top left
+        vertexData->color = color;
         vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
         x1 = posX - rotX;
         y1 = (height) + posY - rotY;
@@ -234,6 +249,7 @@ namespace ldk
         vertexData++;
 
         // bottom right
+        vertexData->color = color;
         vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
         x1 = (width) + posX - rotX;
         y1 = posY - rotY;
@@ -267,7 +283,6 @@ namespace ldk
 
       char c;
       const char* ptrChar = text;
-      //sprite.color = color;
 
       ldk::Rect* gliphList = fontAsset->gliphs;
       uint16 firstCodePoint = fontAsset->fontData->firstCodePoint;
@@ -329,6 +344,7 @@ namespace ldk
               position.y - vAdvance,
               gliph->w * scale,
               gliph->h * scale,
+              color,
               0.0f,
               0.0f,
               0.0f);

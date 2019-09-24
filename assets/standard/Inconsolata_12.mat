@@ -1,0 +1,11 @@
+[material]
+queue = "opaque"
+queue-offset = 10
+vert-shader = "assets/standard/text.vert"
+frag-shader = "assets/standard/text.frag"
+[texture0]
+path="assets/standard/inconsolata_12.bmp"
+u-wrap = "repeat" 
+v-wrap = "repeat" 
+min-filter = "linear"
+mag-filter = "linear"

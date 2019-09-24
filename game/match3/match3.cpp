@@ -409,12 +409,12 @@ void updateGameTimer(float deltaTime)
 //******************************************************************************
 inline void drawGameplay()
 {
-  renderer::clearBuffers(renderer::Context::COLOR_BUFFER | renderer::Context::DEPTH_BUFFER);
-
+  renderer::clearBuffers(renderer::COLOR_BUFFER | renderer::DEPTH_BUFFER);
   renderer::beginFrame(_gameState->projMatrix);
-
+  
   Vec2 cursor = ldk::input::getMouseCursor();
   Piece* pieceUnderCursor = getPieceUnderCursor((int)cursor.x, (int)cursor.y);
+  Vec4 color = Vec4{0.0f, 0.0f, 0.0f, 1.0f};
 
   ldk::renderer::spriteBatch_begin();
 
@@ -438,6 +438,7 @@ inline void drawGameplay()
           ,piecePos.y + highlight + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
           ,GAME_GRID_PIECE_SIZE * piece.scale
           ,GAME_GRID_PIECE_SIZE * piece.scale
+          ,color
           ,0);
   	}
   

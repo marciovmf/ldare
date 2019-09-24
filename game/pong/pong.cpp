@@ -69,8 +69,8 @@ void gameStart(void* memory)
 
   _gameState->material = loadMaterial("./assets/pong.mat");
 
-  _gameState->fontMaterial = ldk::loadMaterial("./assets/standard/Inconsolata_18.mat"); 
-  _gameState->font = ldk::asset_loadFont("./assets/standard/Inconsolata_18.font"); 
+  _gameState->fontMaterial = ldk::loadMaterial("./assets/standard/Inconsolata_12.mat"); 
+  _gameState->font = ldk::asset_loadFont("./assets/standard/Inconsolata_12.font"); 
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
@@ -130,8 +130,9 @@ void draw(float deltaTime)
     memReportRefresh = 5.0f;
   }
 
-  Vec4 textColor = Vec4{10.0f, 10.0f, 1.0f, 1.0f};
+  Vec4 textColor = Vec4{0.0f, 0.0f, 1.0f, 1.0f};
   Vec3 textPosition = Vec3{5.0f, _gameState->viewPort.h - 30.0f, 0.0f};
+  Vec4 color = Vec4{0.0f, 1.0f, 0.0f, 1.0f};
 
   const Rect& paddleLeft = _gameState->paddleLeft;
   const Rect& paddleRight = _gameState->paddleRight;
@@ -141,16 +142,16 @@ void draw(float deltaTime)
   renderer::beginFrame(_gameState->projMatrix);
   renderer::spriteBatch_begin();
 
-  renderer::spriteBatch_drawText(_gameState->fontMaterial, 
+  renderer::spriteBatch_drawText(_gameState->fontMaterial,
       _gameState->font, textPosition, memReport, 1.0f, textColor);
 
-  renderer::spriteBatch_draw(&_gameState->sprite,
-      paddleLeft.x, paddleLeft.y, paddleLeft.w, paddleLeft.h);
+  renderer::spriteBatch_draw(&_gameState->sprite, 
+      paddleLeft.x, paddleLeft.y, paddleLeft.w, paddleLeft.h, color);
 
   renderer::spriteBatch_draw(&_gameState->sprite,
-      paddleRight.x, paddleRight.y, paddleRight.w, paddleRight.h);
+      paddleRight.x, paddleRight.y, paddleRight.w, paddleRight.h, color);
 
-  renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h);
+  renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h, color);
 
   renderer::spriteBatch_end();
   renderer::endFrame();
