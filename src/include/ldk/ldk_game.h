@@ -11,7 +11,7 @@ struct LDKGameSettings
 {
   const char* name;
   ///@brief If this value is greater than zero, the engine will allocate this much
-  /// memory for you and return a pointer to this memory when calling
+  /// memory for the game and return a pointer to this memory when calling
   //gameStart(); You can use this memory to whatever you want. This memory
   //will remain intact when hot reloading the game after recompiling it.
   size_t preallocMemorySize;
@@ -25,7 +25,6 @@ struct LDKGameSettings
   int32 displayWidth;
   /// Screen Resolution height
   int32 displayHeight;
-
 };
 
 /// @defgroup Game Game

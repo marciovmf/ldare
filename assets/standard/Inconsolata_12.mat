@@ -1,6 +1,7 @@
 [material]
-queue = "opaque"
-queue-offset = 10
+queue = "overlay"
+queue-offset = 0
+z-test = "disabled"
 vert-shader = "assets/standard/text.vert"
 frag-shader = "assets/standard/text.frag"
 [texture0]

@@ -1,9 +1,9 @@
 [material]
 queue = "overlay"
 queue-offset = 0
+z-test = "disabled"
 vert-shader = "assets/standard/text.vert"
 frag-shader = "assets/standard/text.frag"
-z-test = "disabled"
 
 [texture0]
 path="assets/standard/inconsolata_18.bmp"
