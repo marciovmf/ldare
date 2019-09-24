@@ -401,6 +401,24 @@ namespace ldk
       return shaderProgram;
     }
 
+    static GLenum _internalToGlFillMode(uint32 internalFillMode)
+    {
+      GLenum fillMode;
+      switch (internalFillMode)
+      {
+        case renderer::FILL_MODE_LINES:
+          fillMode = GL_LINE;
+          break;
+        case renderer::FILL_MODE_DOTS:
+          fillMode = GL_POINT;
+          break;
+        case renderer::FILL_MODE_POLYGON:
+        default:
+          fillMode = GL_FILL;
+          break;
+      }
+      return fillMode;
+    }
     static GLuint _internalToGlType(VertexAttributeType glType)
     {
       switch(glType)
@@ -764,6 +782,10 @@ namespace ldk
         glDisable(GL_CULL_FACE);
       }
 
+      // fill mode
+      GLenum fillMode = _internalToGlFillMode(drawCall->fillMode);
+
+      glPolygonMode(GL_FRONT_AND_BACK, fillMode);
       uint32 currentVboIndex = renderable->currentVboIndex;
       uint32 vbo = renderable->vbos[currentVboIndex];
       VertexBuffer* buffer = &(renderable->buffer);

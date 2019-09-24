@@ -130,13 +130,14 @@ void draw(float deltaTime)
     memReportRefresh = 5.0f;
   }
 
-  Vec4 textColor = Vec4{0.0f, 0.0f, 1.0f, 1.0f};
+  Vec4 textColor = Vec4{1.0f, 1.0f, 1.0f, 1.0f};
   Vec3 textPosition = Vec3{5.0f, _gameState->viewPort.h - 30.0f, 0.0f};
-  Vec4 color = Vec4{0.0f, 1.0f, 0.0f, 1.0f};
 
   const Rect& paddleLeft = _gameState->paddleLeft;
   const Rect& paddleRight = _gameState->paddleRight;
   const Rect& ball = _gameState->ball;
+  
+  Vec4 color = Vec4{ball.x / 800, ball.y / 600, paddleLeft.y, 1.0f};
 
   renderer::clearBuffers(renderer::COLOR_BUFFER | renderer::DEPTH_BUFFER);
   renderer::beginFrame(_gameState->projMatrix);

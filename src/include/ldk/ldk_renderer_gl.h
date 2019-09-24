@@ -29,6 +29,10 @@ namespace ldk
     static const uint32 DEPTH_BUFFER = GL_DEPTH_BUFFER_BIT;
     static const uint32 STENCIL_BUFFER = GL_STENCIL_BUFFER_BIT;
 
+    static const uint32 FILL_MODE_POLYGON = 0;
+    static const uint32 FILL_MODE_LINES = 1;
+    static const uint32 FILL_MODE_DOTS = 2;
+
     enum VertexAttributeType
     {
       FLOAT = 1,
@@ -150,14 +154,15 @@ namespace ldk
       GLuint indexStart;
       GLuint vertexCount;
       GLuint indexCount;
+      uint32 fillMode;
       enum 
       {
         DRAW = 0,
         DRAW_INDEXED
         // 
       } type;
-      bool overrideVertexBufferOffset;
-      size_t vertexBufferOffset;
+      //bool overrideVertexBufferOffset;
+      //size_t vertexBufferOffset;
     };
 
     ///@brief Returns the rendering context
@@ -284,18 +289,15 @@ namespace ldk
     LDK_API ldk::HMaterial loadMaterial(const char* file);
 
     ///@brief Submits a draw call for execution.
-    ///@param context - The rendering context to push the draw call into
     ///@param drawCall - The draw call to push.
     LDK_API void pushDrawCall(DrawCall* drawCall);
 
     ///@brief Composes and submits a drawcall for a drawing a given renderable
-    ///@param context - The rendering context to push the draw call into
     ///@param drawCall - The draw call to push.
     ///@see Handle
     LDK_API void drawIndexed(ldk::HRenderable renderable);
 
     ///@brief Draws all queued drawcalls forcing draw calls to execute.
-    ///@param context - Rendering contex to flush draw calls
     LDK_API void endFrame();
 
     ///@brief Crates a gpu texture from a bitmap
