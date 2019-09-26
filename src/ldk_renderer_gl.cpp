@@ -38,6 +38,7 @@ namespace ldk
     //valid texture wrap options strings 
     static constexpr char* STR_REPEAT = "repeat";
     static constexpr char* STR_CLAMP_TO_EDGE =  "clamp-to-edge";
+    static constexpr char* STR_CLAMP_TO_BORDER =  "clamp-to-border";
     static constexpr char* STR_MIRRORED_REPEAT = "mirrored-repeat";
 
     //valid texture filter options strings
@@ -97,6 +98,8 @@ namespace ldk
     //valid texture wrap options hashes
     static constexpr uint32 wrapRepeat = stringToHash(STR_REPEAT);
     static constexpr uint32 wrapClampToEdge = stringToHash(STR_CLAMP_TO_EDGE);
+    static constexpr uint32 wrapClampToBorder = stringToHash(STR_CLAMP_TO_BORDER);
+
     static constexpr uint32 wrapMirroredRepeat = stringToHash(STR_MIRRORED_REPEAT);
 
     //valid texture filter options hashes
@@ -237,6 +240,9 @@ namespace ldk
       else if (paramHash == wrapClampToEdge 
           && strncmp(STR_CLAMP_TO_EDGE, cfgString, cfgStringLen) == 0)
         result = TextureWrap::CLAMPTOEDGE;
+      else if (paramHash == wrapClampToBorder 
+          && strncmp(STR_CLAMP_TO_BORDER, cfgString, cfgStringLen) == 0)
+        result = TextureWrap::CLAMPTOBORDER;
       else if (paramHash == wrapMirroredRepeat 
           && strncmp(STR_MIRRORED_REPEAT, cfgString, cfgStringLen) == 0) 
         result = TextureWrap::MIRROREDREPEAT;
@@ -419,6 +425,7 @@ namespace ldk
       }
       return fillMode;
     }
+
     static GLuint _internalToGlType(VertexAttributeType glType)
     {
       switch(glType)
@@ -786,6 +793,7 @@ namespace ldk
       GLenum fillMode = _internalToGlFillMode(drawCall->fillMode);
 
       glPolygonMode(GL_FRONT_AND_BACK, fillMode);
+
       uint32 currentVboIndex = renderable->currentVboIndex;
       uint32 vbo = renderable->vbos[currentVboIndex];
       VertexBuffer* buffer = &(renderable->buffer);
@@ -1460,10 +1468,9 @@ namespace ldk
         return typedHandle_invalid<HMaterial>();
       }
 
-      // null terminate the file content
+      
       fs = (char*) ldk::platform::loadFileToBufferOffset(path, &shaderFileSize , 1, 0);
-      char* eoBuffer = fs + shaderFileSize;
-      *eoBuffer = 0;
+      *(fs + shaderFileSize) = 0; // null terminate the file content
 
       char* vs;
       if(!ldk::configGetString(materialSection, (const char*) "vert-shader", &path))
@@ -1473,10 +1480,8 @@ namespace ldk
         return typedHandle_invalid<HMaterial>();
       }
 
-      // null terminate the file content
       vs = (char*) ldk::platform::loadFileToBufferOffset(path, &shaderFileSize, 1, 0);
-      eoBuffer = vs + shaderFileSize;
-      *eoBuffer = 0;
+      *(vs + shaderFileSize) = 0; // null terminate the file content
 
       // render queue
       uint32 renderQueue = (uint16) RENDER_QUEUE_OPAQUE;
@@ -1500,7 +1505,6 @@ namespace ldk
         faceCullMode = _cfgStringToGLFaceCull(temp);
         faceCullEnabled = (faceCullMode != GL_INVALID_ENUM);
       }
-
 
       // depth test
       GLenum depthTest = GL_LESS; 

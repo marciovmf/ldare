@@ -89,8 +89,8 @@ namespace ldk
     {
       CLAMPTOEDGE,
       MIRROREDREPEAT,
-      REPEAT 
-//      CLAMPTOBORDER ?
+      CLAMPTOBORDER,
+      REPEAT
     };
 
     struct Texture
@@ -159,10 +159,7 @@ namespace ldk
       {
         DRAW = 0,
         DRAW_INDEXED
-        // 
       } type;
-      //bool overrideVertexBufferOffset;
-      //size_t vertexBufferOffset;
     };
 
     ///@brief Returns the rendering context
