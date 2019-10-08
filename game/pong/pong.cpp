@@ -74,7 +74,7 @@ void gameStart(void* memory)
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
-  _gameState->projMatrix.orthographic(0, DEFAULT_WINDOW_WIDTH, 0, DEFAULT_WINDOW_HEIGHT, -10, 10);
+  _gameState->projMatrix.orthographic(0, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, 0, -10, 10);
 
   // Initialize the sprite batch
   renderer::spriteBatch_initialize(1024);
@@ -94,7 +94,7 @@ void gameViewResized(uint32 width, uint32 height)
   renderer::setViewPort(_gameState->viewPort);
 
   // update view matrix
-  _gameState->projMatrix.orthographic(0, width, 0, height, -10, 10);
+  _gameState->projMatrix.orthographic(0, width, height, 0, -10, 10);
 
   // update dimentions
   float margin = (_gameState->viewPort.w * 0.05f); 
@@ -152,7 +152,8 @@ void draw(float deltaTime)
   renderer::spriteBatch_draw(&_gameState->sprite,
       paddleRight.x, paddleRight.y, paddleRight.w, paddleRight.h, color);
 
-  renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h, color);
+  //renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h, color);
+  renderer::spriteBatch_draw(&_gameState->sprite, 0, 10, 250, 250, color, RADIAN(-45.0f));
 
   renderer::spriteBatch_end();
   renderer::endFrame();
