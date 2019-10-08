@@ -68,6 +68,7 @@ namespace ldk
       drawCall.indexCount = indexCount;
       drawCall.vertexCount = vertexCount;
       drawCall.material = spriteBatch->currentMaterial;
+      drawCall.fillMode = FILL_MODE_POLYGON;
       
       pushDrawCall(&drawCall);
       spriteBatch->currentMaterial = typedHandle_invalid<HMaterial>();
@@ -319,13 +320,12 @@ namespace ldk
         {
           float yOffset = defaultGliph->h * scale;
           vAdvance += yOffset;
-          textSize.y += yOffset;
           advance = 0;
+          textSize.y += defaultGliph->h * scale;
         }
         else if (c == '\t')
         {
           advance += defaultGliph->w * scale * 4; // tab is 4 characters wide
-          textSize.x += advance * scale;
         }
 
         else 
@@ -337,7 +337,7 @@ namespace ldk
           spriteBatch_draw(
               &sprite,
               position.x + advance,
-              position.y - vAdvance,
+              position.y + vAdvance,
               gliph->w * scale,
               gliph->h * scale,
               color,
@@ -345,9 +345,15 @@ namespace ldk
               0.0f,
               0.0f);
 
-          textSize.x += advance;
         }
+
+        if (textSize.x < advance) textSize.x = advance;
+        if (textSize.y < vAdvance) textSize.y = vAdvance;
       }
+
+      textSize.y += defaultGliph->h * scale;
+      textSize.x += defaultGliph->w * scale;
+
       return textSize;
     }
 

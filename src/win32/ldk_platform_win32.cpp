@@ -767,8 +767,7 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
     LogError("Could not create window");
     return nullptr;
   }
-  // Save initial client area (this is used for correctly inform mouse
-  // cursor from bottom left)
+  
   ldk_win32_calculateClientRect(window);
 
   /* create a new context or share an existing one ? */
@@ -978,10 +977,7 @@ void pollEvents()
 
         uint32 x = GET_X_LPARAM(msg.lParam);
         uint32 y = GET_Y_LPARAM(msg.lParam);
-        _platform.mouseState.cursor = {(float)x ,
-          (float)window->clientRect.bottom - 
-            window->clientRect.top - y};
-
+        _platform.mouseState.cursor = {(float)x ,(float)y};
 
         int8 isDown = (msg.wParam & MK_LBUTTON) == MK_LBUTTON;
         _platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] =
