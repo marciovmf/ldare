@@ -68,6 +68,7 @@ namespace ldk
       drawCall.indexCount = indexCount;
       drawCall.vertexCount = vertexCount;
       drawCall.material = spriteBatch->currentMaterial;
+      drawCall.fillMode = FILL_MODE_POLYGON;
       
       pushDrawCall(&drawCall);
       spriteBatch->currentMaterial = typedHandle_invalid<HMaterial>();
@@ -191,30 +192,26 @@ namespace ldk
       {
         // bottom left
         vertexData->color = color;
-        vertexData->uv = { uvRect.x, uvRect.y - uvRect.h};
-        vertexData->position = 
-          Vec3{posX, posY, z};
+        vertexData->uv = {uvRect.x, uvRect.y - uvRect.h};
+        vertexData->position = Vec3{posX, posY + height, z};
         vertexData++;
 
         // top right
         vertexData->color = color;
-        vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
-        vertexData->position = 
-          Vec3{posX + width , posY + height, z};
+        vertexData->uv = {uvRect.x + uvRect.w, uvRect.y};
+        vertexData->position = Vec3{posX + width , posY, z};
         vertexData++;
 
         // top left
         vertexData->color = color;
-        vertexData->uv = { uvRect.x, uvRect.y};
-        vertexData->position = 
-          Vec3{posX, posY + height, z};
+        vertexData->uv = {uvRect.x, uvRect.y};
+        vertexData->position = Vec3{posX, posY, z};
         vertexData++;
 
         // bottom right
         vertexData->color = color;
         vertexData->uv = {uvRect.x + uvRect.w, uvRect.y - uvRect.h};
-        vertexData->position = 	
-          Vec3{posX + width, posY, z};
+        vertexData->position = Vec3{posX + width, posY + height, z};
       }
       else
       {	
@@ -223,9 +220,9 @@ namespace ldk
 
         // bottom left
         vertexData->color = color;
-        vertexData->uv = { uvRect.x, uvRect.y};
+        vertexData->uv = {uvRect.x, uvRect.y};
         float x1 = posX - rotX;
-        float y1 = posY - rotY;
+        float y1 = posY + height - rotY;
         vertexData->position = 
           Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
         vertexData++;
@@ -233,8 +230,8 @@ namespace ldk
         // top right
         vertexData->color = color;
         vertexData->uv = {uvRect.x + uvRect.w, uvRect.y + uvRect.h};
-        x1 = (width) + posX - rotX;
-        y1 = (height) + posY - rotY;
+        x1 = width + posX - rotX;
+        y1 = posY - rotY;
         vertexData->position = 
           Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
         vertexData++;
@@ -243,7 +240,7 @@ namespace ldk
         vertexData->color = color;
         vertexData->uv = { uvRect.x, uvRect.y + uvRect.h};
         x1 = posX - rotX;
-        y1 = (height) + posY - rotY;
+        y1 = posY - rotY;
         vertexData->position = 
           Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
         vertexData++;
@@ -251,8 +248,8 @@ namespace ldk
         // bottom right
         vertexData->color = color;
         vertexData->uv = { uvRect.x + uvRect.w, uvRect.y};
-        x1 = (width) + posX - rotX;
-        y1 = posY - rotY;
+        x1 = width + posX - rotX;
+        y1 = height + posY - rotY;
         vertexData->position = 	
           Vec3{(x1 * c - y1 * s) + rotX, (x1 * s + y1 * c) + rotY, z};
       }
@@ -323,13 +320,12 @@ namespace ldk
         {
           float yOffset = defaultGliph->h * scale;
           vAdvance += yOffset;
-          textSize.y += yOffset;
           advance = 0;
+          textSize.y += defaultGliph->h * scale;
         }
         else if (c == '\t')
         {
           advance += defaultGliph->w * scale * 4; // tab is 4 characters wide
-          textSize.x += advance * scale;
         }
 
         else 
@@ -341,7 +337,7 @@ namespace ldk
           spriteBatch_draw(
               &sprite,
               position.x + advance,
-              position.y - vAdvance,
+              position.y + vAdvance,
               gliph->w * scale,
               gliph->h * scale,
               color,
@@ -349,9 +345,15 @@ namespace ldk
               0.0f,
               0.0f);
 
-          textSize.x += advance;
         }
+
+        if (textSize.x < advance) textSize.x = advance;
+        if (textSize.y < vAdvance) textSize.y = vAdvance;
       }
+
+      textSize.y += defaultGliph->h * scale;
+      textSize.x += defaultGliph->w * scale;
+
       return textSize;
     }
 

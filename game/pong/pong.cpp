@@ -74,7 +74,7 @@ void gameStart(void* memory)
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
-  _gameState->projMatrix.orthographic(0, DEFAULT_WINDOW_WIDTH, 0, DEFAULT_WINDOW_HEIGHT, -10, 10);
+  _gameState->projMatrix.orthographic(0, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, 0, -10, 10);
 
   // Initialize the sprite batch
   renderer::spriteBatch_initialize(1024);
@@ -94,7 +94,7 @@ void gameViewResized(uint32 width, uint32 height)
   renderer::setViewPort(_gameState->viewPort);
 
   // update view matrix
-  _gameState->projMatrix.orthographic(0, width, 0, height, -10, 10);
+  _gameState->projMatrix.orthographic(0, width, height, 0, -10, 10);
 
   // update dimentions
   float margin = (_gameState->viewPort.w * 0.05f); 
@@ -131,7 +131,8 @@ void draw(float deltaTime)
   }
 
   Vec4 textColor = Vec4{1.0f, 1.0f, 1.0f, 1.0f};
-  Vec3 textPosition = Vec3{5.0f, _gameState->viewPort.h - 30.0f, 0.0f};
+  Vec4 bgColor = {.1f, .1f, .1f, 1.0f};
+  Vec3 textPos = Vec3{300, 300, 0.0f};
 
   const Rect& paddleLeft = _gameState->paddleLeft;
   const Rect& paddleRight = _gameState->paddleRight;
@@ -143,16 +144,28 @@ void draw(float deltaTime)
   renderer::beginFrame(_gameState->projMatrix);
   renderer::spriteBatch_begin();
 
-  renderer::spriteBatch_drawText(_gameState->fontMaterial,
-      _gameState->font, textPosition, memReport, 1.0f, textColor);
+  const Vec2& mousePos = input::getMouseCursor();
 
-  renderer::spriteBatch_draw(&_gameState->sprite, 
-      paddleLeft.x, paddleLeft.y, paddleLeft.w, paddleLeft.h, color);
+  // mouse cursor
+  renderer::spriteBatch_draw(&_gameState->sprite, mousePos.x, mousePos.y, 15, 15, color);
 
-  renderer::spriteBatch_draw(&_gameState->sprite,
-      paddleRight.x, paddleRight.y, paddleRight.w, paddleRight.h, color);
+  // text
+  Vec2& textSize = renderer::spriteBatch_drawText(_gameState->fontMaterial,
+      _gameState->font, textPos, "Hello, Sailor!", 1.0f, textColor);
+  
+  //renderer::spriteBatch_draw(&_gameState->sprite, 
+  //paddleLeft.x, paddleLeft.y, paddleLeft.w, paddleLeft.h, color);
+  //
+  //renderer::spriteBatch_draw(&_gameState->sprite,
+  //paddleRight.x, paddleRight.y, paddleRight.w, paddleRight.h, color);
 
-  renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h, color);
+  //renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h, color);
+
+  if (mousePos.x >= textPos.x && mousePos.x <= textPos.x + textSize.x
+      && mousePos.y >= textPos.y && mousePos.y <= textPos.y + textSize.y)
+    bgColor = {.4f, .1f, .4f, 1.0f};
+
+  renderer::spriteBatch_draw(&_gameState->sprite, textPos.x, textPos.y, textSize.x, textSize.y, bgColor);
 
   renderer::spriteBatch_end();
   renderer::endFrame();
