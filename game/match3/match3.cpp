@@ -1,23 +1,14 @@
-//NOTE(marcio): Game logic consides the board grows top bottom. The larger the
-//piece Y value, the lower the piece screen position (since sprite batch draws bottom up)
-//sprite origin is bottom left
-//screen origin is bottom left
-//mouse position origin is bottom left
-//Game grid row 0 is top row.
-
 #include <ldk/ldk.h>
 using namespace ldk;
 
-//TODO(marcio): Yikes! remove these!
 #include <stdlib.h>
 #include <ctime>
 #include <algorithm> 
 
 static const uint32 MAX_SPRITES = 256;
 static const uint32 GAME_GRID_SIZE = 8;
-static const uint32 SCREEN_HEIGHT = 768;
 static const uint32 GAME_BOARD_OFFSET_X = 0;
-static const uint32 GAME_BOARD_OFFSET_Y = SCREEN_HEIGHT;
+static const uint32 GAME_BOARD_OFFSET_Y = 0;
 static const uint32 GAME_SCALE_ANIMATION_SPEED = 5;
 static const uint32 GAME_TIME_LIMIT_SECONDS = 180;
 static const uint32 GAME_GRID_PIECE_SIZE = 100;
@@ -115,17 +106,10 @@ inline renderer::Sprite pieceTypeToTexture(Piece::PieceType type)
   return _gameState->sprite[(int32) type];
 }
 
-inline void pieceToScreenPosition(float row, float column, Vec2* position)
-{
-  position->x = column * GAME_GRID_PIECE_SIZE;
-  position->y = GAME_GRID_SIZE * (GAME_GRID_PIECE_SIZE) - (row + 1) * GAME_GRID_PIECE_SIZE;
-}
-
 inline Piece* getPieceUnderCursor(int cursorX, int cursorY)
 {
-  const int totalGridSize = (GAME_GRID_PIECE_SIZE * GAME_GRID_SIZE);
-  int column = (cursorX * GAME_GRID_SIZE)/ totalGridSize;
-  int row = GAME_GRID_SIZE - 1 - ((cursorY * GAME_GRID_SIZE)/ totalGridSize);
+  int column = ((cursorX - GAME_BOARD_OFFSET_X) / (int)GAME_GRID_PIECE_SIZE);
+  int row = ((cursorY - GAME_BOARD_OFFSET_Y) / (int)GAME_GRID_PIECE_SIZE);
 
   if (row >= 0 && row < GAME_GRID_SIZE &&
       column >= 0 && column < GAME_GRID_SIZE)
@@ -414,7 +398,6 @@ inline void drawGameplay()
   
   Vec2 cursor = ldk::input::getMouseCursor();
   Piece* pieceUnderCursor = getPieceUnderCursor((int)cursor.x, (int)cursor.y);
-  Vec4 color = Vec4{0.0f, 0.0f, 0.0f, 1.0f};
 
   ldk::renderer::spriteBatch_begin();
 
@@ -422,24 +405,26 @@ inline void drawGameplay()
   {
     for (int row = 0; row < GAME_GRID_SIZE; row++)
     {
+      Vec4 color = Vec4{0.0f, 0.0f, 0.0f, 1.0f};
+
       float highlight = 0.0f;
       Piece& piece = _gameState->grid[column][row];
-  		const auto sprite = pieceTypeToTexture(piece.type);
+      const auto sprite = pieceTypeToTexture(piece.type);
 
       if (&piece == pieceUnderCursor)
+      {
         highlight = 3.0f;
+        color = Vec4{1.0f, 1.0f, 1.0f, 1.0f};
+      }
 
-      Vec2 piecePos;
-      pieceToScreenPosition(piece.row, piece.column, &piecePos);
-
+      const float scaleDisplacement = GAME_GRID_PIECE_SIZE * 0.5f - (GAME_GRID_PIECE_SIZE * 0.5f * piece.scale);
       ldk::renderer::spriteBatch_draw(
           &sprite
-          ,piecePos.x + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
-          ,piecePos.y + highlight + (GAME_GRID_PIECE_SIZE / 2) * (1 - piece.scale)
-          ,GAME_GRID_PIECE_SIZE * piece.scale
-          ,GAME_GRID_PIECE_SIZE * piece.scale
-          ,color
-          ,0);
+          ,piece.column * GAME_GRID_PIECE_SIZE + GAME_BOARD_OFFSET_X + scaleDisplacement
+          ,piece.row * GAME_GRID_PIECE_SIZE + GAME_BOARD_OFFSET_Y + scaleDisplacement
+          ,GAME_GRID_PIECE_SIZE * piece.scale + highlight
+          ,GAME_GRID_PIECE_SIZE * piece.scale + highlight
+          ,color);
   	}
   
     renderer::endFrame();
@@ -568,7 +553,7 @@ void gameStart(void* memory)
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
-  _gameState->projMatrix.orthographic(0, 800, 0, 800, -10, 10);
+  _gameState->projMatrix.orthographic(0, 800, 800, 0, -10, 10);
   renderer::material_setMatrix4(_gameState->material, "mprojection", &_gameState->projMatrix);
   // model
   _gameState->modelMatrix.identity();
