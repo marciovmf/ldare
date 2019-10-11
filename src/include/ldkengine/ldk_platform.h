@@ -51,9 +51,7 @@ namespace ldk
 		// Event callbacks 
 		//---------------------------------------------------------------------------
 		typedef void(*LDKPlatformErrorFunc)(uint32 errorCode, const char* errorMsg);
-		typedef void(*LDKPlatformWindowCloseFunc)(LDKWindow*);
-		typedef void(*LDKPlatformWindowResizeFunc)(LDKWindow*, int32 width, int32 height);
-
+    typedef bool(*LDKPlatformEventHandleFunc)(LDKWindow*, const ldk::Event* event);
 
 		//---------------------------------------------------------------------------
 		// Initialization and finalization
@@ -63,21 +61,14 @@ namespace ldk
 
 		// terminates the platform layer
 		LDK_API void terminate();
-
-		// Sets error callback for the platform
-		LDK_API void setErrorCallback(LDKPlatformErrorFunc errorCallback);
+		
+		// Sets event handler callback for the platform
+    LDK_API void setEventCallback(LDKWindow* window, LDKPlatformEventHandleFunc errorCallback);
 
 
 		//---------------------------------------------------------------------------
 		// Window
 		//---------------------------------------------------------------------------
-		// sets the close callback for the given window
-		// the close flag is set before this callback, but it is possible to override it with setWindowCloseFlag
-		LDK_API void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback);
-		
-		// sets the resize callback for the given window
-		LDK_API void setWindowResizeCallback(LDKWindow* window, LDKPlatformWindowResizeFunc windowResizeCallback);
-
 		// Creates a window
 		LDK_API LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share);
 

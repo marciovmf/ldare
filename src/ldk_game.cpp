@@ -14,6 +14,7 @@ namespace ldk
     settings.aspect = 800/600;
     settings.fullScreen = false;
     settings.preallocMemorySize = 0;
+    settings.showCursor = true;
 
     const ldk::VariantSectionRoot* root = ldk::configParseFile((const char8*) LDK_DEFAULT_CONFIG_FILE);
 

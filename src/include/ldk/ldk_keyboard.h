@@ -19,13 +19,13 @@ namespace ldk
     //---------------------------------------------------------------------------
     // KEYBOARD 
     //---------------------------------------------------------------------------
-    const uint16 LDK_KEY_BACK          = 0x08;
+    const uint16 LDK_KEY_BACK        = 0x08;
     const uint16 LDK_KEY_TAB         = 0x09;
     const uint16 LDK_KEY_CLEAR       = 0x0C;
     const uint16 LDK_KEY_RETURN      = 0x0D;
     const uint16 LDK_KEY_SHIFT       = 0x10;
     const uint16 LDK_KEY_CONTROL     = 0x11;
-    const uint16 LDK_KEY_MENU        = 0x12;
+    const uint16 LDK_KEY_ALT         = 0x12;
     const uint16 LDK_KEY_PAUSE       = 0x13;
     const uint16 LDK_KEY_CAPITAL     = 0x14;
     const uint16 LDK_KEY_ESCAPE      = 0x1B;

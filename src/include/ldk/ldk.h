@@ -31,6 +31,7 @@
 #include "ldk_math.h"
 #include "ldk_keyboard.h"
 #include "ldk_mouse.h"
+#include "ldk_event.h"
 #include "ldk_joystick.h"
 #include "ldk_cfg.h"
 #include "ldk_typed_handle.h"

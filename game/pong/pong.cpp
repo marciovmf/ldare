@@ -34,13 +34,16 @@ static struct GameState
 
   // new ball delay
   float waitDelay;
+  
+  char msg[256];
+  int32 msgSize;
 
 } *_gameState;
 
 //******************************************************************************
 // LDK Callbacks
 //******************************************************************************
-LDKGameSettings gameInit()
+LDKGameSettings onInit()
 {
   LDKGameSettings settings;
   settings.displayWidth = DEFAULT_WINDOW_WIDTH;
@@ -53,7 +56,7 @@ LDKGameSettings gameInit()
   return settings;
 }
 
-void gameStart(void* memory)
+void onStart(void* memory)
 {
   _gameState = (GameState*)memory;
 
@@ -69,8 +72,8 @@ void gameStart(void* memory)
 
   _gameState->material = loadMaterial("./assets/pong.mat");
 
-  _gameState->fontMaterial = ldk::loadMaterial("./assets/standard/Inconsolata_12.mat"); 
-  _gameState->font = ldk::asset_loadFont("./assets/standard/Inconsolata_12.font"); 
+  _gameState->fontMaterial = ldk::loadMaterial("./assets/standard/Inconsolata_18.mat"); 
+  _gameState->font = ldk::asset_loadFont("./assets/standard/Inconsolata_18.font"); 
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
@@ -151,15 +154,15 @@ void draw(float deltaTime)
 
   // text
   Vec2& textSize = renderer::spriteBatch_drawText(_gameState->fontMaterial,
-      _gameState->font, textPos, "Hello, Sailor!", 1.0f, textColor);
+      _gameState->font, textPos, _gameState->msg, 1.0f, textColor);
   
-  //renderer::spriteBatch_draw(&_gameState->sprite, 
-  //paddleLeft.x, paddleLeft.y, paddleLeft.w, paddleLeft.h, color);
-  //
-  //renderer::spriteBatch_draw(&_gameState->sprite,
-  //paddleRight.x, paddleRight.y, paddleRight.w, paddleRight.h, color);
+  renderer::spriteBatch_draw(&_gameState->sprite, paddleLeft.x, paddleLeft.y,
+      paddleLeft.w, paddleLeft.h, color);
+  
+  renderer::spriteBatch_draw(&_gameState->sprite, paddleRight.x, paddleRight.y,
+      paddleRight.w, paddleRight.h, color);
 
-  //renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h, color);
+  renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h, color);
 
   if (mousePos.x >= textPos.x && mousePos.x <= textPos.x + textSize.x
       && mousePos.y >= textPos.y && mousePos.y <= textPos.y + textSize.y)
@@ -171,7 +174,7 @@ void draw(float deltaTime)
   renderer::endFrame();
 }
 
-void gameUpdate(float deltaTime)
+void onUpdate(float deltaTime)
 {
   float speed = _gameState->paddleSpeed * deltaTime;
   Rect& paddleLeft = _gameState->paddleLeft;
@@ -184,12 +187,12 @@ void gameUpdate(float deltaTime)
   float thirdPiece = paddleLeft.h * 0.3f;
 
   // Paddles movement
-  if (input::getKey(input::LDK_KEY_W))
+  if (input::getKey(input::LDK_KEY_S))
   {
     paddleLeft.y = MIN(paddleLeft.y + speed, _gameState->maxPaddleY);
     paddleRight.y = MIN(paddleRight.y + speed, _gameState->maxPaddleY);
   }
-  else if (input::getKey(input::LDK_KEY_S))
+  else if (input::getKey(input::LDK_KEY_W))
   {
     paddleLeft.y = MAX(paddleLeft.y - speed, 0);
     paddleRight.y = MAX(paddleRight.y - speed, 0);
@@ -256,7 +259,41 @@ void gameUpdate(float deltaTime)
   draw(deltaTime);
 }
 
-void gameStop()
+bool onEvent(const ldk::Event* event)
+{
+  if(event->type == ldk::EventType::VIEW_EVENT 
+    && event->viewEvent.type == ldk::ViewEvent::VIEW_RESIZED)
+  {
+    gameViewResized(event->viewEvent.width, event->viewEvent.height);
+    return true;
+  }
+
+  if(event->type == ldk::EventType::KEYBOARD_EVENT 
+    && event->keyboardEvent.type == ldk::KeyboardEvent::KEYBOARD_KEY_DOWN)
+  {
+    int32& msgSize = _gameState->msgSize;
+
+    if(event->keyboardEvent.key == ldk::input::LDK_KEY_BACK)
+    {
+        msgSize--;
+        if(msgSize < 0) msgSize = 0;
+      _gameState->msg[msgSize] = 0;
+    }
+    else
+    {
+      _gameState->msg[msgSize] = (char)event->keyboardEvent.text;
+      _gameState->msg[++msgSize] = 0;
+      if(_gameState->msgSize > 255)
+        msgSize = 0;
+    }
+
+      return true;
+  }
+
+  return false;
+}
+
+void onStop()
 {
   ldk::asset_unload(_gameState->font);
   ldk::renderer::material_destroy(_gameState->fontMaterial);
