@@ -34,7 +34,10 @@ static struct GameState
 
   // new ball delay
   float waitDelay;
-  
+
+  Vec2 cursor;
+
+  bool showMsg;
   char msg[256];
   int32 msgSize;
 
@@ -55,6 +58,8 @@ LDKGameSettings onInit()
   settings.preallocMemorySize = sizeof(GameState);
   return settings;
 }
+
+void gameViewResized(uint32 width, uint32 height);
 
 void onStart(void* memory)
 {
@@ -89,6 +94,9 @@ void onStart(void* memory)
   _gameState->ballDirection.y = 0.6f;
   _gameState->ball.x = _gameState->viewPort.w/2.0f;
   _gameState->ball.y = _gameState->viewPort.h/2.0f;
+
+  gameViewResized(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+  _gameState->showMsg = false;
 }
 
 void gameViewResized(uint32 width, uint32 height)
@@ -135,7 +143,7 @@ void draw(float deltaTime)
 
   Vec4 textColor = Vec4{1.0f, 1.0f, 1.0f, 1.0f};
   Vec4 bgColor = {.1f, .1f, .1f, 1.0f};
-  Vec3 textPos = Vec3{300, 300, 0.0f};
+  Vec3 textPos = Vec3{10, 10, 0.0f};
 
   const Rect& paddleLeft = _gameState->paddleLeft;
   const Rect& paddleRight = _gameState->paddleRight;
@@ -147,15 +155,24 @@ void draw(float deltaTime)
   renderer::beginFrame(_gameState->projMatrix);
   renderer::spriteBatch_begin();
 
-  const Vec2& mousePos = input::getMouseCursor();
+  const Vec2& mousePos = _gameState->cursor;
 
   // mouse cursor
   renderer::spriteBatch_draw(&_gameState->sprite, mousePos.x, mousePos.y, 15, 15, color);
 
   // text
-  Vec2& textSize = renderer::spriteBatch_drawText(_gameState->fontMaterial,
-      _gameState->font, textPos, _gameState->msg, 1.0f, textColor);
-  
+  if(_gameState->showMsg)
+  {
+    Vec2& textSize = renderer::spriteBatch_drawText(_gameState->fontMaterial,
+        _gameState->font, textPos, _gameState->msg, 1.0f, textColor);
+
+    if (mousePos.x >= textPos.x && mousePos.x <= textPos.x + textSize.x
+        && mousePos.y >= textPos.y && mousePos.y <= textPos.y + textSize.y)
+      bgColor = {.4f, .1f, .4f, 1.0f};
+
+    renderer::spriteBatch_draw(&_gameState->sprite, textPos.x, textPos.y, textSize.x, textSize.y, bgColor);
+  }
+
   renderer::spriteBatch_draw(&_gameState->sprite, paddleLeft.x, paddleLeft.y,
       paddleLeft.w, paddleLeft.h, color);
   
@@ -164,11 +181,7 @@ void draw(float deltaTime)
 
   renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h, color);
 
-  if (mousePos.x >= textPos.x && mousePos.x <= textPos.x + textSize.x
-      && mousePos.y >= textPos.y && mousePos.y <= textPos.y + textSize.y)
-    bgColor = {.4f, .1f, .4f, 1.0f};
 
-  renderer::spriteBatch_draw(&_gameState->sprite, textPos.x, textPos.y, textSize.x, textSize.y, bgColor);
 
   renderer::spriteBatch_end();
   renderer::endFrame();
@@ -261,6 +274,14 @@ void onUpdate(float deltaTime)
 
 bool onEvent(const ldk::Event* event)
 {
+
+  if(event->type == ldk::EventType::MOUSE_MOVE_EVENT)
+  {
+    _gameState->cursor.x = event->mouseMoveEvent.x;
+    _gameState->cursor.y = event->mouseMoveEvent.y;
+    return true;
+  }
+
   if(event->type == ldk::EventType::VIEW_EVENT 
     && event->viewEvent.type == ldk::ViewEvent::VIEW_RESIZED)
   {
@@ -271,25 +292,44 @@ bool onEvent(const ldk::Event* event)
   if(event->type == ldk::EventType::KEYBOARD_EVENT 
     && event->keyboardEvent.type == ldk::KeyboardEvent::KEYBOARD_KEY_DOWN)
   {
-    int32& msgSize = _gameState->msgSize;
-
-    if(event->keyboardEvent.key == ldk::input::LDK_KEY_BACK)
-    {
-        msgSize--;
-        if(msgSize < 0) msgSize = 0;
-      _gameState->msg[msgSize] = 0;
-    }
-    else
-    {
-      _gameState->msg[msgSize] = (char)event->keyboardEvent.text;
-      _gameState->msg[++msgSize] = 0;
-      if(_gameState->msgSize > 255)
-        msgSize = 0;
-    }
-
-      return true;
+      if(event->keyboardEvent.key == ldk::input::LDK_KEY_TAB &&
+          event->keyboardEvent.isControlDown)
+      {
+        _gameState->showMsg = !_gameState->showMsg;
+        return true;
+      }
   }
 
+  if (_gameState->showMsg)
+  {
+    if(event->type == ldk::EventType::TEXT_INPUT_EVENT)
+    {
+      int32& msgSize = _gameState->msgSize;
+
+      if(event->textInputEvent.key == ldk::input::LDK_KEY_BACK)
+      {
+        msgSize--;
+        if(msgSize < 0) msgSize = 0;
+        _gameState->msg[msgSize] = 0;
+      }
+      else
+      {
+        if(event->textInputEvent.key == ldk::input::LDK_KEY_RETURN)
+        {
+          _gameState->msg[msgSize] = '\n';
+        }
+        else
+        {
+          _gameState->msg[msgSize] = (char)event->textInputEvent.text;
+        }
+        _gameState->msg[++msgSize] = 0;
+        if(_gameState->msgSize > 255)
+          msgSize = 0;
+      }
+
+      return true;
+    }
+  }
   return false;
 }
 

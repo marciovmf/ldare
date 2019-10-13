@@ -23,7 +23,13 @@ uint32 getFontName(const char* ttfFile, char* fontNameBuffer, uint32 fontNameBuf
 	uint32 bufferSize;
 	int8* data;
 	DWORD numBytesRead=0;
-	HANDLE hFile = CreateFile(ttfFile, GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	HANDLE hFile = CreateFile(ttfFile,
+      GENERIC_READ,
+      NULL,
+      NULL,
+      OPEN_EXISTING,
+      FILE_ATTRIBUTE_NORMAL,
+      0);
 
 	// Look for HEAD table
 	if (hFile == INVALID_HANDLE_VALUE)
@@ -201,6 +207,7 @@ static void saveFontAsset(const char* fontName, uint32 fontSize, const char* fil
 
 	file.write((char*)&fontData, sizeof(ldk::FontData));  // save font header
 	file.write((char*)gliphData, gliphDataSize);          // save gliph data
+  file.flush();
 	file.close();
 }
 
@@ -338,6 +345,7 @@ int _tmain(int argc, _TCHAR** argv)
   char bmpFileName[512];
   sprintf(bmpFileName, "%s_%d.bmp", fontName, input.fontSize);
   saveBitmap(dc, bitmapRect, bmpFileName);
+  printf("saving '%s'\n", bmpFileName);
 
   // Save the asset file
   sprintf(bmpFileName, "%s_%d.font", fontName, input.fontSize);

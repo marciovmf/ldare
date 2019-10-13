@@ -3,20 +3,27 @@
 
 namespace ldk
 {
+  struct TextInputEvent
+  {
+    uint16 key;     // ldk key code
+    uint16 text;    // textual character related to this key
+    uint8 repeat;   // > 0 if this is a repeat
+    uint8 isControlDown;
+    uint8 isShiftDown;
+  };
+
   struct KeyboardEvent
   {
     enum Type
-    {
-      KEYBOARD_KEY_DOWN,
+    { KEYBOARD_KEY_DOWN,
+      KEYBOARD_KEY_HOLD,
       KEYBOARD_KEY_UP,
     };
 
     Type type;
     uint16 key;     // ldk key code
-    uint16 text;    // textual character related to this key
-    uint8 repeat;   // >0 if this is a repeat
+    uint8 repeat;   // > 0 if this is a repeat
     uint8 isControlDown;
-    uint8 isAltDown;
     uint8 isShiftDown;
   };
 
@@ -31,12 +38,21 @@ namespace ldk
     Type type;
     uint16 button;
     uint16 repeat;
+    uint8 isControlDown;
+    uint8 isShiftDown;
   };
 
   struct MouseMoveEvent
   {
     uint32 x;
     uint32 y;
+  };
+
+  struct MouseWheelEvent 
+  {
+    int32 delta;
+    uint8 isControlDown;
+    uint8 isShiftDown;
   };
 
   struct ViewEvent
@@ -59,11 +75,14 @@ namespace ldk
 
   enum EventType
   {
-    KEYBOARD_EVENT = 1 << 0,
-    MOUSE_BUTTON_EVENT = 1 << 1,
-    MOUSE_MOVEMENT_EVENT = 1 << 2,
-    VIEW_EVENT = 1 << 3,
-    QUIT_EVENT = 1 << 4
+    TEXT_INPUT_EVENT,
+    KEYBOARD_EVENT,
+    KEYBOARD_TEXT_EVENT,
+    MOUSE_BUTTON_EVENT,
+    MOUSE_MOVE_EVENT,
+    MOUSE_WHEEL_EVENT,
+    VIEW_EVENT,
+    QUIT_EVENT
   };
 
   struct Event
@@ -71,9 +90,11 @@ namespace ldk
     EventType type;
     union
     {
+      TextInputEvent textInputEvent;
       KeyboardEvent keyboardEvent;
       MouseButtonEvent mouseButtonEvent;
       MouseMoveEvent mouseMoveEvent;
+      MouseWheelEvent mouseWheelEvent;
       ViewEvent viewEvent;
     };
   };

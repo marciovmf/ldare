@@ -15,7 +15,6 @@ namespace ldk
     LDK_API	bool isKeyUp(uint16 key);
     LDK_API	void keyboardUpdate();
 
-
     //---------------------------------------------------------------------------
     // KEYBOARD 
     //---------------------------------------------------------------------------
@@ -129,6 +128,15 @@ namespace ldk
     const uint16 LDK_KEY_F22       = 0x85;
     const uint16 LDK_KEY_F23       = 0x86;
     const uint16 LDK_KEY_F24       = 0x87;
+    // EXTENDED OEM KEYS
+    const uint16 LDK_KEY_OEM1       = 0xBA; // For the US standard keyboard, the ';:' key 
+    const uint16 LDK_KEY_OEM2       = 0xBF; // For the US standard keyboard, the '/?' key 
+    const uint16 LDK_KEY_OEM3       = 0xC0; // For the US standard keyboard, the '`~' key 
+    const uint16 LDK_KEY_OEM4       = 0xDB; // For the US standard keyboard, the '[{' key
+    const uint16 LDK_KEY_OEM5       = 0xDC; // For the US standard keyboard, the '\|' key
+    const uint16 LDK_KEY_OEM6       = 0xDD; // For the US standard keyboard, the ']}' key
+    const uint16 LDK_KEY_OEM7       = 0xDE; // For the US standard keyboard, the 'single-quote/double-quote' key
+    const uint16 LDK_KEY_OEM8       = 0xDF; // Used for miscellaneous characters; it can vary by keyboard.
     /// @}
   }
 }

@@ -955,42 +955,76 @@ void pollEvents()
     TranslateMessage(&msg);
     DispatchMessage(&msg);
     LDKWindow* window = findWindowByHandle(msg.hwnd);
-    bool postKeyboardEvent = false;
 
     switch(msg.message)
     {
-      LDK_ASSERT(window != nullptr, "Could not found a matching window for the current event hwnd");
+      LDK_ASSERT(window != nullptr, "Could not find a matching window for the current event hwnd");
       case WM_CHAR:
-        postKeyboardEvent = true;
+      {
+          int16 vkCode = msg.wParam;
+          int8 repeat = LOWORD(msg.lParam);
+          int8 isShiftDown = _platform.keyboardState.key[ldk::input::LDK_KEY_SHIFT];
+          int8 isControlDown = _platform.keyboardState.key[ldk::input::LDK_KEY_CONTROL];
+
+          window->event.type = ldk::EventType::TEXT_INPUT_EVENT;
+          window->event.textInputEvent.key = vkCode;
+          window->event.textInputEvent.text = msg.wParam;
+          window->event.textInputEvent.repeat = repeat;
+          window->event.textInputEvent.isControlDown = isControlDown;
+          window->event.textInputEvent.isShiftDown = isShiftDown;
+          window->eventCallback(window, (const ldk::Event*)&window->event);
+          break;
+      }
       case WM_KEYDOWN:
       case WM_KEYUP:
         {
           int8 isDown = (msg.lParam & (1 << 31)) == 0; //  0 means pressed, 1 means released
           int8 wasDown = (msg.lParam & (1 << 30)) != 0;
-          int8 isShiftDown = (msg.lParam & (1 << 29)) != 0;
           int8 repeat = LOWORD(msg.lParam);
           int16 vkCode = msg.wParam;
           _platform.keyboardState.key[vkCode] = ((isDown != wasDown) << 1) | isDown;
-          int8 isAltDown = _platform.keyboardState.key[ldk::input::LDK_KEY_ALT];
           int8 isControlDown = _platform.keyboardState.key[ldk::input::LDK_KEY_CONTROL];
+          int8 isShiftDown = _platform.keyboardState.key[ldk::input::LDK_KEY_SHIFT];
+
+          if(isDown && wasDown)
+            window->event.keyboardEvent.type = ldk::KeyboardEvent::KEYBOARD_KEY_HOLD;
+          else if(isDown && !wasDown)
+            window->event.keyboardEvent.type = ldk::KeyboardEvent::KEYBOARD_KEY_DOWN;
+          else
+            window->event.keyboardEvent.type = ldk::KeyboardEvent::KEYBOARD_KEY_UP;
 
           // we only want to post event in case of a WM_CHAR
-          if(postKeyboardEvent)
-          {
-            window->event.type = ldk::EventType::KEYBOARD_EVENT;
-            window->event.keyboardEvent.type = isDown 
-              ? ldk::KeyboardEvent::KEYBOARD_KEY_DOWN
-              : ldk::KeyboardEvent::KEYBOARD_KEY_UP;
-            window->event.keyboardEvent.key = vkCode;
-            window->event.keyboardEvent.text = msg.wParam;
-            window->event.keyboardEvent.repeat = repeat;
-            window->event.keyboardEvent.isControlDown = isControlDown;
-            window->event.keyboardEvent.isAltDown = isAltDown;
-            window->event.keyboardEvent.isShiftDown = isShiftDown;
-            window->eventCallback(window, (const ldk::Event*)&window->event);
-            postKeyboardEvent = false;
-          }
+          window->event.type = ldk::EventType::KEYBOARD_EVENT;
+          window->event.keyboardEvent.key = vkCode;
+          window->event.keyboardEvent.repeat = repeat;
+          window->event.keyboardEvent.isControlDown = isControlDown;
+          window->event.keyboardEvent.isShiftDown = isShiftDown;
+          window->eventCallback(window, (const ldk::Event*)&window->event);
           continue;
+        }
+        break;
+
+      case WM_MOUSEWHEEL:
+        {
+          int8 isControlDown = (GET_KEYSTATE_WPARAM(msg.wParam) & MK_CONTROL) == MK_CONTROL;
+          int8 isShiftDown = (GET_KEYSTATE_WPARAM(msg.wParam) & MK_SHIFT) == MK_SHIFT;
+          window->event.type = ldk::EventType::MOUSE_WHEEL_EVENT;
+          window->event.mouseWheelEvent.delta = GET_WHEEL_DELTA_WPARAM(msg.wParam);
+          window->event.mouseWheelEvent.isControlDown = isControlDown;
+          window->event.mouseWheelEvent.isShiftDown = isShiftDown;
+          window->eventCallback(window, (const ldk::Event*)&window->event);
+        }
+        break;
+      case WM_MOUSEMOVE:
+        {
+          uint32 x = GET_X_LPARAM(msg.lParam);
+          uint32 y = GET_Y_LPARAM(msg.lParam);
+          _platform.mouseState.cursor = {(float)x ,(float)y};
+
+          window->event.type = ldk::EventType::MOUSE_MOVE_EVENT;
+          window->event.mouseMoveEvent.x = x;
+          window->event.mouseMoveEvent.y = y;
+          window->eventCallback(window, (const ldk::Event*)&window->event);
         }
         break;
 
@@ -1000,24 +1034,45 @@ void pollEvents()
       case WM_MBUTTONUP:
       case WM_RBUTTONDOWN:
       case WM_RBUTTONUP:
-      case WM_MOUSEMOVE:
+        {
+          int8 isLDown = (msg.wParam & MK_LBUTTON) == MK_LBUTTON;
+          int8 isMDown = (msg.wParam & MK_MBUTTON) == MK_MBUTTON;
+          int8 isRDown = (msg.wParam & MK_RBUTTON) == MK_RBUTTON;
+          int8 isShiftDown = (msg.wParam &  0x4) != 0;
+          int8 isControlDown = (msg.wParam & 0x8) != 0;
 
-        uint32 x = GET_X_LPARAM(msg.lParam);
-        uint32 y = GET_Y_LPARAM(msg.lParam);
-        _platform.mouseState.cursor = {(float)x ,(float)y};
+          _platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] =
+            ((_platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] != isLDown) << 1) | isLDown;
 
-        int8 isDown = (msg.wParam & MK_LBUTTON) == MK_LBUTTON;
-        _platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] =
-          ((_platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] != isDown) << 1) | isDown;
+          _platform.mouseState.button[ldk::input::LDK_MOUSE_MIDDLE] =
+            ((_platform.mouseState.button[ldk::input::LDK_MOUSE_MIDDLE] != isMDown) << 1) | isMDown;
 
-        isDown = (msg.wParam & MK_MBUTTON) == MK_MBUTTON;
-        _platform.mouseState.button[ldk::input::LDK_MOUSE_MIDDLE] =
-          ((_platform.mouseState.button[ldk::input::LDK_MOUSE_MIDDLE] != isDown) << 1) | isDown;
+          _platform.mouseState.button[ldk::input::LDK_MOUSE_RIGHT] =
+            ((_platform.mouseState.button[ldk::input::LDK_MOUSE_RIGHT] != isRDown) << 1) | isRDown;
 
-        isDown = (msg.wParam & MK_RBUTTON) == MK_RBUTTON;
-        _platform.mouseState.button[ldk::input::LDK_MOUSE_RIGHT] =
-          ((_platform.mouseState.button[ldk::input::LDK_MOUSE_RIGHT] != isDown) << 1) | isDown;
+          window->event.type = ldk::EventType::MOUSE_BUTTON_EVENT;
+          window->event.mouseButtonEvent.type = 
+            (msg.message == WM_LBUTTONDOWN
+            || msg.message == WM_MBUTTONDOWN
+            || msg.message == WM_RBUTTONDOWN)
+            ? ldk::MouseButtonEvent::MOUSE_BUTTON_DOWN
+            : ldk::MouseButtonEvent::MOUSE_BUTTON_UP;
 
+          int16 mouseButton;
+
+            if (msg.message == WM_LBUTTONDOWN || msg.message == WM_LBUTTONUP) 
+             mouseButton = ldk::input::LDK_MOUSE_LEFT;
+            else if (msg.message == WM_MBUTTONDOWN || msg.message == WM_MBUTTONUP)
+              mouseButton = ldk::input::LDK_MOUSE_MIDDLE;
+            else
+              mouseButton = ldk::input::LDK_MOUSE_RIGHT;
+
+
+          window->event.mouseButtonEvent.button = mouseButton;
+          window->event.mouseButtonEvent.isControlDown = isControlDown;
+          window->event.mouseButtonEvent.isShiftDown = isShiftDown;
+          window->eventCallback(window, (const ldk::Event*)&window->event);
+        }
         break;
     }
   }
