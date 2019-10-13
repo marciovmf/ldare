@@ -14,33 +14,44 @@ struct FrameTime
 static int64 lastGameDllTime = 0;
 static ldk::Game _game = {};
 
-void windowCloseCallback(ldk::platform::LDKWindow* window)
+static bool dummy_handleEvent(const ldk::Event* event)
 {
-	ldk::platform::destroyWindow(window);
+  return false;
 }
 
-void windowResizeCallback(ldk::platform::LDKWindow* window, int32 width, int32 height)
+bool windowEventCallback(ldk::platform::LDKWindow* window, const ldk::Event* event)
 {
-  if (_game.onViewResized != nullptr)
+  // editor have priority over ESCAPE key
+  if (event->type == ldk::EventType::KEYBOARD_EVENT)
   {
-    _game.onViewResized(width, height);
+    if(event->keyboardEvent.key == ldk::input::LDK_KEY_ESCAPE)
+    {
+      ldk::platform::setWindowCloseFlag(window, true);
+      return true;
+    }
+    if(event->keyboardEvent.key == ldk::input::LDK_KEY_F12
+        && event->keyboardEvent.type == ldk::KeyboardEvent::KEYBOARD_KEY_DOWN)
+    {
+      bool isFullScreen = ldk::platform::isFullScreen(window);
+      ldk::platform::toggleFullScreen(window, !isFullScreen);
+      return true;
+    }
   }
-	return;
-}
 
-static void ldkHandleKeyboardInput(ldk::platform::LDKWindow* window)
-{
-  if (ldk::input::isKeyDown(ldk::input::LDK_KEY_ESCAPE))
+  // if we didn't handle the event, forward it to the game
+  bool handledByGame = _game.onEvent(event);
+
+  // did the game prevented us from closing ?
+  if(event->type == ldk::EventType::QUIT_EVENT)
   {
-    ldk::platform::setWindowCloseFlag(window, true);
+    if (handledByGame) 
+      ldk::platform::setWindowCloseFlag(window, false);
+    else
+      ldk::platform::destroyWindow(window);
+    return true;
   }
 
-#ifdef _LDK_DEBUG_
-  //if (ldk::input::isKeyDown(ldk::input::LDK_KEY_F2))
-  //{
-  //  ldkEngine::memory_printReport();
-  //}
-#endif
+  return false;
 }
 
 bool loadGameModule(char* gameModuleName, ldk::Game* game, ldk::platform::SharedLib** sharedLib)
@@ -58,8 +69,11 @@ bool loadGameModule(char* gameModuleName, ldk::Game* game, ldk::platform::Shared
     ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_UPDATE);
   game->onStop = (ldk::LDK_PFN_GAME_STOP)
     ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_STOP);
-  game->onViewResized = (ldk::LDK_PFN_GAME_VIEW_RESIZED)
-    ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_VIEW_RESIZED);
+  game->onEvent = (ldk::LDK_PFN_GAME_HANDLE_EVENT)
+    ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_EVENT);
+
+  if (game->onEvent == nullptr) game->onEvent = dummy_handleEvent;
+
 
   return game->onInit && game->onStart && game->onUpdate && game->onStop;
 }
@@ -126,11 +140,8 @@ uint32 ldkMain(uint32 argc, char** argv)
 		return LDK_EXIT_FAIL;
 	}
 
-	ldk::platform::setWindowCloseCallback(window, windowCloseCallback);
-	ldk::platform::setWindowResizeCallback(window, windowResizeCallback);
+	ldk::platform::setEventCallback(window, windowEventCallback);
 	ldk::platform::toggleFullScreen(window, gameSettings.fullScreen);
-
-	//ldk::render::setViewportAspectRatio(gameSetting.width, gameSetting.height, gameSetting.width, gameSetting.height);
 
 	void* gameStateMemory = nullptr;
   size_t gameMemorySize = gameSettings.preallocMemorySize;
@@ -138,9 +149,6 @@ uint32 ldkMain(uint32 argc, char** argv)
   memset(gameStateMemory, 0, (size_t)gameMemorySize);
 
 	_game.onStart(gameStateMemory);
- 
-  if (_game.onViewResized)
-    _game.onViewResized(gameSettings.displayWidth, gameSettings.displayHeight);
 
 	float deltaTime;
 	int64 startTime = 0;
@@ -158,8 +166,6 @@ uint32 ldkMain(uint32 argc, char** argv)
 		ldk::input::keyboardUpdate();
 		ldk::input::mouseUpdate();
 		ldk::input::joystickUpdate();
-
-		ldkHandleKeyboardInput(window);
 
 		//ldk::render::updateRenderer(deltaTime);
 

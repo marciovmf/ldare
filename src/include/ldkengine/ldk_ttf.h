@@ -94,6 +94,8 @@ uint32 getTTFString(const TTFNameTableHeader *nameHeader,
 		{
 			stringSize = MIN(BYTESWAP16(nameRecord->length), bufferSize);
 			strncpy(outputBuffer, (const char*) (stringStorageStart + BYTESWAP16(nameRecord->offset)), stringSize);
+     
+      outputBuffer[stringSize] = 0;
 			break;
 		}
 		nameRecord++;

@@ -114,17 +114,12 @@ namespace ldk
   {
     static struct LDKWin32
     {
-      LDKPlatformErrorFunc	errorCallback;
       KeyboardState					keyboardState;
       MouseState						mouseState;
       JoystickState					gamepadState[LDK_MAX_JOYSTICKS];
 
       //TODO: add window data to the win32 window instance so there is no need for this map
       std::map<HWND, LDKWindow*> 	windowList;
-      uint8 shiftKeyState;
-      uint8 controlKeyState;
-      uint8 altKeyState;
-      uint8 superKeyState;
       BoundAudio boundBufferList[LDK_MAX_AUDIO_BUFFER];
       uint32 boundBufferCount = 0;
 
@@ -141,8 +136,7 @@ namespace ldk
     /* platform specific window */
     struct LDKWindow
     {
-      LDKPlatformWindowCloseFunc	windowCloseCallback;
-      LDKPlatformWindowResizeFunc windowResizeCallback;
+      LDKPlatformEventHandleFunc eventCallback;
       HINSTANCE hInstance;
       HWND hwnd;
       HDC dc;
@@ -152,6 +146,7 @@ namespace ldk
       LONG defaultStyle;
       RECT defaultRect;
       RECT clientRect;
+      ldk::Event event;    // current event;
     };
 
     static HINSTANCE _appInstance;
@@ -159,6 +154,11 @@ namespace ldk
     LDKWindow* findWindowByHandle(HWND hwnd) 
     {
       return _platform.windowList[hwnd];
+    }
+
+    static bool dummyEventHandler(LDKWindow* window, const ldk::Event* event)
+    {
+      return false;
     }
 
     static void ldk_win32_calculateClientRect(LDKWindow* window)
@@ -178,20 +178,28 @@ namespace ldk
       window->clientRect = { upperLeft.x, upperLeft.y, bottomRight.x, bottomRight.y};
     }
 
-
     LRESULT CALLBACK ldk_win32_windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
       switch(uMsg)
       {
         case WM_ACTIVATE:
           {
-            // reset modifier key state if the window get inactive
-            if (LOWORD(wParam) == WA_INACTIVE)
+            break;
+            LDKWindow* window = findWindowByHandle(hwnd);
+            if(window)
             {
-              _platform.shiftKeyState =
-                _platform.controlKeyState =
-                _platform.altKeyState =
-                _platform.superKeyState = 0;
+              // reset modifier key state if the window get inactive
+              if (LOWORD(wParam) == WA_INACTIVE)
+              {
+                window->event.viewEvent.type = ldk::ViewEvent::VIEW_FOCUS_LOST;
+              }
+              else
+              {
+                window->event.viewEvent.type = ldk::ViewEvent::VIEW_FOCUS_GAINED;
+              }
+
+              window->event.type = ldk::EventType::VIEW_EVENT;
+              window->eventCallback(window, (const ldk::Event*) &window->event);
             }
           }
           break;
@@ -199,16 +207,22 @@ namespace ldk
         case WM_CLOSE:
           {
             LDKWindow* window = findWindowByHandle(hwnd);
+            window->event.type = ldk::EventType::QUIT_EVENT;
             ldk::platform::setWindowCloseFlag(window, true);
           }
 
         case WM_SIZE:
           {
             LDKWindow* window = findWindowByHandle(hwnd);
-            if (window && window->windowResizeCallback)
+            if(window)
             {
               ldk_win32_calculateClientRect(window);
-              window->windowResizeCallback(window, LOWORD(lParam), HIWORD(lParam));
+              window->event.type = ldk::EventType::VIEW_EVENT;
+              window->event.viewEvent.width = LOWORD(lParam);
+              window->event.viewEvent.height = HIWORD(lParam);
+              window->event.viewEvent.x = window->clientRect.left;
+              window->event.viewEvent.y = window->clientRect.top;
+              window->eventCallback(window, (const ldk::Event*) &window->event);
             }
           }
           break;
@@ -217,7 +231,7 @@ namespace ldk
           return DefWindowProc(hwnd, uMsg, wParam, lParam);	
           break;
       }
-      return TRUE;
+      return true;
     }
 
     static bool ldk_win32_makeContextCurrent(ldk::platform::LDKWindow* window)
@@ -685,20 +699,9 @@ void terminate()
   LogInfo("LDK terminating...");
 }
 
-// Sets error callback for the platform
-void setErrorCallback(LDKPlatformErrorFunc errorCallback)
+void setEventCallback(LDKWindow* window, LDKPlatformEventHandleFunc eventCallback)
 {
-  _platform.errorCallback = errorCallback;
-}
-
-void setWindowCloseCallback(LDKWindow* window, LDKPlatformWindowCloseFunc windowCloseCallback)
-{
-  window->windowCloseCallback = windowCloseCallback;
-}
-
-void setWindowResizeCallback(LDKWindow* window, LDKPlatformWindowResizeFunc windowResizeCallback)
-{
-  window->windowResizeCallback = windowResizeCallback;
+  window->eventCallback = eventCallback;
 }
 
 // Creates a window
@@ -751,6 +754,8 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
   ldk::platform::LDKWindow* window = (platform::LDKWindow*) ldkEngine::memory_alloc(sizeof(LDKWindow));
   *window = {};
 
+  window->eventCallback = dummyEventHandler;
+
   // Calculate total window size
   RECT clientArea = {(LONG)0,(LONG)0, (LONG)width, (LONG)height};
   if (!AdjustWindowRect(&clientArea, WS_OVERLAPPEDWINDOW, FALSE))
@@ -767,7 +772,7 @@ LDKWindow* createWindow(uint32* attributes, const char* title, LDKWindow* share)
     LogError("Could not create window");
     return nullptr;
   }
-  
+
   ldk_win32_calculateClientRect(window);
 
   /* create a new context or share an existing one ? */
@@ -867,8 +872,10 @@ bool windowShouldClose(LDKWindow* window)
 void setWindowCloseFlag(LDKWindow* window, bool flag)
 {
   window->closeFlag = flag;	
-  if (window->windowCloseCallback)
-    window->windowCloseCallback(window);
+  window->event.type = ldk::EventType::QUIT_EVENT;
+
+  if (window->eventCallback)
+    window->eventCallback(window, &window->event);
 }
 
 // Update the window framebuffer
@@ -947,50 +954,125 @@ void pollEvents()
   {
     TranslateMessage(&msg);
     DispatchMessage(&msg);
-
     LDKWindow* window = findWindowByHandle(msg.hwnd);
+
     switch(msg.message)
     {
-      //LDK_ASSERT(window != nullptr, "Could not found a matching window for the current event hwnd");
+      LDK_ASSERT(window != nullptr, "Could not find a matching window for the current event hwnd");
+      case WM_CHAR:
+      {
+          int16 vkCode = msg.wParam;
+          int8 repeat = LOWORD(msg.lParam);
+          int8 isShiftDown = _platform.keyboardState.key[ldk::input::LDK_KEY_SHIFT];
+          int8 isControlDown = _platform.keyboardState.key[ldk::input::LDK_KEY_CONTROL];
+
+          window->event.type = ldk::EventType::TEXT_INPUT_EVENT;
+          window->event.textInputEvent.key = vkCode;
+          window->event.textInputEvent.text = msg.wParam;
+          window->event.textInputEvent.repeat = repeat;
+          window->event.textInputEvent.isControlDown = isControlDown;
+          window->event.textInputEvent.isShiftDown = isShiftDown;
+          window->eventCallback(window, (const ldk::Event*)&window->event);
+          break;
+      }
       case WM_KEYDOWN:
       case WM_KEYUP:
         {
-          // bit 30 has previous key state
-          // bit 31 has current key state
-          // shitty fact: 0 means pressed, 1 means released
-          int8 isDown = (msg.lParam & (1 << 31)) == 0;
+          int8 isDown = (msg.lParam & (1 << 31)) == 0; //  0 means pressed, 1 means released
           int8 wasDown = (msg.lParam & (1 << 30)) != 0;
+          int8 repeat = LOWORD(msg.lParam);
           int16 vkCode = msg.wParam;
           _platform.keyboardState.key[vkCode] = ((isDown != wasDown) << 1) | isDown;
+          int8 isControlDown = _platform.keyboardState.key[ldk::input::LDK_KEY_CONTROL];
+          int8 isShiftDown = _platform.keyboardState.key[ldk::input::LDK_KEY_SHIFT];
+
+          if(isDown && wasDown)
+            window->event.keyboardEvent.type = ldk::KeyboardEvent::KEYBOARD_KEY_HOLD;
+          else if(isDown && !wasDown)
+            window->event.keyboardEvent.type = ldk::KeyboardEvent::KEYBOARD_KEY_DOWN;
+          else
+            window->event.keyboardEvent.type = ldk::KeyboardEvent::KEYBOARD_KEY_UP;
+
+          // we only want to post event in case of a WM_CHAR
+          window->event.type = ldk::EventType::KEYBOARD_EVENT;
+          window->event.keyboardEvent.key = vkCode;
+          window->event.keyboardEvent.repeat = repeat;
+          window->event.keyboardEvent.isControlDown = isControlDown;
+          window->event.keyboardEvent.isShiftDown = isShiftDown;
+          window->eventCallback(window, (const ldk::Event*)&window->event);
           continue;
         }
         break;
 
-        // Cursor position
+      case WM_MOUSEWHEEL:
+        {
+          int8 isControlDown = (GET_KEYSTATE_WPARAM(msg.wParam) & MK_CONTROL) == MK_CONTROL;
+          int8 isShiftDown = (GET_KEYSTATE_WPARAM(msg.wParam) & MK_SHIFT) == MK_SHIFT;
+          window->event.type = ldk::EventType::MOUSE_WHEEL_EVENT;
+          window->event.mouseWheelEvent.delta = GET_WHEEL_DELTA_WPARAM(msg.wParam);
+          window->event.mouseWheelEvent.isControlDown = isControlDown;
+          window->event.mouseWheelEvent.isShiftDown = isShiftDown;
+          window->eventCallback(window, (const ldk::Event*)&window->event);
+        }
+        break;
+      case WM_MOUSEMOVE:
+        {
+          uint32 x = GET_X_LPARAM(msg.lParam);
+          uint32 y = GET_Y_LPARAM(msg.lParam);
+          _platform.mouseState.cursor = {(float)x ,(float)y};
+
+          window->event.type = ldk::EventType::MOUSE_MOVE_EVENT;
+          window->event.mouseMoveEvent.x = x;
+          window->event.mouseMoveEvent.y = y;
+          window->eventCallback(window, (const ldk::Event*)&window->event);
+        }
+        break;
+
       case WM_LBUTTONDOWN:
       case WM_LBUTTONUP:
       case WM_MBUTTONDOWN:
       case WM_MBUTTONUP:
       case WM_RBUTTONDOWN:
       case WM_RBUTTONUP:
-      case WM_MOUSEMOVE:
+        {
+          int8 isLDown = (msg.wParam & MK_LBUTTON) == MK_LBUTTON;
+          int8 isMDown = (msg.wParam & MK_MBUTTON) == MK_MBUTTON;
+          int8 isRDown = (msg.wParam & MK_RBUTTON) == MK_RBUTTON;
+          int8 isShiftDown = (msg.wParam &  0x4) != 0;
+          int8 isControlDown = (msg.wParam & 0x8) != 0;
 
-        uint32 x = GET_X_LPARAM(msg.lParam);
-        uint32 y = GET_Y_LPARAM(msg.lParam);
-        _platform.mouseState.cursor = {(float)x ,(float)y};
+          _platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] =
+            ((_platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] != isLDown) << 1) | isLDown;
 
-        int8 isDown = (msg.wParam & MK_LBUTTON) == MK_LBUTTON;
-        _platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] =
-          ((_platform.mouseState.button[ldk::input::LDK_MOUSE_LEFT] != isDown) << 1) | isDown;
+          _platform.mouseState.button[ldk::input::LDK_MOUSE_MIDDLE] =
+            ((_platform.mouseState.button[ldk::input::LDK_MOUSE_MIDDLE] != isMDown) << 1) | isMDown;
 
-        isDown = (msg.wParam & MK_MBUTTON) == MK_MBUTTON;
-        _platform.mouseState.button[ldk::input::LDK_MOUSE_MIDDLE] =
-          ((_platform.mouseState.button[ldk::input::LDK_MOUSE_MIDDLE] != isDown) << 1) | isDown;
+          _platform.mouseState.button[ldk::input::LDK_MOUSE_RIGHT] =
+            ((_platform.mouseState.button[ldk::input::LDK_MOUSE_RIGHT] != isRDown) << 1) | isRDown;
 
-        isDown = (msg.wParam & MK_RBUTTON) == MK_RBUTTON;
-        _platform.mouseState.button[ldk::input::LDK_MOUSE_RIGHT] =
-          ((_platform.mouseState.button[ldk::input::LDK_MOUSE_RIGHT] != isDown) << 1) | isDown;
+          window->event.type = ldk::EventType::MOUSE_BUTTON_EVENT;
+          window->event.mouseButtonEvent.type = 
+            (msg.message == WM_LBUTTONDOWN
+            || msg.message == WM_MBUTTONDOWN
+            || msg.message == WM_RBUTTONDOWN)
+            ? ldk::MouseButtonEvent::MOUSE_BUTTON_DOWN
+            : ldk::MouseButtonEvent::MOUSE_BUTTON_UP;
 
+          int16 mouseButton;
+
+            if (msg.message == WM_LBUTTONDOWN || msg.message == WM_LBUTTONUP) 
+             mouseButton = ldk::input::LDK_MOUSE_LEFT;
+            else if (msg.message == WM_MBUTTONDOWN || msg.message == WM_MBUTTONUP)
+              mouseButton = ldk::input::LDK_MOUSE_MIDDLE;
+            else
+              mouseButton = ldk::input::LDK_MOUSE_RIGHT;
+
+
+          window->event.mouseButtonEvent.button = mouseButton;
+          window->event.mouseButtonEvent.isControlDown = isControlDown;
+          window->event.mouseButtonEvent.isShiftDown = isShiftDown;
+          window->eventCallback(window, (const ldk::Event*)&window->event);
+        }
         break;
     }
   }

@@ -35,12 +35,18 @@ static struct GameState
   // new ball delay
   float waitDelay;
 
+  Vec2 cursor;
+
+  bool showMsg;
+  char msg[256];
+  int32 msgSize;
+
 } *_gameState;
 
 //******************************************************************************
 // LDK Callbacks
 //******************************************************************************
-LDKGameSettings gameInit()
+LDKGameSettings onInit()
 {
   LDKGameSettings settings;
   settings.displayWidth = DEFAULT_WINDOW_WIDTH;
@@ -53,7 +59,9 @@ LDKGameSettings gameInit()
   return settings;
 }
 
-void gameStart(void* memory)
+void gameViewResized(uint32 width, uint32 height);
+
+void onStart(void* memory)
 {
   _gameState = (GameState*)memory;
 
@@ -69,8 +77,8 @@ void gameStart(void* memory)
 
   _gameState->material = loadMaterial("./assets/pong.mat");
 
-  _gameState->fontMaterial = ldk::loadMaterial("./assets/standard/Inconsolata_12.mat"); 
-  _gameState->font = ldk::asset_loadFont("./assets/standard/Inconsolata_12.font"); 
+  _gameState->fontMaterial = ldk::loadMaterial("./assets/standard/Inconsolata_18.mat"); 
+  _gameState->font = ldk::asset_loadFont("./assets/standard/Inconsolata_18.font"); 
 
   // Calculate matrices and send them to shader uniforms  
   // projection 
@@ -86,6 +94,9 @@ void gameStart(void* memory)
   _gameState->ballDirection.y = 0.6f;
   _gameState->ball.x = _gameState->viewPort.w/2.0f;
   _gameState->ball.y = _gameState->viewPort.h/2.0f;
+
+  gameViewResized(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+  _gameState->showMsg = false;
 }
 
 void gameViewResized(uint32 width, uint32 height)
@@ -132,7 +143,7 @@ void draw(float deltaTime)
 
   Vec4 textColor = Vec4{1.0f, 1.0f, 1.0f, 1.0f};
   Vec4 bgColor = {.1f, .1f, .1f, 1.0f};
-  Vec3 textPos = Vec3{300, 300, 0.0f};
+  Vec3 textPos = Vec3{10, 10, 0.0f};
 
   const Rect& paddleLeft = _gameState->paddleLeft;
   const Rect& paddleRight = _gameState->paddleRight;
@@ -144,34 +155,39 @@ void draw(float deltaTime)
   renderer::beginFrame(_gameState->projMatrix);
   renderer::spriteBatch_begin();
 
-  const Vec2& mousePos = input::getMouseCursor();
+  const Vec2& mousePos = _gameState->cursor;
 
   // mouse cursor
   renderer::spriteBatch_draw(&_gameState->sprite, mousePos.x, mousePos.y, 15, 15, color);
 
   // text
-  Vec2& textSize = renderer::spriteBatch_drawText(_gameState->fontMaterial,
-      _gameState->font, textPos, "Hello, Sailor!", 1.0f, textColor);
+  if(_gameState->showMsg)
+  {
+    Vec2& textSize = renderer::spriteBatch_drawText(_gameState->fontMaterial,
+        _gameState->font, textPos, _gameState->msg, 1.0f, textColor);
+
+    if (mousePos.x >= textPos.x && mousePos.x <= textPos.x + textSize.x
+        && mousePos.y >= textPos.y && mousePos.y <= textPos.y + textSize.y)
+      bgColor = {.4f, .1f, .4f, 1.0f};
+
+    renderer::spriteBatch_draw(&_gameState->sprite, textPos.x, textPos.y, textSize.x, textSize.y, bgColor);
+  }
+
+  renderer::spriteBatch_draw(&_gameState->sprite, paddleLeft.x, paddleLeft.y,
+      paddleLeft.w, paddleLeft.h, color);
   
-  //renderer::spriteBatch_draw(&_gameState->sprite, 
-  //paddleLeft.x, paddleLeft.y, paddleLeft.w, paddleLeft.h, color);
-  //
-  //renderer::spriteBatch_draw(&_gameState->sprite,
-  //paddleRight.x, paddleRight.y, paddleRight.w, paddleRight.h, color);
+  renderer::spriteBatch_draw(&_gameState->sprite, paddleRight.x, paddleRight.y,
+      paddleRight.w, paddleRight.h, color);
 
-  //renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h, color);
+  renderer::spriteBatch_draw(&_gameState->sprite, ball.x, ball.y, ball.w, ball.h, color);
 
-  if (mousePos.x >= textPos.x && mousePos.x <= textPos.x + textSize.x
-      && mousePos.y >= textPos.y && mousePos.y <= textPos.y + textSize.y)
-    bgColor = {.4f, .1f, .4f, 1.0f};
 
-  renderer::spriteBatch_draw(&_gameState->sprite, textPos.x, textPos.y, textSize.x, textSize.y, bgColor);
 
   renderer::spriteBatch_end();
   renderer::endFrame();
 }
 
-void gameUpdate(float deltaTime)
+void onUpdate(float deltaTime)
 {
   float speed = _gameState->paddleSpeed * deltaTime;
   Rect& paddleLeft = _gameState->paddleLeft;
@@ -184,12 +200,12 @@ void gameUpdate(float deltaTime)
   float thirdPiece = paddleLeft.h * 0.3f;
 
   // Paddles movement
-  if (input::getKey(input::LDK_KEY_W))
+  if (input::getKey(input::LDK_KEY_S))
   {
     paddleLeft.y = MIN(paddleLeft.y + speed, _gameState->maxPaddleY);
     paddleRight.y = MIN(paddleRight.y + speed, _gameState->maxPaddleY);
   }
-  else if (input::getKey(input::LDK_KEY_S))
+  else if (input::getKey(input::LDK_KEY_W))
   {
     paddleLeft.y = MAX(paddleLeft.y - speed, 0);
     paddleRight.y = MAX(paddleRight.y - speed, 0);
@@ -256,7 +272,68 @@ void gameUpdate(float deltaTime)
   draw(deltaTime);
 }
 
-void gameStop()
+bool onEvent(const ldk::Event* event)
+{
+
+  if(event->type == ldk::EventType::MOUSE_MOVE_EVENT)
+  {
+    _gameState->cursor.x = event->mouseMoveEvent.x;
+    _gameState->cursor.y = event->mouseMoveEvent.y;
+    return true;
+  }
+
+  if(event->type == ldk::EventType::VIEW_EVENT 
+    && event->viewEvent.type == ldk::ViewEvent::VIEW_RESIZED)
+  {
+    gameViewResized(event->viewEvent.width, event->viewEvent.height);
+    return true;
+  }
+
+  if(event->type == ldk::EventType::KEYBOARD_EVENT 
+    && event->keyboardEvent.type == ldk::KeyboardEvent::KEYBOARD_KEY_DOWN)
+  {
+      if(event->keyboardEvent.key == ldk::input::LDK_KEY_TAB &&
+          event->keyboardEvent.isControlDown)
+      {
+        _gameState->showMsg = !_gameState->showMsg;
+        return true;
+      }
+  }
+
+  if (_gameState->showMsg)
+  {
+    if(event->type == ldk::EventType::TEXT_INPUT_EVENT)
+    {
+      int32& msgSize = _gameState->msgSize;
+
+      if(event->textInputEvent.key == ldk::input::LDK_KEY_BACK)
+      {
+        msgSize--;
+        if(msgSize < 0) msgSize = 0;
+        _gameState->msg[msgSize] = 0;
+      }
+      else
+      {
+        if(event->textInputEvent.key == ldk::input::LDK_KEY_RETURN)
+        {
+          _gameState->msg[msgSize] = '\n';
+        }
+        else
+        {
+          _gameState->msg[msgSize] = (char)event->textInputEvent.text;
+        }
+        _gameState->msg[++msgSize] = 0;
+        if(_gameState->msgSize > 255)
+          msgSize = 0;
+      }
+
+      return true;
+    }
+  }
+  return false;
+}
+
+void onStop()
 {
   ldk::asset_unload(_gameState->font);
   ldk::renderer::material_destroy(_gameState->fontMaterial);

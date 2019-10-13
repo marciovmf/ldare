@@ -17,7 +17,6 @@ namespace ldk
 		LDK_API bool getMouseButtonUp(uint16 mouseButton);
 		LDK_API void mouseUpdate();
 
-
     const uint16 LDK_MOUSE_LEFT = 0x00;
     const uint16 LDK_MOUSE_RIGHT = 0x01;
     const uint16 LDK_MOUSE_MIDDLE = 0x02;
