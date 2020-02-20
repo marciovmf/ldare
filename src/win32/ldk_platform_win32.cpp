@@ -130,6 +130,10 @@ namespace ldk
 
     struct SharedLib
     {
+#if _LDK_DEBUG_
+      const static uint32 MAX_MODULE_NAME_LEN = MAX_PATH; //windows.h should set this.
+      char name[MAX_MODULE_NAME_LEN];
+#endif
       HMODULE handle;
     };
 
@@ -1092,6 +1096,9 @@ ldk::platform::SharedLib* loadSharedLib(char* sharedLibName)
   //TODO: Use custom allocation here
   SharedLib* sharedLib = new SharedLib;
   sharedLib->handle = hmodule;
+#if _LDK_DEBUG_
+  strncpy(sharedLib->name, sharedLibName, SharedLib::MAX_MODULE_NAME_LEN);
+#endif
   return sharedLib;
 }
 
@@ -1124,7 +1131,12 @@ bool unloadSharedLib(ldk::platform::SharedLib* sharedLib)
 
 const void* getFunctionFromSharedLib(const ldk::platform::SharedLib* sharedLib, const char* function)
 {
-  return GetProcAddress(sharedLib->handle, function);
+  void* functionAddr = GetProcAddress(sharedLib->handle, function);
+#if _LDK_DEBUG_
+  if (!functionAddr)
+    LogWarning("Could not get address of function '%s' from module '%s'", function, sharedLib->name);
+#endif
+  return functionAddr;
 }
 
 void* memoryAlloc(size_t size)
