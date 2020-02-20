@@ -1093,8 +1093,7 @@ ldk::platform::SharedLib* loadSharedLib(char* sharedLibName)
     return nullptr;
   }
 
-  //TODO: Use custom allocation here
-  SharedLib* sharedLib = new SharedLib;
+  SharedLib* sharedLib = (SharedLib*) memoryAlloc(sizeof(SharedLib));
   sharedLib->handle = hmodule;
 #if _LDK_DEBUG_
   strncpy(sharedLib->name, sharedLibName, SharedLib::MAX_MODULE_NAME_LEN);
@@ -1118,7 +1117,7 @@ bool unloadSharedLib(ldk::platform::SharedLib* sharedLib)
     {
 
       sharedLib->handle = NULL;
-      delete sharedLib;
+      memoryFree((void*)sharedLib);
       return true;
     }
 
