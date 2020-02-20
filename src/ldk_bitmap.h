@@ -14,14 +14,14 @@
     uint16	Reserved2;				//* Always 0 */
     uint32	BitmapOffset;			//* Starting position of image data in bytes */
     uint32	Size;							//* Size of this header in bytes */
-    int32	Width;          		//* Image width in pixels */
-    int32	Height;         		//* Image height in pixels */
+    int32	  Width;          	//* Image width in pixels */
+    int32	  Height;         	//* Image height in pixels */
     uint16  Planes;       		//* Number of color planes */
     uint16  BitsPerPixel; 		//* Number of bits per pixel */
     uint32	Compression;  		//* Compression methods used */
     uint32	SizeOfBitmap; 		//* Size of bitmap in bytes */
-    int32	HorzResolution; 		//* Horizontal resolution in pixels per meter */
-    int32	VertResolution; 		//* Vertical resolution in pixels per meter */
+    int32	  HorzResolution; 	//* Horizontal resolution in pixels per meter */
+    int32	  VertResolution; 	//* Vertical resolution in pixels per meter */
     uint32	ColorsUsed;   		//* Number of colors in the image */
     uint32	ColorsImportant;	//* Minimum number of important colors */
   };

@@ -68,42 +68,42 @@ namespace ldk
   // Utility functions
   //
 
-	static void skipWhiteSpace(TextStreamReader& stream)
-	{
-		char c = stream.peek();
-		while ( c == ' ' || c == '\t' || c == '\r')
-		{
-			stream.getc();
-			c = stream.peek();
-		}
-	}
+  static void skipWhiteSpace(TextStreamReader& stream)
+  {
+    char c = stream.peek();
+    while ( c == ' ' || c == '\t' || c == '\r')
+    {
+      stream.getc();
+      c = stream.peek();
+    }
+  }
 
   static void skipComment(TextStreamReader& stream, const char delim)
-	{
-		char c = stream.peek();
+  {
+    char c = stream.peek();
 
-		if (c != delim)
-			return;
+    if (c != delim)
+      return;
 
-		while ( c != '\n')
-		{
-			stream.getc();
-			c = stream.peek();
-		}
-	}
+    while ( c != '\n')
+    {
+      stream.getc();
+      c = stream.peek();
+    }
+  }
 
-	static void skipEmptyLines(TextStreamReader& stream)
-	{
-		char c;
-		do
-		{
-			skipWhiteSpace(stream);
-			skipComment(stream, '#');
-			c = stream.getc();
-		} while (c == '\n');
+  static void skipEmptyLines(TextStreamReader& stream)
+  {
+    char c;
+    do
+    {
+      skipWhiteSpace(stream);
+      skipComment(stream, '#');
+      c = stream.getc();
+    } while (c == '\n');
 
-		if (c != EOF)
-			stream.ungetc();
-	}
+    if (c != EOF)
+      stream.ungetc();
+  }
 }
 

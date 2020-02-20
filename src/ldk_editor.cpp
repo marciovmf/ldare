@@ -81,7 +81,6 @@ bool loadGameModule(char* gameModuleName, ldk::Game* game, ldk::platform::Shared
 bool reloadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
 {
 	char* gameModuleCopyName = "_game_copy.dll";
-
 	int64 gameModuleTime = ldk::platform::getFileWriteTime(LDK_GAME_MODULE_NAME);
 
 	// new dll version ?
