@@ -522,7 +522,7 @@ void newGame()
 // LDK Callbacks
 //******************************************************************************
 
-LDKGameSettings gameInit()
+LDKGameSettings onInit()
 {
   LDKGameSettings settings;
   settings.displayWidth = 800;
@@ -535,7 +535,7 @@ LDKGameSettings gameInit()
   return settings;
 }
 
-void gameStart(void* memory)
+void onStart(void* memory)
 {
   _gameState = (GameState*)memory;
 
@@ -577,7 +577,7 @@ void gameStart(void* memory)
   newGame();
 }
 
-void gameUpdate(float deltaTime)
+void onUpdate(float deltaTime)
 {
   // gameover screen
   if (_gameState->isGameOver)
@@ -629,7 +629,7 @@ void gameUpdate(float deltaTime)
   drawGameplay();
 }
 
-void gameStop()
+void onStop()
 {
   ldk::renderer::material_destroy(_gameState->material);
   ldk::renderer::spriteBatch_finalize();
