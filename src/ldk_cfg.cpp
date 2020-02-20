@@ -4,21 +4,19 @@
 #include "ldk_heap.h"
 
 #define LogUnexpectedToken(expected, line, column)	LogError("Unexpected token '%c' at %d,%d", (expected), (line), (column));
-#define LDK_CFG_MAX_IDENTIFIER 128
-#define LDK_CFG_DEFAULT_BUFFER_SIZE 512
 #define LDK_CFG_MAX_IDENTIFIER_SIZE 63
-#define LDK_CFG_COMMENT_START_TOKEN '#'
+#define LDK_CFG_DEFAULT_BUFFER_SIZE 512
 #include "ldk_text_stream_reader.cpp"
 
 namespace ldk
 {
-	enum StatementType
+	enum CfgStatementType
 	{
 		SECTION_DECLARATION,
 		ASSIGNMENT
 	};
 
-	struct Identifier
+	struct CfgIdentifier
 	{
 		char* start;
 		uint32 length;
@@ -26,51 +24,51 @@ namespace ldk
 
 	struct SectionDeclarationStatement
 	{
-		Identifier sectionName;
+		CfgIdentifier sectionName;
 		int32 sectionOffset; // where in the final buffer, this section begins.
 	};
 
-	struct Literal
+	struct CfgLiteral
 	{
 		VariantType type;
 		bool isArray;
 		union 
 		{
-			Identifier stringValue;
+			CfgIdentifier stringValue;
 			float floatValue;
 			uint32 intValue;
 			uint8 boolValue;
 		};
 	};
 
-	struct AssignmentStatement
+	struct CfgAssignmentStatement
 	{
-		Identifier identifier;
-		Literal value;
+		CfgIdentifier identifier;
+		CfgLiteral value;
 	};
 
-	struct Statement
+	struct CfgStatement
 	{
 		char* text;
 		uint32 line;
 		uint32 column;
 		uint32 length;
-		StatementType type;
+		CfgStatementType type;
 
 		union
 		{
 			SectionDeclarationStatement sectionDeclaration;
-			AssignmentStatement assignment;
+			CfgAssignmentStatement assignment;
 		};
 
 	};
 
-	uint32 pushVariantSection(Heap& heap, Identifier& identifier);
-	int32 pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal);
-	int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, Literal& literal);
+	uint32 pushVariantSection(Heap& heap, CfgIdentifier& identifier);
+	int32 pushVariant(Heap& heap, int32 sectionOffset, CfgIdentifier& identifier, CfgLiteral& literal);
+	int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, CfgLiteral& literal);
 	void postProccessStringArrays(const VariantSectionRoot*);
 
-	static bool parseIdentifier(TextStreamReader& stream, Identifier* identifier)
+	static bool parseCfgIdentifier(TextStreamReader& stream, CfgIdentifier* identifier)
 	{
 		char* identifierText = stream.pos;
 		uint32 identifierLength = 0;
@@ -90,15 +88,13 @@ namespace ldk
 			identifier->length = identifierLength;
 
 			stream.ungetc();
-			//TODO: Make sure identifier names are 127bytes or less
-
-			if (identifierLength < 128)
+			if (identifierLength < LDK_CFG_MAX_IDENTIFIER_SIZE)
 			{
 				//strncpy((char*)&(identifier->name[0]),(const char*) identifierText, identifierLength);
 				return true;
 			}
 
-			LogError("Identifier too big at %d,%d while parsing identifier", stream.line, stream.column);
+			LogError("CfgIdentifier too big at %d,%d while parsing identifier", stream.line, stream.column);
 			return false;
 		}
 
@@ -126,7 +122,7 @@ namespace ldk
 		return false;
 	}
 
-	static bool parseNumericLiteral(TextStreamReader& stream, Literal* literal)
+	static bool parseNumericCfgLiteral(TextStreamReader& stream, CfgLiteral* literal)
 	{
 		int32 signal;
 		parseUnarySignal(stream, &signal);
@@ -168,7 +164,7 @@ namespace ldk
 		return true;
 	}
 
-	static bool identifierCompare(Identifier& identifier, const char* str)
+	static bool identifierCompare(CfgIdentifier& identifier, const char* str)
 	{
 		int32 length = strlen((char*)str);
 		if (length != identifier.length)
@@ -183,7 +179,7 @@ namespace ldk
 		return true;
 	}
 
-	static bool toBooValue(Identifier& identifier, bool* boolValue)
+	static bool toBooValue(CfgIdentifier& identifier, bool* boolValue)
 	{
 		uint32 len = identifier.length;
 
@@ -202,7 +198,7 @@ namespace ldk
 		return false;
 	}
 
-	inline bool parseStringLiteral(TextStreamReader& stream, Literal& literal)
+	inline bool parseStringCfgLiteral(TextStreamReader& stream, CfgLiteral& literal)
 	{
 		uint32 stringLen = 0;
 		char* stringStart = stream.pos+1;
@@ -241,7 +237,7 @@ namespace ldk
 
   // Parse single RValue, except Arrays. It does NOT persist the parsed value
 	static bool parseSingleRValue(Heap& parsedDataBuffer,
-			TextStreamReader& stream, Identifier& identifier, Literal& literal)
+			TextStreamReader& stream, CfgIdentifier& identifier, CfgLiteral& literal)
 	{
 
 		skipWhiteSpace(stream);
@@ -249,11 +245,11 @@ namespace ldk
 		// Bool literal
 		if (isLetter(c))
 		{
-			Identifier tempIdentifier = {};
-			if (parseIdentifier(stream, &tempIdentifier))
+			CfgIdentifier tempCfgIdentifier = {};
+			if (parseCfgIdentifier(stream, &tempCfgIdentifier))
 			{
 				bool boolValue;
-				if (toBooValue(tempIdentifier, &boolValue))
+				if (toBooValue(tempCfgIdentifier, &boolValue))
 				{
 					literal.type = VariantType::BOOL;
 					literal.boolValue = (uint8)boolValue;
@@ -261,7 +257,7 @@ namespace ldk
 				else
 				{
 					LogError("Unexpected identifier '%.*s' at %d,%d while parsing assignment", 
-							tempIdentifier.length, tempIdentifier.start, stream.line, stream.column);
+							tempCfgIdentifier.length, tempCfgIdentifier.start, stream.line, stream.column);
 					return false;
 				}
 			}
@@ -269,12 +265,12 @@ namespace ldk
 		// String literal
 		else if (c == '"')
 		{
-			parseStringLiteral(stream, literal);
+			parseStringCfgLiteral(stream, literal);
 		}
 		// Nuneric literal
 		else if (isDigit(c) || c == '+' || c == '-' || c == '.')
 		{
-			parseNumericLiteral(stream, &literal);
+			parseNumericCfgLiteral(stream, &literal);
 		}
 		else
 		{
@@ -287,7 +283,7 @@ namespace ldk
 	}
 
 	static bool parseRValue(Heap& parsedDataBuffer,
-			TextStreamReader& stream, Identifier& identifier, Literal& literal, int32 currentSectionOffset)
+			TextStreamReader& stream, CfgIdentifier& identifier, CfgLiteral& literal, int32 currentSectionOffset)
 	{
 		skipEmptyLines(stream);
 		char c = stream.peek();
@@ -363,13 +359,13 @@ namespace ldk
 	}
 
 	// parse identifier + '=' + rvalue
-	bool parseAssignment(Heap& parsedDataBuffer, TextStreamReader& stream, Statement* statement, int32 currentSectionOffset)
+	bool parseAssignment(Heap& parsedDataBuffer, TextStreamReader& stream,CfgStatement* statement, int32 currentSectionOffset)
 	{
 		char c;
-		statement->type = StatementType::ASSIGNMENT;
-		Identifier tempIdentifier = {};
+		statement->type = CfgStatementType::ASSIGNMENT;
+		CfgIdentifier tempCfgIdentifier = {};
 
-		if (parseIdentifier(stream, &statement->assignment.identifier))
+		if (parseCfgIdentifier(stream, &statement->assignment.identifier))
 		{
 			skipWhiteSpace(stream);
 			c = stream.getc();
@@ -387,20 +383,20 @@ namespace ldk
 	}
 
 	// parse [ + identifier + ]
-	static bool parseSectionDeclaration(Heap& parsedDataBuffer, TextStreamReader& stream, Statement* statement)
+	static bool parseSectionDeclaration(Heap& parsedDataBuffer, TextStreamReader& stream,CfgStatement* statement)
 	{
 		char c = stream.getc();
 
 		if (c == '[')
 		{
 			skipWhiteSpace(stream);
-			if (parseIdentifier(stream, &statement->sectionDeclaration.sectionName))
+			if (parseCfgIdentifier(stream, &statement->sectionDeclaration.sectionName))
 			{
 				skipWhiteSpace(stream);
 				c = stream.getc();
 				if ( c == ']')
 				{
-					statement->type = StatementType::SECTION_DECLARATION;
+					statement->type = CfgStatementType::SECTION_DECLARATION;
 
 					// save the section data into the final buffer
 					statement->sectionDeclaration.sectionOffset = 
@@ -415,10 +411,11 @@ namespace ldk
 		return false;
 	}
 
-	static bool parseStatement(Heap& parsedDataBuffer, TextStreamReader& stream, Statement* statement, int32 currentSectionOffset)
+	static bool parseStatement(Heap& parsedDataBuffer, TextStreamReader& stream,CfgStatement* statement, int32 currentSectionOffset)
 	{
-		skipWhiteSpace(stream);
-		skipComment(stream, LDK_CFG_COMMENT_START_TOKEN);
+    const char commentStartToken = '#';
+    skipWhiteSpace(stream);
+		skipComment(stream, commentStartToken);
 
 		*statement = {};
 		statement->line = stream.line;
@@ -435,7 +432,7 @@ namespace ldk
 
 		skipWhiteSpace(stream);
 
-		skipComment(stream, LDK_CFG_COMMENT_START_TOKEN);
+		skipComment(stream, commentStartToken);
 
 		if (success)
 		{
@@ -448,7 +445,7 @@ namespace ldk
 		return false;
 	}
 
-	static uint32 variantDataSize(Literal& literal)
+	static uint32 variantDataSize(CfgLiteral& literal)
 	{
 		// ignore the array bit
 		switch (literal.type)
@@ -472,7 +469,7 @@ namespace ldk
 	}
 
 	// Returns the offset of the section from the start of the heap
-	static uint32 pushVariantSection(Heap& heap, Identifier& identifier)
+	static uint32 pushVariantSection(Heap& heap, CfgIdentifier& identifier)
 	{
 		uint32 necessarySize = sizeof(VariantSection);
 		int32 availableSize = heap.size - heap.used;
@@ -500,7 +497,7 @@ namespace ldk
 		return offset;
 	}
 
-	static int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, Literal& literal)
+	static int32 pushVariantArrayElement(Heap& heap, int32 sectionOffset, int32 variantOffset, CfgLiteral& literal)
 	{
 	 // adds a new array element
 		uint32 necessarySize = variantDataSize(literal);
@@ -570,7 +567,7 @@ namespace ldk
 	}
 
 	// Saves a variant parsed data and returns the offset of the variant
-	static int32 pushVariant(Heap& heap, int32 sectionOffset, Identifier& identifier, Literal& literal)
+	static int32 pushVariant(Heap& heap, int32 sectionOffset, CfgIdentifier& identifier, CfgLiteral& literal)
 	{
 		uint32 necessarySize = sizeof(Variant) + variantDataSize(literal);
 
@@ -646,9 +643,9 @@ namespace ldk
 
 		// Account for the root section
 		heap.used += rootSectionOffset;
-		Identifier rootSectionIdentifier = {(char*)rootSectionName, rootSectionNameLen};
+		CfgIdentifier rootSectionCfgIdentifier = {(char*)rootSectionName, rootSectionNameLen};
 
-		return pushVariantSection(heap, rootSectionIdentifier);
+		return pushVariantSection(heap, rootSectionCfgIdentifier);
 	}
 
 	const VariantSectionRoot* configParseBuffer(void* buffer, size_t size)
@@ -659,7 +656,7 @@ namespace ldk
 
 		int32 currentSectionOffset = pushRootSection(heap);
 
-		Statement statement;
+		CfgStatement statement;
 		bool noError = true;
 
 		while (!stream.eof() && noError)
@@ -671,7 +668,7 @@ namespace ldk
 
 			if (parseStatement(heap, stream, &statement, currentSectionOffset))
 			{
-				if ( statement.type == StatementType::SECTION_DECLARATION)
+				if ( statement.type == CfgStatementType::SECTION_DECLARATION)
 				{
 					currentSectionOffset = statement.sectionDeclaration.sectionOffset;
 				}
