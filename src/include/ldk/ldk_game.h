@@ -44,7 +44,7 @@ extern "C"
   ///@returns The desired initiali game settings
   /// You can build the settings manually or load it from th game.cfg file. 
   ///@see loadGameSettings for loading this from a file
-  LDK_GAME_CALLBACK LDKGameSettings onInit();
+  LDK_GAME_CALLBACK LDKGameSettings onSetup();
 
   ///@brief Game start callback. This finction is called by the engine right
   ///after gameInit();
@@ -68,11 +68,6 @@ extern "C"
   ///whenever an event happens. Use this for handling events.
   LDK_GAME_CALLBACK bool onEvent(const ldk::Event* event);
 
-  ///@brief Game stop callback. This function is called by the engine when the
-  //game display is resized.
-  //
-  //LDK_GAME_CALLBACK void gameViewResized(uint32 width, uint32 height);
-
   namespace ldk
   {
     ///@brief This utility function loads a the GameSettings from a file called
@@ -83,7 +78,7 @@ extern "C"
 }
 /// @}
 
-#define LDK_GAME_FUNCTION_INIT "onInit"
+#define LDK_GAME_FUNCTION_SETUP "onSetup"
 #define LDK_GAME_FUNCTION_START "onStart"
 #define LDK_GAME_FUNCTION_UPDATE "onUpdate"
 #define LDK_GAME_FUNCTION_STOP "onStop"
@@ -92,7 +87,7 @@ extern "C"
 // API exposed to the game
 namespace ldk
 {
-  typedef LDKGameSettings (*LDK_PFN_GAME_INIT)();
+  typedef LDKGameSettings (*LDK_PFN_GAME_SETUP)();
   typedef void (*LDK_PFN_GAME_START)(void* memory);
   typedef void (*LDK_PFN_GAME_UPDATE)(float deltaTime);
   typedef void (*LDK_PFN_GAME_STOP)();
@@ -100,7 +95,7 @@ namespace ldk
 
   struct Game
   {
-    LDK_PFN_GAME_INIT onInit;
+    LDK_PFN_GAME_SETUP onSetup;
     LDK_PFN_GAME_START onStart;
     LDK_PFN_GAME_UPDATE onUpdate;
     LDK_PFN_GAME_STOP onStop;

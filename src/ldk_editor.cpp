@@ -61,8 +61,8 @@ bool loadGameModule(char* gameModuleName, ldk::Game* game, ldk::platform::Shared
   if (!*sharedLib)
     return false;
 
-  game->onInit = (ldk::LDK_PFN_GAME_INIT)
-    ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_INIT);
+  game->onSetup = (ldk::LDK_PFN_GAME_SETUP)
+    ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_SETUP);
   game->onStart = (ldk::LDK_PFN_GAME_START)
     ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_START);
   game->onUpdate = (ldk::LDK_PFN_GAME_UPDATE)
@@ -72,10 +72,17 @@ bool loadGameModule(char* gameModuleName, ldk::Game* game, ldk::platform::Shared
   game->onEvent = (ldk::LDK_PFN_GAME_HANDLE_EVENT)
     ldk::platform::getFunctionFromSharedLib(*sharedLib, LDK_GAME_FUNCTION_EVENT);
 
+  // OnEvent is not mandatory, give it a dummy implementation if it is not found
+  // on the game dll
   if (game->onEvent == nullptr) game->onEvent = dummy_handleEvent;
 
+  // Log error if no mandatory functions are not found on the game dll
+  if (!game->onSetup) LogError("Game dll has no required '%s' function", LDK_GAME_FUNCTION_SETUP);
+  if (!game->onStart) LogError("Game dll has no required '%s' function", LDK_GAME_FUNCTION_START);
+  if (!game->onUpdate) LogError("Game dll has no required '%s' function", LDK_GAME_FUNCTION_UPDATE);
+  if (!game->onStop) LogError("Game dll has no required '%s' function", LDK_GAME_FUNCTION_STOP);
 
-  return game->onInit && game->onStart && game->onUpdate && game->onStop;
+  return game->onSetup && game->onStart && game->onUpdate && game->onStop;
 }
 
 bool reloadGameModule(ldk::Game* game, ldk::platform::SharedLib** sharedLib)
@@ -120,7 +127,7 @@ uint32 ldkMain(uint32 argc, char** argv)
 	}
 
 	// preallocate memory for game state
-  LDKGameSettings gameSettings = _game.onInit();
+  LDKGameSettings gameSettings = _game.onSetup();
 
 	uint32 windowHints[] = { 
 		(uint32)ldk::platform::WindowHint::WIDTH,
@@ -155,6 +162,14 @@ uint32 ldkMain(uint32 argc, char** argv)
 	int64 endTime = 0;
 
   FrameTime frameTime = {};
+  ldk::Mat4 projMatrix;
+  projMatrix.orthographic(0, 800, 600, 0, -10, 10);
+  ldk::Vec4 textColor = {1.0f, 1.0f, 1.0f, 1.0f};
+  ldk::Vec4 bgColor = {.1f, .1f, .1f, 1.0f};
+  ldk::Rect viewPort = {0.0f, 0.0f, 800, 600};
+  ldk::Vec3 textPos = ldk::Vec3{10, 350, 0.0f};
+  ldk::HMaterial fontMaterial = ldk::loadMaterial("./assets/standard/Inconsolata_18.mat"); 
+  ldk::HFont font = ldk::asset_loadFont("./assets/standard/Inconsolata_18.font"); 
 
 	float gameReloadCheckTimeout = 0;
 	while (!ldk::platform::windowShouldClose(window))
@@ -173,7 +188,7 @@ uint32 ldkMain(uint32 argc, char** argv)
     if (++frameTime.frameCount == 60)
     {
 
-      float avgTime = ( frameTime.time / 60 ) * 1000;
+      float avgTime = (frameTime.time / 60) * 1000;
       if(frameTime.maxAvgTime < avgTime) frameTime.maxAvgTime = avgTime;
 
       //LogInfo("Max Avg = %fms, Avg %fms", frameTime.maxAvgTime, avgTime);
@@ -181,7 +196,20 @@ uint32 ldkMain(uint32 argc, char** argv)
       frameTime.time = frameTime.frameCount = 0;
     }
 
-		_game.onUpdate(deltaTime);
+
+
+//----------------------
+    ldk::renderer::setViewPort(viewPort);
+    ldk::renderer::clearBuffers(ldk::renderer::COLOR_BUFFER | ldk::renderer::DEPTH_BUFFER);
+    ldk::renderer::beginFrame(projMatrix);
+    ldk::renderer::spriteBatch_begin();
+    ldk::renderer::spriteBatch_drawText(fontMaterial, font, textPos,
+        "EDITOR TEXT!", 1.0f, textColor);
+    ldk::renderer::spriteBatch_end();
+    _game.onUpdate(deltaTime);
+    ldk::renderer::endFrame();
+//----------------------
+
 		ldk::platform::swapWindowBuffer(window);
 		endTime = ldk::platform::getTicks();
 

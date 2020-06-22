@@ -46,7 +46,7 @@ static struct GameState
 //******************************************************************************
 // LDK Callbacks
 //******************************************************************************
-LDKGameSettings onInit()
+LDKGameSettings onSetup()
 {
   LDKGameSettings settings;
   settings.displayWidth = DEFAULT_WINDOW_WIDTH;
@@ -72,8 +72,7 @@ void onStart(void* memory)
 
   Vec4 clearColor = Vec4{0.0f, 0.0f, 0.0f, 0.0f};
 
-  //TODO(marcio): Size in windowed mode is wrong. It is not subtracting window title bar height!
-  renderer::context_initialize(5, clearColor, 0); 
+  renderer::context_initialize(255, clearColor, 0); 
 
   _gameState->material = loadMaterial("./assets/pong.mat");
 
@@ -151,7 +150,7 @@ void draw(float deltaTime)
   
   Vec4 color = Vec4{ball.x / 800, ball.y / 600, paddleLeft.y, 1.0f};
 
-  renderer::clearBuffers(renderer::COLOR_BUFFER | renderer::DEPTH_BUFFER);
+  //renderer::clearBuffers(renderer::COLOR_BUFFER | renderer::DEPTH_BUFFER);
   renderer::beginFrame(_gameState->projMatrix);
   renderer::spriteBatch_begin();
 
