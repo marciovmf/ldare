@@ -58,8 +58,8 @@ $(LDK_GAME): game/mo/*.cpp
 	cl game\mo\game.cpp /Fo$(OUTDIR)\ /Fe$(LDK_GAME) /LD $(CFLAGS) /link /subsystem:windows /PDB:$(OUTDIR)\ldk_game_%random%.pdb $(OUTDIR)/ldk.lib
 	@xcopy game\mo\assets $(OUTDIR)\assets /Y /S /I /E /F > nul
 
-pong: $(LDK_ENGINE) game/pong/*.cpp
-	make --directory game/pong
+tof: $(LDK_ENGINE) game/tof/*.cpp
+	make --directory game/tof
 
 match3: $(LDK_ENGINE) game/match3/*.cpp
 	make --directory game/match3
